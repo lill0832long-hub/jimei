@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+venv/
+.venv/
+
+# Database
+*.db
+*.db-journal
+
+# Logs & temp
+*.log
+*.bak
+*.tmp
+*.swp
+
+# Cache
+.api_cache/
+
+# Backups
+backups/
+app/backups/
+
+# Test & temp scripts
+*_test*.py
+*_patch*.py
+*_additions*.py
+test_*.py
+
+# Docs (keep in workspace, not in repo)
+*_报告.md
+*_计划.md
+*_讨论*.md
+OPTIMIZATION_STATUS.md
+ROADMAP.md
+TECHNICAL_ARCHITECTURE.md
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Backup files
+app_v3.py
+app_v3.py.bak
