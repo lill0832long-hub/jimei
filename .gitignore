@@ -49,3 +49,4 @@ Thumbs.db
 # Backup files
 app_v3.py
 app_v3.py.bak
+database_v3.py
