@@ -45,9 +45,8 @@
 
     // ── 暗色主题 ──
     window.toggleDarkTheme = function() {
-        document.body.classList.toggle('dark');
-        var isDark = document.body.classList.contains('dark');
-        document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+        var isDark = document.body.getAttribute('data-theme') !== 'dark';
+        document.body.setAttribute('data-theme', isDark ? 'dark' : 'light');
         try { localStorage.setItem('theme', isDark ? 'dark' : 'light'); } catch(e) {}
     };
 
@@ -121,8 +120,7 @@
         // 4. 恢复主题
         try {
             if (localStorage.getItem('theme') === 'dark') {
-                document.body.classList.add('dark');
-                document.documentElement.setAttribute('data-theme', 'dark');
+                document.body.setAttribute('data-theme', 'dark');
             }
         } catch(e) {}
     });

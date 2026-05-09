@@ -31,6 +31,7 @@ from app.services.backup import start_auto_backup
 start_auto_backup()
 
 # ── 导入所有页面渲染函数 ──
+from app.config import register_page
 from app.pages.dashboard import render_dashboard
 from app.pages.journal import render_journal, render_voucher_detail, render_voucher_detail_page
 from app.pages.reports import render_accounts, render_balance_sheet, render_income_statement
@@ -59,72 +60,49 @@ from app.pages.auth import render_login
 from app.components.ui_helpers import render_header, render_sidebar
 from app.components.state import state
 
+# ── 注册页面路由表 ──
+register_page("dashboard", render_dashboard)
+register_page("journal", render_journal)
+register_page("voucher_detail", render_voucher_detail_page)
+register_page("accounts", render_accounts)
+register_page("balance_sheet", render_balance_sheet)
+register_page("income_statement", render_income_statement)
+register_page("close_period", render_close_period)
+register_page("charts", render_charts)
+register_page("compare", render_compare)
+register_page("ai_assistant", render_ai_assistant)
+register_page("import", render_import)
+register_page("export", render_export)
+register_page("fixed_assets", render_fixed_assets)
+register_page("cashier", render_cashier)
+register_page("auxiliary", render_auxiliary)
+register_page("tax", render_tax)
+register_page("cash_flow", render_cash_flow)
+register_page("budget", render_budget)
+register_page("scheduled_vouchers", render_scheduled_vouchers)
+register_page("invoices", render_invoices)
+register_page("multi_currency", render_multi_currency)
+register_page("setup_wizard", render_setup_wizard)
+register_page("voucher_template", render_voucher_template)
+register_page("account_ledger", render_account_ledger)
+register_page("bank_reconciliation", render_bank_reconciliation)
+register_page("cash_flow_statement", render_cash_flow_statement)
+register_page("audit_log", render_audit_log)
+register_page("settings", render_settings)
+
 
 def render_page():
-    """根据 state.current_page 分发到对应渲染函数"""
+    """根据 state.current_page 分发到对应渲染函数（通过路由表查找）"""
     if not state.selected_ledger_id:
         ledgers = get_ledgers()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     page = state.current_page
-    if page == "dashboard":
-        render_dashboard()
-    elif page == "journal":
-        render_journal()
-    elif page == "voucher_detail":
-        render_voucher_detail_page()
-    elif page == "accounts":
-        render_accounts()
-    elif page == "balance_sheet":
-        render_balance_sheet()
-    elif page == "income_statement":
-        render_income_statement()
-    elif page == "close_period":
-        render_close_period()
-    elif page == "charts":
-        render_charts()
-    elif page == "compare":
-        render_compare()
-    elif page == "ai_assistant":
-        render_ai_assistant()
-    elif page == "import":
-        render_import()
-    elif page == "export":
-        render_export()
-    elif page == "fixed_assets":
-        render_fixed_assets()
-    elif page == "cashier":
-        render_cashier()
-    elif page == "auxiliary":
-        render_auxiliary()
-    elif page == "tax":
-        render_tax()
-    elif page == "cash_flow":
-        render_cash_flow()
-    elif page == "budget":
-        render_budget()
-    elif page == "scheduled_vouchers":
-        render_scheduled_vouchers()
-    elif page == "invoices":
-        render_invoices()
-    elif page == "multi_currency":
-        render_multi_currency()
-    elif page == "setup_wizard":
-        render_setup_wizard()
-    elif page == "voucher_template":
-        render_voucher_template()
-    elif page == "account_ledger":
-        render_account_ledger()
-    elif page == "bank_reconciliation":
-        render_bank_reconciliation()
-    elif page == "cash_flow_statement":
-        render_cash_flow_statement()
-    elif page == "audit_log":
-        render_audit_log()
-    elif page == "settings":
-        render_settings()
+    from app.config import get_page_render
+    render_fn = get_page_render(page)
+    if render_fn:
+        render_fn()
     else:
-        # 未知页面，回退到 dashboard
         render_dashboard()
 
 

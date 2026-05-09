@@ -2,6 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast
+from app.utils.period import generate_periods, period_labels
 from database_v3 import (
     get_ledgers, get_income_statement, get_balance_sheet,
 )
@@ -17,17 +18,8 @@ def render_charts():
     lid = state.selected_ledger_id
 
     # 生成近12个月数据
-    periods = []
-    y, m = state.selected_year, state.selected_month
-    for i in range(11, -1, -1):
-        pm = m - i
-        py = y
-        while pm <= 0:
-            pm += 12
-            py -= 1
-        periods.append((py, pm))
-
-    labels = [f"{p[0]}-{p[1]:02d}" for p in periods]
+    periods = generate_periods(state.selected_year, state.selected_month, 12)
+    labels = period_labels(periods)
     revenue_data = []
     expense_data = []
     profit_data = []

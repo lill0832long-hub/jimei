@@ -2,6 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount
+from app.utils.period import generate_periods
 from database_v3 import (
     get_ledgers, get_period_compare_income, get_period_compare_balance,
 )
@@ -32,15 +33,7 @@ def render_compare():
                     ).props("dense outlined").classes("w-16")
 
     # 生成对比期间列表
-    periods = []
-    y, m = state.selected_year, state.selected_month
-    for i in range(state.compare_months - 1, -1, -1):
-        pm = m - i
-        py = y
-        while pm <= 0:
-            pm += 12
-            py -= 1
-        periods.append((py, pm))
+    periods = generate_periods(state.selected_year, state.selected_month, state.compare_months)
 
     # 利润对比
     with ui.card().classes("w-full"):

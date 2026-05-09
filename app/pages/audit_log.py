@@ -130,5 +130,5 @@ def _make_reset_handler(lid, module_sel, action_in, date_start, date_end):
         if table is not None:
             table.rows = new_rows
             table.update()
-        show_toast(f"已重置，共 {new_rows} 条", "success")
+        show_toast(f"已重置，共 {len(new_rows)} 条", "success")
     return handler

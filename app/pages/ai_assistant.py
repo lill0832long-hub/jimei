@@ -2,7 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast
-from database_v3 import generate_voucher_from_text, get_ledgers, query_db
+from database_v3 import generate_voucher_from_text, get_ledgers, query_db, get_income_statement, get_account_balances
 
 # 外部 API（可选）
 try:

@@ -164,16 +164,15 @@ def _rebuild_content():
     """重渲染主内容区（sidebar 由 JS 接管，不重渲染）"""
     if state.main_content is None:
         return
+    from app.config import get_page_render
     state.main_content.clear()
     with state.main_content:
-        import sys as _sys
-        _main_mod = _sys.modules.get('__main__')
-        if _main_mod is None:
-            raise RuntimeError('__main__ module not found')
-        _render_page = getattr(_main_mod, 'render_page', None)
-        if _render_page is None:
-            raise RuntimeError('render_page not found in __main__')
-        _render_page()
+        render_fn = get_page_render(state.current_page)
+        if render_fn:
+            render_fn()
+        else:
+            from app.pages.dashboard import render_dashboard
+            render_dashboard()
     # 通知 JS 切换 active 状态
     try:
         ui.run_javascript(f"""

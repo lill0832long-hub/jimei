@@ -388,7 +388,7 @@ body[data-theme="dark"] .sidebar-nav {
     gap: 8px;
     flex-shrink: 0;
 }
-.sidebar-logo-icon { font-size: 22px; color: #1677FF; }
+.sidebar-logo-icon { font-size: 22px; color: var(--c-primary); }
 .sidebar-logo-text {
     font-size: 15px;
     font-weight: 700;
@@ -482,12 +482,12 @@ body[data-theme="dark"] .sidebar-nav {
 /* Active 选中态 */
 .sidebar-menu-active {
     background: rgba(22,119,255,0.15) !important;
-    color: #1677FF !important;
-    border-left-color: #1677FF !important;
+    color: var(--c-primary) !important;
+    border-left-color: var(--c-primary) !important;
 }
 .sidebar-menu-active:hover {
     background: rgba(22,119,255,0.25) !important;
-    color: #1677FF !important;
+    color: var(--c-primary) !important;
 }
 .sidebar-menu-active .sidebar-menu-icon {
     opacity: 1 !important;
@@ -511,7 +511,7 @@ body[data-theme="dark"] .sidebar-nav {
     transition: color 0.15s ease;
 }
 .sidebar-collapse-btn:hover {
-    color: #1677FF !important;
+    color: var(--c-primary) !important;
 }
 
 /* 折叠态：隐藏文字、分组标题、箭头，只显示图标 */
@@ -601,10 +601,14 @@ body[data-theme="dark"] .sidebar-nav {
 .login-card {
     width: 380px;
     max-width: 90vw;
-    background: #ffffff;
+    background: var(--c-bg-card);
     border-radius: 16px;
     box-shadow: 0 8px 32px rgba(0,0,0,0.2);
     padding: 32px;
+    border: 1px solid var(--c-border);
+}
+body[data-theme="dark"] .login-card {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
 }
 .login-header {
     display: flex;
@@ -615,16 +619,16 @@ body[data-theme="dark"] .sidebar-nav {
 }
 .login-logo-icon {
     font-size: 48px;
-    color: #1677FF;
+    color: var(--c-primary);
 }
 .login-title {
     font-size: 24px;
     font-weight: 700;
-    color: #1F2937;
+    color: var(--c-text-primary);
 }
 .login-subtitle {
     font-size: 13px;
-    color: #9CA3AF;
+    color: var(--c-text-muted);
 }
 .login-body {
     display: flex;
@@ -647,11 +651,11 @@ body[data-theme="dark"] .sidebar-nav {
     gap: 4px;
     margin-top: 24px;
     padding-top: 16px;
-    border-top: 1px solid #E5E7EB;
+    border-top: 1px solid var(--c-border);
 }
 .login-hint-text {
     font-size: 12px;
-    color: #9CA3AF;
+    color: var(--c-text-muted);
 }
 
 /* ===== 手机端底部导航栏 + 抽屉菜单 ===== */
@@ -662,10 +666,14 @@ body[data-theme="dark"] .sidebar-nav {
     left: 0;
     right: 0;
     height: 56px;
-    background: #ffffff;
-    border-top: 1px solid #E5E7EB;
+    background: var(--c-bg-card);
+    border-top: 1px solid var(--c-border);
     z-index: 1000;
     padding-bottom: env(safe-area-inset-bottom);
+}
+body[data-theme="dark"] .bottom-nav {
+    background: var(--c-bg-card);
+    border-top-color: var(--c-border);
 }
 .bottom-nav-item {
     flex: 1;
@@ -675,11 +683,11 @@ body[data-theme="dark"] .sidebar-nav {
     justify-content: center;
     gap: 2px;
     font-size: 10px;
-    color: #9CA3AF;
+    color: var(--c-text-muted);
     cursor: pointer;
     transition: color 0.15s;
 }
-.bottom-nav-item.active { color: #1677FF; }
+.bottom-nav-item.active { color: var(--c-primary); }
 .bottom-nav-item .q-icon { font-size: 20px; }
 
 /* 汉堡菜单按钮 */
@@ -721,6 +729,9 @@ body[data-theme="dark"] .sidebar-nav {
     transition: left 0.3s ease;
     overflow-y: auto;
     padding-bottom: 24px;
+}
+body[data-theme="dark"] .drawer-sidebar {
+    background: #0F172A;
 }
 .drawer-sidebar.open { left: 0; }
 

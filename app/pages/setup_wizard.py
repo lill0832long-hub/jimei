@@ -4,7 +4,7 @@ from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount, navigate
 from database_v3 import (
     create_ledger, get_default_accounts,
-    import_accounts_from_template, get_ledgers,
+    import_accounts_from_template, get_ledgers, set_opening_balance,
 )
 
 def render_setup_wizard():

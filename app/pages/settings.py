@@ -102,24 +102,29 @@ def render_settings():
                           on_click=lambda: _refresh_settings_audit(lid, audit_mod_filter.value)
                           ).props("dense")
                 ui.button("🔄 刷新", on_click=lambda: _refresh_settings_audit(lid, "")).props("dense")
-            logs = get_audit_logs(lid, limit=15)
-            if not logs:
-                ui.label("暂无操作记录").classes("text-sm").style("color:var(--c-text-muted)")
-            else:
-                log_cols = [
-                    {"name": "created_at", "label": "时间", "field": "created_at", "align": "center",
-                     "headerClasses": "table-header-cell"},
-                    {"name": "operator_name", "label": "操作人", "field": "operator_name", "align": "center",
-                     "headerClasses": "table-header-cell"},
-                    {"name": "module", "label": "模块", "field": "module", "align": "center",
-                     "headerClasses": "table-header-cell"},
-                    {"name": "action", "label": "操作", "field": "action", "align": "center",
-                     "headerClasses": "table-header-cell"},
-                    {"name": "detail", "label": "详情", "field": "detail", "align": "left",
-                     "headerClasses": "table-header-cell"},
-                ]
-                ui.table(columns=log_cols, rows=logs, row_key="id",
-                         pagination=False).classes("w-full text-sm")
+            log_container = ui.column().classes("w-full")
+            def _refresh_settings_audit(lid, module_filter):
+                log_container.clear()
+                with log_container:
+                    logs = get_audit_logs(lid, limit=15, module=module_filter or None)
+                    if not logs:
+                        ui.label("暂无操作记录").classes("text-sm").style("color:var(--c-text-muted)")
+                    else:
+                        log_cols = [
+                            {"name": "created_at", "label": "时间", "field": "created_at", "align": "center",
+                             "headerClasses": "table-header-cell"},
+                            {"name": "operator_name", "label": "操作人", "field": "operator_name", "align": "center",
+                             "headerClasses": "table-header-cell"},
+                            {"name": "module", "label": "模块", "field": "module", "align": "center",
+                             "headerClasses": "table-header-cell"},
+                            {"name": "action", "label": "操作", "field": "action", "align": "center",
+                             "headerClasses": "table-header-cell"},
+                            {"name": "detail", "label": "详情", "field": "detail", "align": "left",
+                             "headerClasses": "table-header-cell"},
+                        ]
+                        ui.table(columns=log_cols, rows=logs, row_key="id",
+                                 pagination=False).classes("w-full text-sm")
+            _refresh_settings_audit(lid, audit_mod_filter.value)
 
         # ── P2-1: 用户与权限管理 ──
         with ui.card_section().classes("py-3 px-4 border-t border-grey-2"):

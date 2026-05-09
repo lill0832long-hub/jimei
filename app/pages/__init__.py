@@ -12,3 +12,15 @@ from .cashier import *
 from .auxiliary import *
 from .settings import *
 from .auth import *
+from .tax import *
+from .cash_flow import *
+from .budget import *
+from .scheduled_vouchers import *
+from .invoices import *
+from .multi_currency import *
+from .audit_log import *
+from .setup_wizard import *
+from .voucher_template import *
+from .account_ledger import *
+from .bank_reconciliation import *
+from .cash_flow_statement import *

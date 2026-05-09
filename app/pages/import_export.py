@@ -4,6 +4,7 @@ from datetime import datetime
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
+from app.utils.pdf import build_pdf
 from database_v3 import (
     get_ledgers, import_vouchers_from_excel, export_vouchers_csv,
     export_balance_sheet_csv, export_income_statement_csv, export_account_balances_csv,
@@ -341,59 +342,6 @@ def _export_journal_pdf():
     except Exception as e:
         show_toast(f"❌ PDF导出失败: {e}", "error")
 
-def _build_pdf(filepath, title, data, headers, row_fn):
-    """通用 PDF 导出（使用 reportlab）"""
-    from reportlab.lib.pagesizes import A4, landscape
-    from reportlab.lib import colors
-    from reportlab.lib.units import mm
-    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
-    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-    from reportlab.pdfbase import pdfmetrics
-    from reportlab.pdfbase.ttfonts import TTFont
-    import os
-    # 注册中文字体
-    font_paths = [
-        "/usr/share/fonts/truetype/wqy/wqy-zenhei.ttc",
-        "/usr/share/fonts/truetype/wqy/wqy-microhei.ttc",
-        "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-        "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",
-    ]
-    font_name = "Helvetica"
-    for fp in font_paths:
-        if os.path.exists(fp):
-            try:
-                pdfmetrics.registerFont(TTFont("CJK", fp))
-                font_name = "CJK"
-                break
-            except Exception:
-                pass
-    doc = SimpleDocTemplate(filepath, pagesize=landscape(A4),
-                            leftMargin=10*mm, rightMargin=10*mm,
-                            topMargin=15*mm, bottomMargin=15*mm)
-    styles = getSampleStyleSheet()
-    title_style = ParagraphStyle("title", parent=styles["Title"], fontName=font_name, fontSize=16)
-    elements = []
-    elements.append(Paragraph(title, title_style))
-    elements.append(Spacer(1, 5*mm))
-    table_data = [headers]
-    for item in data:
-        table_data.append(row_fn(item))
-    col_width = (landscape(A4)[0] - 20*mm) / len(headers)
-    table = Table(table_data, colWidths=[col_width]*len(headers), repeatRows=1)
-    table.setStyle(TableStyle([
-        ("FONTNAME", (0,0), (-1,-1), font_name),
-        ("FONTSIZE", (0,0), (-1,-1), 9),
-        ("BACKGROUND", (0,0), (-1,0), colors.HexColor("#1677FF")),
-        ("TEXTCOLOR", (0,0), (-1,0), colors.white),
-        ("ALIGN", (0,0), (-1,-1), "CENTER"),
-        ("VALIGN", (0,0), (-1,-1), "MIDDLE"),
-        ("GRID", (0,0), (-1,-1), 0.5, colors.HexColor("#E5E7EB")),
-        ("ROWBACKGROUNDS", (0,1), (-1,-1), [colors.white, colors.HexColor("#F9FAFB")]),
-        ("TOPPADDING", (0,0), (-1,-1), 4),
-        ("BOTTOMPADDING", (0,0), (-1,-1), 4),
-    ]))
-    elements.append(table)
-    doc.build(elements)
 def render_export():
     if not state.selected_ledger_id:
         ledgers = get_ledgers()
