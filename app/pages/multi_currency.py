@@ -2,7 +2,8 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import get_conn, get_ledgers
+from database_v3 import get_conn
+from app.services import LedgerService
 
 
 def _get_base_currency(ledger_id: int) -> str:
@@ -15,7 +16,7 @@ def _get_base_currency(ledger_id: int) -> str:
 def render_multi_currency():
     """多币种管理主页面"""
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
