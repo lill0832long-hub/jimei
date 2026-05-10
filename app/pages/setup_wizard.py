@@ -35,10 +35,10 @@ def render_setup_wizard():
             with content_ref[0]:
                 with ui.column().classes("items-center justify-center py-12 gap-6"):
                     with ui.element("div").style(
-                        "width:80px; height:80px; border-radius:50%; background:#e3f2fd; "
+                        "width:80px; height:80px; border-radius:50%; background:var(--c-primary-light); "
                         "display:flex; align-items:center; justify-content:center;"
                     ):
-                        ui.icon("account_balance").style("font-size:40px; color:#1976d2;")
+                        ui.icon("account_balance").style("font-size:40px; color:var(--c-primary);")
                     ui.label("欢迎使用 AI 财务系统").classes("text-2xl font-bold text-grey-8")
                     ui.label("只需几步，即可完成账套初始化").classes("text-base text-grey-5")
                     with ui.column().classes("gap-2 mt-4"):
@@ -114,7 +114,7 @@ def render_setup_wizard():
                         ui.icon("info", color="blue").classes("text-sm")
                         ui.label(f"共 {len(default_accounts)} 个预设科目").classes("text-sm text-grey-6")
 
-                    with ui.element("div").style("max-height:300px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:8px;"):
+                    with ui.element("div").style("max-height:300px; overflow-y:auto; border:1px solid var(--c-border); border-radius:8px;"):
                         cols = [
                             {"name": "code", "label": "科目编码", "field": "code", "align": "left"},
                             {"name": "name", "label": "科目名称", "field": "name", "align": "left"},
@@ -139,7 +139,7 @@ def render_setup_wizard():
 
                     balance_rows = []
 
-                    with ui.element("div").style("max-height:320px; overflow-y:auto; border:1px solid #e0e0e0; border-radius:8px;"):
+                    with ui.element("div").style("max-height:320px; overflow-y:auto; border:1px solid var(--c-border); border-radius:8px;"):
                         with ui.row().classes("gap-2 px-3 py-2 bg-grey-1 border-b border-grey-2").style("font-weight:600; font-size:13px;"):
                             ui.label("科目编码").classes("w-28")
                             ui.label("科目名称").classes("flex-1")
@@ -177,9 +177,9 @@ def render_setup_wizard():
                         ui.label(f"借方合计：¥{td:,.2f}").classes("text-sm tabular-nums")
                         ui.label(f"贷方合计：¥{tc:,.2f}").classes("text-sm tabular-nums")
                         if diff < 0.01:
-                            ui.label("✅ 试算平衡").classes("text-sm font-semibold").style("color:#4caf50;")
+                            ui.label("✅ 试算平衡").classes("text-sm font-semibold").style("color:var(--c-success);")
                         else:
-                            ui.label(f"❌ 差额：¥{diff:,.2f}").classes("text-sm font-semibold").style("color:#f44336;")
+                            ui.label(f"❌ 差额：¥{diff:,.2f}").classes("text-sm font-semibold").style("color:var(--c-danger);")
 
                     def _next_step_3():
                         for r in balance_rows:
@@ -202,10 +202,10 @@ def render_setup_wizard():
             with content_ref[0]:
                 with ui.column().classes("items-center justify-center py-12 gap-6"):
                     with ui.element("div").style(
-                        "width:80px; height:80px; border-radius:50%; background:#e8f5e9; "
+                        "width:80px; height:80px; border-radius:50%; background:var(--c-success-light); "
                         "display:flex; align-items:center; justify-content:center;"
                     ):
-                        ui.icon("check_circle").style("font-size:40px; color:#43a047;")
+                        ui.icon("check_circle").style("font-size:40px; color:var(--c-success);")
                     ui.label("账套初始化完成！").classes("text-2xl font-bold text-grey-8")
                     with ui.column().classes("gap-2 mt-2 items-center"):
                         ui.label(f"账套名称：{wizard_state['ledger_name']}").classes("text-sm text-grey-6")
@@ -265,8 +265,8 @@ def render_setup_wizard():
                 with ui.row().classes("items-center gap-1"):
                     with ui.element("div").style(
                         f"width:28px; height:28px; border-radius:50%; "
-                        f"background:{'#1976d2' if is_active else ('#4caf50' if is_done else '#e0e0e0')}; "
-                        f"color:{'#fff' if (is_active or is_done) else '#999'}; "
+                        f"background:{'var(--c-primary)' if is_active else ('var(--c-success)' if is_done else 'var(--c-border)')}; "
+                        f"color:{'#fff' if (is_active or is_done) else 'var(--c-text-muted)'}; "
                         f"display:flex; align-items:center; justify-content:center; "
                         f"font-size:13px; font-weight:600;"
                     ):
@@ -275,11 +275,11 @@ def render_setup_wizard():
                         else:
                             ui.label(str(i))
                     ui.label(label).classes("text-sm font-medium").style(
-                        f"color:{'#1976d2' if is_active else ('#4caf50' if is_done else '#999')};"
+                        f"color:{'var(--c-primary)' if is_active else ('var(--c-success)' if is_done else 'var(--c-text-muted)')};"
                     )
                 if i < len(step_labels) - 1:
                     ui.element("div").style(
-                        f"width:32px; height:2px; background:{'#4caf50' if is_done else '#e0e0e0'};"
+                        f"width:32px; height:2px; background:{'var(--c-success)' if is_done else 'var(--c-border)'};"
                     )
 
         content_wrapper = ui.column().classes("flex-1 overflow-auto")

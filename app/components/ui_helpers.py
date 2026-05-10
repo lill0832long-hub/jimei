@@ -25,7 +25,7 @@ def apply_table_style(table):
     try:
         table.props("separator=cell")
         table.classes("styled-table")
-    except:
+    except Exception:
         pass
     return table
 
@@ -49,7 +49,7 @@ def show_field_error(input_elem, message):
     try:
         input_elem.props("error")
         input_elem.props(f'title="{message}"')
-    except:
+    except Exception:
         pass
 
 def show_page_error(container, title="出错了", message="请稍后重试", retry_fn=None):
