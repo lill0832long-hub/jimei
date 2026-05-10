@@ -95,7 +95,7 @@ register_page("settings", render_settings)
 def render_page():
     """根据 state.current_page 分发到对应渲染函数（通过路由表查找）"""
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     page = state.current_page
