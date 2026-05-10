@@ -1,7 +1,8 @@
 """UI辅助函数 — Sidebar v2 重做版"""
 from nicegui import ui
 from app.components.state import state
-from database_v3 import query_db, get_ledgers
+from database_v3 import query_db, get_ledgers, search_vouchers, search_accounts_by_kw
+from app.pages.journal_list import show_voucher_detail
 
 def format_amount(value, show_currency=True):
     """统一金额格式化：¥1,234.56 或 —"""

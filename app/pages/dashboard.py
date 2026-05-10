@@ -4,11 +4,7 @@ from datetime import datetime
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount, navigate
-from database_v3 import (
-    get_ledgers, get_vouchers, get_account_balances,
-    get_balance_sheet, get_income_statement, get_period_status,
-    get_dashboard_kpi, get_monthly_trend, get_expense_breakdown,
-)
+from app.services import LedgerService, ReportService, VoucherService
 
 # 外部 API（已关闭）
 _EXTERNAL_APIS_OK = False
@@ -107,7 +103,7 @@ def _get_system_health():
 
 def render_dashboard():
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -120,9 +116,9 @@ def render_dashboard():
     if state._dashboard_cache is not None and state._dashboard_cache_key == cache_key:
         bs, inc, recent_vouchers = state._dashboard_cache
     else:
-        bs = get_balance_sheet(lid, state.selected_year, state.selected_month)
-        inc = get_income_statement(lid, state.selected_year, state.selected_month)
-        recent_vouchers = get_vouchers(lid, state.selected_year, state.selected_month, limit=8)
+        bs = ReportService.get_balance_sheet(lid, state.selected_year, state.selected_month)
+        inc = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
+        recent_vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month, limit=8)
         state._dashboard_cache = (bs, inc, recent_vouchers)
         state._dashboard_cache_key = cache_key
 
@@ -161,7 +157,7 @@ def render_dashboard():
     # ── 第一行：KPI 卡片（增强版）──
     # 获取 Dashboard KPI 数据
     try:
-        kpi = get_dashboard_kpi(lid, state.selected_year, state.selected_month)
+        kpi = ReportService.get_dashboard_kpi(lid, state.selected_year, state.selected_month)
     except Exception:
         kpi = {}
 
@@ -253,7 +249,7 @@ def render_dashboard():
                     ui.label("月度收支趋势").classes("text-sm font-semibold")
             with ui.card_section().classes("py-3 px-4"):
                 try:
-                    trend_data = get_monthly_trend(lid, 12)
+                    trend_data = ReportService.get_monthly_trend(lid, 12)
                     if trend_data:
                         months_list = [f"{m.get('year','')}-{m.get('month',''):02d}" if isinstance(m.get('month'), int) else str(m.get('month','')) for m in trend_data]
                         income_list = [float(m.get('revenue', m.get('income', 0)) or 0) for m in trend_data]
@@ -287,7 +283,7 @@ def render_dashboard():
                     ui.label("费用占比分析").classes("text-sm font-semibold")
             with ui.card_section().classes("py-3 px-4"):
                 try:
-                    expense_data = get_expense_breakdown(lid, state.selected_year, state.selected_month)
+                    expense_data = ReportService.get_expense_breakdown(lid, state.selected_year, state.selected_month)
                     if expense_data:
                         pie_option = {
                             "tooltip": {"trigger": "item", "formatter": "{b}: ¥{c} ({d}%)"},

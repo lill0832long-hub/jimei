@@ -2,17 +2,13 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import (
-    get_budgets, set_budget, get_budget_execution, get_budget_summary,
-    get_accounts,
-)
+from app.services import BudgetService, AccountService, LedgerService
 
 
 def render_budget():
     """预算管理主页面"""
     if not state.selected_ledger_id:
-        from database_v3 import get_ledgers
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -20,7 +16,7 @@ def render_budget():
         return
 
     year, month = state.selected_year, state.selected_month
-    summary = get_budget_summary(lid, year, month)
+    summary = BudgetService.get_summary(lid, year, month)
 
     # ── 顶部：预算汇总卡片 ──
     with ui.row().classes("w-full gap-3"):
@@ -61,7 +57,7 @@ def render_budget():
                     ui.label("📝 预算编制").classes("text-sm font-semibold")
                     ui.button("➕ 添加预算科目", color="primary", on_click=lambda: _show_add_budget_dialog(lid, year, month)).props("dense")
 
-            budgets = get_budgets(lid, year, month)
+            budgets = BudgetService.get_all(lid, year, month)
             if budgets:
                 cols = [
                     {"name":"account","label":"科目","field":"account_name","align":"left","headerClasses":"table-header-cell text-uppercase"},
@@ -79,7 +75,7 @@ def render_budget():
             with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
                 ui.label("📊 执行追踪").classes("text-sm font-semibold")
 
-            execution = get_budget_execution(lid, year, month)
+            execution = BudgetService.get_execution(lid, year, month)
             if execution:
                 cols = [
                     {"name":"account","label":"科目","field":"account_name","align":"left","headerClasses":"table-header-cell text-uppercase"},
@@ -108,7 +104,7 @@ def render_budget():
 def _show_add_budget_dialog(ledger_id: int, year: int, month: int):
     """添加预算科目对话框"""
     d = ui.dialog()
-    accounts = get_accounts()
+    accounts = AccountService.get_all()
     account_options = {f"{a['code']} {a['name']}": a for a in accounts}
 
     with d, ui.card().classes("w-[480px]"):
@@ -145,7 +141,7 @@ def _do_save_budget(d, ledger_id, year, month, account, amount, desc):
         show_toast("请输入预算金额", "warning")
         return
     try:
-        set_budget(ledger_id, account["code"], account["name"], year, month, amount, desc)
+        BudgetService.set(ledger_id, account["code"], account["name"], year, month, amount, desc)
         show_toast(f"✅ {account['name']} 预算已设置", "success")
         d.close()
         refresh_main()

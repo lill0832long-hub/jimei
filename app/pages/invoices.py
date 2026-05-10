@@ -2,24 +2,20 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import (
-    get_invoices, add_invoice, link_invoice_voucher, get_invoice_vouchers,
-    get_invoice_summary, ocr_recognize_invoice,
-)
+from app.services import ReportService, LedgerService
 
 
 def render_invoices():
     """发票管理主页面"""
     if not state.selected_ledger_id:
-        from database_v3 import get_ledgers
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
     if not lid:
         return
 
-    summary = get_invoice_summary(lid)
+    summary = ReportService.get_invoice_summary(lid)
 
     # ── 顶部：发票汇总卡片 ──
     with ui.row().classes("w-full gap-3"):
@@ -71,7 +67,7 @@ def render_invoices():
 
 def _render_invoice_table(ledger_id: int, invoice_type: str = None, status: str = None):
     """渲染发票表格"""
-    invoices = get_invoices(ledger_id, invoice_type=invoice_type, status=status)
+    invoices = ReportService.get_invoices(ledger_id, invoice_type=invoice_type, status=status)
     if not invoices:
         with ui.card_section():
             ui.label("暂无发票数据").classes("text-sm py-4 text-center").style("color:var(--c-text-muted)")
@@ -139,7 +135,7 @@ def _do_add_invoice(d, ledger_id, inv_type, inv_no, inv_date, seller, seller_tax
         show_toast("请输入发票号码", "warning")
         return
     try:
-        add_invoice(ledger_id, inv_type, inv_no,
+        ReportService.add_invoice(ledger_id, inv_type, inv_no,
                     invoice_date=inv_date or None, seller_name=seller or "",
                     seller_tax_no=seller_tax or "", total_amount=amount,
                     tax_amount=tax, total_with_tax=total, remark=remark)
@@ -174,7 +170,7 @@ def _show_ocr_dialog(ledger_id: int):
 
 def _do_ocr_upload(d, ledger_id, upload_event):
     """处理OCR上传（预留）"""
-    result = ocr_recognize_invoice(upload_event.name)
+    result = ReportService.ocr_recognize_invoice(upload_event.name)
     if result.get("status") == "mock":
         show_toast(f"📷 {result['message']}", "info")
     else:

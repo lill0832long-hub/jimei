@@ -2,11 +2,8 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import (
-    get_conn, get_accounts, get_vouchers, get_voucher_templates,
-    create_voucher, update_voucher, check_budget_exceeded,
-    search_voucher_history_v2, get_avg_amount_for_account,
-)
+from database_v3 import get_conn, get_ledgers
+from app.services import AccountService, VoucherService
 
 
 def _generate_voucher_no(lid, voucher_type="记"):
@@ -14,7 +11,7 @@ def _generate_voucher_no(lid, voucher_type="记"):
     from datetime import datetime as _dt
     prefix = f"{voucher_type}-{_dt.now().strftime('%Y%m')}-"
     try:
-        existing = get_vouchers(lid, _dt.now().year, _dt.now().month, limit=200)
+        existing = VoucherService.get_all(lid, _dt.now().year, _dt.now().month, limit=200)
         max_seq = 0
         for v in existing:
             vn = v.get("voucher_no", "")
@@ -33,7 +30,6 @@ def _generate_voucher_no(lid, voucher_type="记"):
 def show_new_voucher_dialog():
     """新增凭证对话框"""
     if not state.selected_ledger_id:
-        from database_v3 import get_ledgers
         ledgers = get_ledgers()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
@@ -62,7 +58,7 @@ def _render_voucher_form_dialog(detail=None):
         # 凭证模板快捷选择
         if not is_edit:
             try:
-                _templates = get_voucher_templates(state.selected_ledger_id) if state.selected_ledger_id else []
+                _templates = VoucherService.get_templates(state.selected_ledger_id) if state.selected_ledger_id else []
             except Exception:
                 _templates = []
             if _templates:
@@ -106,7 +102,7 @@ def _render_voucher_form_dialog(detail=None):
             if not is_edit:
                 save_draft = ui.checkbox("保存为草稿", value=False)
 
-        acct_opts = {a["code"]: f"{a['code']} {a['name']}" for a in get_accounts()}
+        acct_opts = {a["code"]: f"{a['code']} {a['name']}" for a in AccountService.get_all()}
 
         with ui.card_section():
             ui.label("分录明细").classes("text-xs font-semibold uppercase tracking-wide mb-2").style("color:var(--c-text-secondary)")
@@ -152,7 +148,7 @@ def _render_voucher_form_dialog(detail=None):
 def _add_row(entries_col, row_refs, acct_code="1002", summary="", debit=0, credit=0, foreign_ccy="", foreign_amount=0, exchange_rate=1):
     """创建一行分录，带智能联想功能"""
     from app.components.state import state
-    from database_v3 import get_accounts, search_voucher_history_v2, get_avg_amount_for_account
+    from app.services import AccountService, VoucherService
     from app.components.ui_helpers import show_toast
 
     suggest_label = ui.label("").classes("text-xs text-blue-600 mt-0.5 mb-0 w-full").style("min-height:16px;transition:all 0.2s")
@@ -169,7 +165,7 @@ def _add_row(entries_col, row_refs, acct_code="1002", summary="", debit=0, credi
                     ui.button("填充", color="primary", on_click=None).props("dense size=sm").classes("px-2")
 
             with ui.row().classes("items-center gap-2 w-full") as row_el:
-                acct_opts = {a["code"]: f"{a['code']} {a['name']}" for a in get_accounts()}
+                acct_opts = {a["code"]: f"{a['code']} {a['name']}" for a in AccountService.get_all()}
                 sel = ui.select(options=acct_opts, value=acct_code, label="科目").props("outlined dense").classes("w-56")
                 summ = ui.input("摘要", value=summary).props("outlined dense").classes("flex-grow")
                 dr = ui.number("借方", value=debit, precision=2).props("outlined dense").classes("w-28")
@@ -202,7 +198,7 @@ def _add_row(entries_col, row_refs, acct_code="1002", summary="", debit=0, credi
                 lid = state.selected_ledger_id
                 if not lid:
                     return
-                results = search_voucher_history_v2(lid, kw, limit=5)
+                results = VoucherService.search_history(lid, keyword=kw, limit=5)
                 if not results:
                     row_ref["suggest_box"].style("display:none")
                     return
@@ -235,11 +231,11 @@ def _add_row(entries_col, row_refs, acct_code="1002", summary="", debit=0, credi
                 lid = state.selected_ledger_id
                 if not lid:
                     return
-                avg = get_avg_amount_for_account(lid, code, months=3)
+                avg = VoucherService.get_avg_amount(lid, code)
                 if avg and avg > 0:
                     row_ref["suggest_box"].style("display:flex")
                     row_ref["suggest_info"].text = f"💰 近3月平均: ¥{avg:,.2f}"
-                    acct_info = next((a for a in get_accounts() if a["code"] == code), None)
+                    acct_info = next((a for a in AccountService.get_all() if a["code"] == code), None)
                     if acct_info:
                         cat = acct_info.get("category", "")
                         if cat in ("资产", "费用", "成本"):
@@ -262,7 +258,7 @@ def _add_row(entries_col, row_refs, acct_code="1002", summary="", debit=0, credi
 
 def _do_save(d, lid, date_input, desc_input, save_draft, row_entries):
     """保存新凭证"""
-    from database_v3 import create_voucher, check_budget_exceeded
+    from app.services import VoucherService
     from app.components.state import state
     from app.components.ui_helpers import show_toast, refresh_main
 
@@ -284,7 +280,7 @@ def _do_save(d, lid, date_input, desc_input, save_draft, row_entries):
         over_budget_items = []
         for entry in voucher_entries:
             if entry["debit"] > 0:
-                result = check_budget_exceeded(lid, entry["account_code"], chk_year, chk_month, entry["debit"])
+                result = VoucherService.check_budget_exceeded(lid, entry["account_code"], entry["debit"])
                 if result["has_budget"] and result["exceeded"]:
                     over_budget_items.append({
                         "account": f"{entry['account_code']} {entry['account_name']}",
@@ -312,8 +308,8 @@ def _do_save(d, lid, date_input, desc_input, save_draft, row_entries):
 
     try:
         status = "draft" if save_draft.value else "posted"
-        vn = create_voucher(lid, date_input.value or f"{state.selected_year}-{state.selected_month:02d}-01",
-                            desc_input.value or "无摘要", voucher_entries, status=status)
+        vn = VoucherService.create(lid, date_input.value or f"{state.selected_year}-{state.selected_month:02d}-01",
+                                   desc_input.value or "无摘要", voucher_entries, status=status)
         show_toast(f"✅ 凭证 {vn} 保存成功" + ("（草稿）" if status == "draft" else ""), "success")
         d.close()
         state.selected_voucher_no = vn
@@ -324,12 +320,12 @@ def _do_save(d, lid, date_input, desc_input, save_draft, row_entries):
 
 def _force_save(d, confirm_d, lid, date_input, desc_input, voucher_entries):
     """强制保存（忽略预算预警）"""
-    from database_v3 import create_voucher
+    from app.services import VoucherService
     from app.components.state import state
     from app.components.ui_helpers import show_toast, refresh_main
     try:
-        vn = create_voucher(lid, date_input.value or f"{state.selected_year}-{state.selected_month:02d}-01",
-                            desc_input.value or "无摘要", voucher_entries, status="posted")
+        vn = VoucherService.create(lid, date_input.value or f"{state.selected_year}-{state.selected_month:02d}-01",
+                                   desc_input.value or "无摘要", voucher_entries, status="posted")
         show_toast(f"✅ 凭证 {vn} 已强制保存", "warning")
         confirm_d.close()
         d.close()
@@ -341,11 +337,11 @@ def _force_save(d, confirm_d, lid, date_input, desc_input, voucher_entries):
 
 def _do_edit(d, voucher_no, date_str, desc, entry_rows):
     """保存编辑后的凭证"""
-    from database_v3 import update_voucher
+    from app.services import VoucherService
     from app.components.ui_helpers import show_toast, refresh_main
     entries = _collect_entries(entry_rows)
     try:
-        update_voucher(voucher_no, date_str=date_str, description=desc, entries=entries)
+        VoucherService.update(voucher_no, date_str=date_str, description=desc, entries=entries)
         show_toast("✅ 凭证已更新", "success")
         d.close()
         refresh_main()
@@ -355,7 +351,7 @@ def _do_edit(d, voucher_no, date_str, desc, entry_rows):
 
 def _collect_entries(row_refs):
     """从行引用中收集凭证分录"""
-    from database_v3 import get_accounts
+    from app.services import AccountService
     voucher_entries = []
     for r in row_refs:
         dr = r["debit"].value or 0
@@ -365,7 +361,7 @@ def _collect_entries(row_refs):
         code = r["acct"].value
         if not code:
             continue
-        name = next((a["name"] for a in get_accounts() if a["code"] == code), code)
+        name = next((a["name"] for a in AccountService.get_all() if a["code"] == code), code)
         entry = {"account_code": code, "account_name": name, "debit": dr, "credit": cr, "summary": r["summary"].value or ""}
         fcc = r.get("foreign_ccy")
         famt = r.get("foreign_amount")

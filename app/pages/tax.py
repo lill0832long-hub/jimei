@@ -2,17 +2,13 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import (
-    get_tax_config, set_tax_config, get_tax_rates, add_tax_rate,
-    get_tax_summary, get_tax_detail, get_accounts,
-)
+from app.services import TaxService, AccountService, LedgerService
 
 
 def render_tax():
     """增值税管理主页面"""
     if not state.selected_ledger_id:
-        from database_v3 import get_ledgers
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -29,7 +25,7 @@ def render_tax():
                     ui.label("🧾 纳税人信息").classes("text-sm font-semibold")
                     ui.button("保存", color="primary", on_click=lambda: _save_tax_config(lid, tp_type.value, tp_rate.value)).props("dense")
             with ui.card_section().classes("py-2 px-3"):
-                config = get_tax_config(lid)
+                config = TaxService.get_config(lid)
                 with ui.row().classes("gap-3"):
                     tp_type = ui.select(
                         options=[("general","一般纳税人"),("small","小规模纳税人")],
@@ -46,7 +42,7 @@ def render_tax():
                     ui.label("📊 税率设置").classes("text-sm font-semibold")
                     ui.button("➕ 添加", color="blue", on_click=lambda: _show_add_rate_dialog(lid)).props("dense")
             with ui.card_section().classes("py-2 px-3"):
-                rates = get_tax_rates(lid)
+                rates = TaxService.get_rates(lid)
                 if rates:
                     with ui.row().classes("gap-2 flex-wrap"):
                         for r in rates:
@@ -59,7 +55,7 @@ def render_tax():
                     ui.label("暂无税率，点击「添加」设置常用税率").classes("text-xs").style("color:var(--c-text-muted)")
 
     # ── 中部：增值税汇总 + 申报表 ──
-    summary = get_tax_summary(lid, year, month)
+    summary = TaxService.get_summary(lid, year, month)
 
     with ui.row().classes("w-full gap-3 mt-1"):
         # 进项/销项/应纳税额 卡片
@@ -112,7 +108,7 @@ def render_tax():
 
 def _render_tax_detail(ledger_id: int, year: int, month: int, tax_type: str):
     """渲染税额明细表格"""
-    details = get_tax_detail(ledger_id, year, month, tax_type)
+    details = TaxService.get_detail(ledger_id, year, month, tax_type)
     if not details:
         with ui.card_section():
             ui.label("暂无数据").classes("text-sm py-4 text-center").style("color:var(--c-text-muted)")
@@ -143,7 +139,7 @@ def _render_tax_detail(ledger_id: int, year: int, month: int, tax_type: str):
 
 def _save_tax_config(ledger_id, taxpayer_type, default_rate):
     try:
-        set_tax_config(ledger_id, taxpayer_type, float(default_rate or 0.13))
+        TaxService.set_config(ledger_id, taxpayer_type, float(default_rate or 0.13))
         show_toast("✅ 增值税配置已保存", "success")
         refresh_main()
     except Exception as e:
@@ -172,7 +168,7 @@ def _do_add_rate(d, ledger_id, name, rate, desc):
         show_toast("请输入税率名称", "warning")
         return
     try:
-        add_tax_rate(ledger_id, float(rate or 0), name, desc)
+        TaxService.add_rate(ledger_id, float(rate or 0), name, desc)
         show_toast(f"✅ 税率 {name} 添加成功", "success")
         d.close()
         refresh_main()

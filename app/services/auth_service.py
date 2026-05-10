@@ -1,7 +1,8 @@
-"""认证服务层 — 封装 database_v3 的用户认证相关操作"""
+"""认证服务层 — 封装 database_v3 的用户认证/审计日志相关操作"""
 from database_v3 import (
     hash_password, verify_password, create_user, authenticate,
-    get_users, update_user, delete_user, change_password, check_permission
+    get_users, update_user, delete_user, change_password, check_permission,
+    get_audit_logs,
 )
 
 
@@ -43,3 +44,7 @@ class AuthService:
     @staticmethod
     def check_permission(user, permission):
         return check_permission(user, permission)
+
+    @staticmethod
+    def get_audit_logs(ledger_id, limit=50, module=None, action=None, start_date=None, end_date=None):
+        return get_audit_logs(ledger_id, limit=limit, module=module, action=action, start_date=start_date, end_date=end_date)

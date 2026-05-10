@@ -2,15 +2,13 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import (
-    get_ledgers, create_ledger, set_opening_balance, add_account,
-    get_users, create_user, update_user, delete_user, change_password, get_accounts,
-    get_audit_logs,
-)
+from app.services.ledger_service import LedgerService
+from app.services.account_service import AccountService
+from app.services.auth_service import AuthService
 
 def render_settings():
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -28,7 +26,7 @@ def render_settings():
                     with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
                         ui.label("📁 账套管理").classes("text-sm font-semibold")
                     with ui.card_section().classes("py-2 px-3"):
-                        ledgers = get_ledgers()
+                        ledgers = LedgerService.get_all()
                         if ledgers:
                             for lg in ledgers:
                                 with ui.row().classes("items-center justify-between py-1 border-b border-grey-1"):
@@ -106,7 +104,7 @@ def render_settings():
             def _refresh_settings_audit(lid, module_filter):
                 log_container.clear()
                 with log_container:
-                    logs = get_audit_logs(lid, limit=15, module=module_filter or None)
+                    logs = AuthService.get_audit_logs(lid, limit=15, module=module_filter or None)
                     if not logs:
                         ui.label("暂无操作记录").classes("text-sm").style("color:var(--c-text-muted)")
                     else:
@@ -130,7 +128,7 @@ def render_settings():
         with ui.card_section().classes("py-3 px-4 border-t border-grey-2"):
             ui.label("👥 用户与权限").classes("text-sm font-semibold mb-2")
             role_labels = {"admin":"管理员","accountant":"制单人","reviewer":"审核人","poster":"过账人","viewer":"查看者"}
-            users = get_users()
+            users = AuthService.get_all()
             user_cols = [
                 {"name":"username","label":"用户名","field":"username","align":"left","headerClasses":"table-header-cell text-uppercase"},
                 {"name":"role","label":"角色","field":"role","align":"center","headerClasses":"table-header-cell text-uppercase"},
@@ -171,7 +169,7 @@ def _do_add_user(d, username, password, role, ledger_id):
         show_toast("请填写用户名和密码", "warning")
         return
     try:
-        create_user(username, password, role=role, ledger_id=ledger_id)
+        AuthService.create(username, password, role=role, ledger_id=ledger_id)
         show_toast(f"✅ 用户 {username} 创建成功", "success")
         d.close()
         refresh_main()
@@ -198,7 +196,7 @@ def do_create_ledger(d, name, company):
     if not name:
         show_toast("请输入账套名称", "warning")
         return
-    lid = create_ledger(name, company or "默认公司")
+    lid = LedgerService.create(name, company or "默认公司")
     state.selected_ledger_id = lid
     show_toast(f"✅ 账套 {name} 创建成功", "success")
     d.close()
@@ -206,8 +204,8 @@ def do_create_ledger(d, name, company):
 
 
 def do_set_opening_balance(lid, code, year, month, balance):
-    set_opening_balance(lid, code, year, month, balance or 0)
-    acct_name = next((a["name"] for a in get_accounts() if a["code"] == code), code)
+    LedgerService.set_opening_balance(lid, code, year, month, balance or 0)
+    acct_name = next((a["name"] for a in AccountService.get_all(lid) if a["code"] == code), code)
     show_toast(f"✅ {acct_name} 期初余额已设置：¥{(balance or 0):,.2f}", "success")
     refresh_main()
 
@@ -217,7 +215,8 @@ def do_add_account(code, name, category):
         show_toast("请填写科目代码和名称", "warning")
         return
     try:
-        add_account(code, name, category)
+        lid = state.selected_ledger_id
+        AccountService.add(lid, code, name, category)
         show_toast(f"✅ 科目 {code} {name} 添加成功", "success")
         refresh_main()
     except Exception as e:

@@ -3,6 +3,9 @@ from .ledger_service import LedgerService
 from .voucher_service import VoucherService
 from .report_service import ReportService
 from .auth_service import AuthService
+from .account_service import AccountService
+from .budget_service import BudgetService
+from .tax_service import TaxService
 from .backup import start_auto_backup
 
 __all__ = [
@@ -10,5 +13,8 @@ __all__ = [
     "VoucherService",
     "ReportService",
     "AuthService",
+    "AccountService",
+    "BudgetService",
+    "TaxService",
     "start_auto_backup",
 ]

@@ -187,7 +187,7 @@ def render_ai_assistant():
                     ui.label("💬 自然语言查询").classes("text-sm font-semibold")
                 with ui.card_section().classes("py-2 px-3"):
                     nl_input = ui.input("问财务问题", placeholder="例：上月利润是多少？银行存款余额？").props("outlined dense").classes("w-full")
-                    nl_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[60px] whitespace-pre-wrap").style("color:var(--c-bg-hover)")
+                    nl_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[60px] whitespace-pre-wrap").style("color:var(--c-text-secondary)")
                     ui.button("🔍 查询", color="teal", on_click=lambda: _do_nl_query(nl_input.value, nl_result)).props("dense").classes("w-full mt-1")
 
             # ── P1-5: 财务知识问答 ──
@@ -196,7 +196,7 @@ def render_ai_assistant():
                     ui.label("📚 财务知识库").classes("text-sm font-semibold")
                 with ui.card_section().classes("py-2 px-3"):
                     kb_input = ui.input("搜索知识", placeholder="例：什么是借贷记账法？").props("outlined dense").classes("w-full")
-                    kb_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[80px] whitespace-pre-wrap").style("color:var(--c-bg-hover)").style("color:var(--c-text-secondary)")
+                    kb_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[80px] whitespace-pre-wrap").style("color:var(--c-text-secondary)")
                     ui.button("📖 查询", color="purple", on_click=lambda: _do_kb_query(kb_input.value, kb_result)).props("dense").classes("w-full mt-1")
 
         with ui.column().classes("w-1/2 gap-2"):
@@ -254,7 +254,7 @@ def render_ai_assistant():
                         ui.label("💬 自然语言查询").classes("text-sm font-semibold")
                 with ui.card_section().classes("py-2 px-3"):
                     nl_input = ui.input("问财务问题", placeholder="例：上月利润是多少？银行存款余额？").props("outlined dense").classes("w-full")
-                    nl_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[40px]").style("color:var(--c-bg-hover)")
+                    nl_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[40px]").style("color:var(--c-text-secondary)")
                     ui.button("🔍 查询", color="purple", on_click=lambda: _do_nl_query(nl_input.value, nl_result)).props("dense").classes("w-full mt-1")
 
             # 财务知识问答
@@ -265,7 +265,7 @@ def render_ai_assistant():
                         ui.label("📚 财务知识库").classes("text-sm font-semibold")
                 with ui.card_section().classes("py-2 px-3"):
                     kb_input = ui.input("搜索知识", placeholder="例：什么是借贷记账法？").props("outlined dense").classes("w-full")
-                    kb_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[40px]").style("color:var(--c-bg-hover)")
+                    kb_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[40px]").style("color:var(--c-text-secondary)")
                     ui.button("📖 搜索", color="green", on_click=lambda: _do_kb_query(kb_input.value, kb_result)).props("dense").classes("w-full mt-1")
 
 
@@ -411,7 +411,3 @@ def _do_kb_query(query_text, result_label):
             result_label.text = f"📖 {topic}\n{FINANCIAL_KNOWLEDGE.get(topic, '暂无相关信息')}"
             return
     result_label.text = "未找到相关知识，请尝试其他关键词：借贷记账法、资产负债表、利润表、增值税、折旧等"
-
-
-# ===== 5. 系统设置 =====
-
