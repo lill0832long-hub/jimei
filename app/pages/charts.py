@@ -47,9 +47,9 @@ def render_charts():
                 "xAxis": {"type": "category", "data": labels, "axisLabel": {"rotate": 45}},
                 "yAxis": {"type": "value"},
                 "series": [
-                    {"name": "收入", "type": "bar", "data": revenue_data, "itemStyle": {"color": "#4caf50"}},
-                    {"name": "费用", "type": "bar", "data": expense_data, "itemStyle": {"color": "#f44336"}},
-                    {"name": "净利润", "type": "line", "data": profit_data, "itemStyle": {"color": "#2196f3"},
+                    {"name": "收入", "type": "bar", "data": revenue_data, "itemStyle": {"color": "var(--c-success)"}},
+                    {"name": "费用", "type": "bar", "data": expense_data, "itemStyle": {"color": "var(--c-danger)"}},
+                    {"name": "净利润", "type": "line", "data": profit_data, "itemStyle": {"color": "var(--c-primary)"},
                      "lineStyle": {"width": 3}, "symbol": "circle", "symbolSize": 6},
                 ],
             }).classes("w-full h-80")
@@ -66,9 +66,9 @@ def render_charts():
                 "xAxis": {"type": "category", "data": labels, "axisLabel": {"rotate": 45}},
                 "yAxis": {"type": "value"},
                 "series": [
-                    {"name": "资产", "type": "line", "data": asset_data, "itemStyle": {"color": "#4caf50"},
+                    {"name": "资产", "type": "line", "data": asset_data, "itemStyle": {"color": "var(--c-success)"},
                      "areaStyle": {"opacity": 0.1}, "lineStyle": {"width": 2}},
-                    {"name": "负债", "type": "line", "data": liability_data, "itemStyle": {"color": "#f44336"},
+                    {"name": "负债", "type": "line", "data": liability_data, "itemStyle": {"color": "var(--c-danger)"},
                      "areaStyle": {"opacity": 0.1}, "lineStyle": {"width": 2}},
                 ],
             }).classes("w-full h-80")
@@ -133,20 +133,20 @@ def render_charts():
                 cumulative = 0
                 for md in months_data:
                     if md["month"] == "1月":
-                        waterfall_vals.append({"value": md["revenue"], "itemStyle": {"color": "#4caf50"}})
+                        waterfall_vals.append({"value": md["revenue"], "itemStyle": {"color": "var(--c-success)"}})
                         cumulative = md["revenue"]
                     else:
-                        waterfall_vals.append({"value": md["revenue"], "itemStyle": {"color": "#81c784"}})
+                        waterfall_vals.append({"value": md["revenue"], "itemStyle": {"color": "var(--c-success)"}})
                         cumulative += md["revenue"]
-                    waterfall_vals.append({"value": -md["expense"], "itemStyle": {"color": "#e57373"}})
+                    waterfall_vals.append({"value": -md["expense"], "itemStyle": {"color": "var(--c-danger)"}})
                     cumulative -= md["expense"]
                 ui.echart({
                     "tooltip": {"trigger": "axis"},
                     "xAxis": {"type": "category", "data": [md["month"] + "\n收入" for md in months_data] + [md["month"] + "\n支出" for md in months_data]},
                     "yAxis": {"type": "value"},
                     "series": [
-                        {"type": "bar", "stack": "cf", "data": [d["revenue"] for d in months_data] + [0]*12, "itemStyle": {"color": "#4caf50"}},
-                        {"type": "bar", "stack": "cf", "data": [0]*12 + [-d["expense"] for d in months_data], "itemStyle": {"color": "#f44336"}},
+                        {"type": "bar", "stack": "cf", "data": [d["revenue"] for d in months_data] + [0]*12, "itemStyle": {"color": "var(--c-success)"}},
+                        {"type": "bar", "stack": "cf", "data": [0]*12 + [-d["expense"] for d in months_data], "itemStyle": {"color": "var(--c-danger)"}},
                     ]
                 }).classes("w-full h-80")
             except Exception as e:

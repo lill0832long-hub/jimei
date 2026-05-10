@@ -250,7 +250,7 @@ def render_ai_assistant():
             with ui.card().classes("w-full"):
                 with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
                     with ui.row().classes("items-center gap-2"):
-                        ui.icon("chat").style("color:#7C3AED")
+                        ui.icon("chat").style("color:var(--c-primary)")
                         ui.label("💬 自然语言查询").classes("text-sm font-semibold")
                 with ui.card_section().classes("py-2 px-3"):
                     nl_input = ui.input("问财务问题", placeholder="例：上月利润是多少？银行存款余额？").props("outlined dense").classes("w-full")

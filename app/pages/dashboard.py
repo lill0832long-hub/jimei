@@ -265,8 +265,8 @@ def render_dashboard():
                             "xAxis": {"type": "category", "data": months_list, "axisLabel": {"fontSize": 11}},
                             "yAxis": {"type": "value", "axisLabel": {"fontSize": 11, "formatter": "¥{value}"}},
                             "series": [
-                                {"name": "收入", "type": "line", "smooth": True, "data": income_list, "itemStyle": {"color": "#43a047"}, "areaStyle": {"opacity": 0.1}},
-                                {"name": "费用", "type": "line", "smooth": True, "data": expense_list, "itemStyle": {"color": "#e53935"}, "areaStyle": {"opacity": 0.1}},
+                                {"name": "收入", "type": "line", "smooth": True, "data": income_list, "itemStyle": {"color": "var(--c-success)"}, "areaStyle": {"opacity": 0.1}},
+                                {"name": "费用", "type": "line", "smooth": True, "data": expense_list, "itemStyle": {"color": "var(--c-danger)"}, "areaStyle": {"opacity": 0.1}},
                             ]
                         }
                         ui.chart(trend_option).classes("h-64 w-full")
@@ -332,14 +332,14 @@ def render_dashboard():
                         ui.icon("storage").classes("text-blue-7")
                         ui.label("系统状态").classes("text-sm font-semibold")
                         ui.label("● " + ("正常" if _overall == "healthy" else "警告")).classes("text-xs font-semibold ml-auto").style(
-                            "color: #4caf50;" if _overall == "healthy" else "color: #ff9800;"
+                            "color: var(--c-success);" if _overall == "healthy" else "color: var(--c-warning);"
                         )
                 with ui.card_section().classes("py-2 px-3"):
                     with ui.column().classes("gap-1.5"):
                         with ui.row().classes("items-center justify-between"):
                             ui.label("数据库").classes("text-xs text-grey-5")
                             ui.label("✅ 正常" if _db_ok else "❌ 异常").classes("text-xs font-semibold").style(
-                                "color: #4caf50;" if _db_ok else "color: #f44336;"
+                                "color: var(--c-success);" if _db_ok else "color: var(--c-danger);"
                             )
                         with ui.row().classes("items-center justify-between"):
                             ui.label("凭证/分录").classes("text-xs text-grey-5")
@@ -367,7 +367,7 @@ def render_dashboard():
                         with ui.row().classes("items-center justify-between"):
                             ui.label("状态").classes("text-xs text-grey-5")
                             ui.label("✅ " + str(_bk.get("last_status","--")) if _bk_ok else "⚠️ " + str(_bk.get("last_status","--"))).classes("text-xs font-semibold").style(
-                                "color: #4caf50;" if _bk_ok else "color: #ff9800;"
+                                "color: var(--c-success);" if _bk_ok else "color: var(--c-warning);"
                             )
 
             # 磁盘空间
@@ -381,16 +381,16 @@ def render_dashboard():
                         with ui.row().classes("items-center justify-between"):
                             ui.label("已用").classes("text-xs text-grey-5")
                             ui.label(f"{_dk.get('usage_pct', 0):.1f}%").classes("text-xs tabular-nums font-semibold").style(
-                                "color: #f44336;" if _dk_warn else "color: #4caf50;"
+                                "color: var(--c-danger);" if _dk_warn else "color: var(--c-success);"
                             )
                         with ui.row().classes("items-center justify-between"):
                             ui.label("可用").classes("text-xs text-grey-5")
                             ui.label(f"{_dk.get('free_gb', 0):.0f} GB").classes("text-xs tabular-nums text-grey-7")
                         # 进度条
-                        with ui.element("div").style("width:100%; height:6px; background:#e0e0e0; border-radius:3px; margin-top:2px;"):
+                        with ui.element("div").style("width:100%; height:6px; background:var(--c-border); border-radius:3px; margin-top:2px;"):
                             ui.element("div").style(
                                 f"width:{_dk.get('usage_pct',0)}%; height:6px; "
-                                f"background:{'#f44336' if _dk_warn else '#4caf50'}; "
+                                f"background:{'var(--c-danger)' if _dk_warn else 'var(--c-success)'}; "
                                 f"border-radius:3px;"
                             )
     except Exception as _he:
@@ -399,19 +399,19 @@ def render_dashboard():
 def _kpi_card(title: str, value: str, icon: str, color: str, trend: str = None, navigate_to: str = None):
     """KPI 卡片 — 大数字 + 等宽 + 趋势标签 + 点击跳转"""
     colors = {
-        "blue":   ("#1976d2", "#e3f2fd"),
-        "red":    ("#e53935", "#ffebee"),
-        "green":  ("#43a047", "#e8f5e9"),
+        "blue":   ("var(--c-primary)",   "var(--c-primary-light)"),
+        "red":    ("var(--c-danger)",    "var(--c-danger-light)"),
+        "green":  ("var(--c-success)",   "var(--c-success-light)"),
         "purple": ("#7b1fa2", "#f3e5f5"),
-        "orange": ("#f57c00", "#fff3e0"),
+        "orange": ("var(--c-warning)",  "var(--c-warning-light)"),
         "indico": ("#3949ab", "#e8eaf6"),
         "cyan":   ("#00838d", "#e0f7fa"),
         "teal":   ("#00695c", "#e0f2f1"),
     }
     hex_c, bg_c = colors.get(color, colors["blue"])
-    tc, tb = (("#2e7d32","#e8f5e9") if trend and trend.startswith("↑") else
-              ("#c62828","#ffebee") if trend and trend.startswith("↓") else
-              ("#757575","#eeeeee"))
+    tc, tb = (("var(--c-success)","var(--c-success-light)") if trend and trend.startswith("↑") else
+              ("var(--c-danger)", "var(--c-danger-light)") if trend and trend.startswith("↓") else
+              ("var(--c-text-muted)","var(--c-border-light)"))
     card = ui.card().classes("kpi-card flex-1")
     if navigate_to:
         card.style("cursor: pointer;")
@@ -427,7 +427,7 @@ def _kpi_card(title: str, value: str, icon: str, color: str, trend: str = None, 
                 with ui.column().classes("gap-0.5 flex-1 min-w-0"):
                     ui.label(title).classes("text-xs text-grey-5 font-medium truncate")
                     ui.label(value).classes("tabular-nums").style(
-                        "font-size:26px; font-weight:700; color:#1a1a1a; line-height:1.2;"
+                        "font-size:26px; font-weight:700; color:var(--c-text-primary); line-height:1.2;"
                     )
                     if trend:
                         ui.label(trend).classes("text-xs font-semibold").style(
