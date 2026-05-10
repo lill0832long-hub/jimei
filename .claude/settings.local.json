@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -c \"import database_v3; print\\([x for x in dir\\(database_v3\\) if 'account' in x.lower\\(\\)]\\)\")",
+      "Bash(python -c ' *)",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/voucher_service.py', doraise=True\\); print\\('voucher_service.py OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/ledger_service.py', doraise=True\\); print\\('ledger_service.py OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/budget_service.py', doraise=True\\); print\\('budget_service.py OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app/pages/journal_form.py', doraise=True\\); print\\('journal_form.py OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app/pages/settings.py', doraise=True\\); print\\('settings.py OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/report_service.py', doraise=True\\); print\\('report_service.py OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/tax_service.py', doraise=True\\); print\\('tax_service.py OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/account_service.py', doraise=True\\); print\\('account_service.py OK'\\)\")",
+      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/auth_service.py', doraise=True\\); print\\('auth_service.py OK'\\)\")",
+      "Bash(python -c \"from app.services import LedgerService, VoucherService, ReportService, AuthService, AccountService, BudgetService, TaxService; print\\('All service imports OK'\\)\")",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "Bash(dir /s /b E:\\\\ClaudeCode\\\\my-project\\\\database_v3.py)"
+    ]
+  }
+}
