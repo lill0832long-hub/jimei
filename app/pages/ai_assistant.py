@@ -2,7 +2,8 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast
-from database_v3 import generate_voucher_from_text, get_ledgers, query_db, get_income_statement, get_account_balances
+from database_v3 import query_db
+from app.services import LedgerService, ReportService, VoucherService
 
 # 外部 API（可选）
 try:
@@ -22,7 +23,7 @@ def do_ai_generate(text):
         show_toast("请先选择账套", "warning")
         return
     try:
-        result = generate_voucher_from_text(lid, text)
+        result = VoucherService.generate_from_text(lid, text)
         entries = result.get("entries", [])
         confidence = result.get("confidence", 0)
         if not entries:
@@ -161,7 +162,7 @@ def do_ocr_extract(text):
 
 def render_ai_assistant():
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -282,7 +283,7 @@ def _do_nl_query(query_text, result_label):
             # 查询利润表数据
             year = state.selected_year
             month = state.selected_month
-            report = get_income_statement(lid, year, month)
+            report = ReportService.get_income_statement(lid, year, month)
             if report:
                 total_revenue = sum(float(r.get("balance", 0)) for r in report if r.get("category") == "revenue")
                 total_expense = sum(abs(float(r.get("balance", 0))) for r in report if r.get("category") == "expense")
@@ -298,7 +299,7 @@ def _do_nl_query(query_text, result_label):
 
         elif any(kw in q for kw in ["存款", "银行", "余额", "现金", "资金"]):
             # 查询银行存款和现金余额
-            accounts = get_account_balances(lid)
+            accounts = ReportService.get_account_balances(lid)
             cash_items = [a for a in accounts if a.get("code","").startswith(("1001","1002"))]
             if cash_items:
                 lines = ["💰 货币资金余额", "━━━━━━━━━━━━━━━━━━"]
@@ -314,7 +315,7 @@ def _do_nl_query(query_text, result_label):
                 result_label.text = "暂无货币资金数据"
 
         elif any(kw in q for kw in ["应收", "应收账款", "欠款", "应收款"]):
-            accounts = get_account_balances(lid)
+            accounts = ReportService.get_account_balances(lid)
             ar_items = [a for a in accounts if a.get("code","").startswith("1122")]
             if ar_items:
                 lines = ["📋 应收账款余额", "━━━━━━━━━━━━━━━━━━"]
@@ -329,7 +330,7 @@ def _do_nl_query(query_text, result_label):
                 result_label.text = "暂无应收账款数据"
 
         elif any(kw in q for kw in ["应付", "应付账款", "欠供应商"]):
-            accounts = get_account_balances(lid)
+            accounts = ReportService.get_account_balances(lid)
             ap_items = [a for a in accounts if a.get("code","").startswith("2202")]
             if ap_items:
                 lines = ["📋 应付账款余额", "━━━━━━━━━━━━━━━━━━"]

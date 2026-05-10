@@ -2,13 +2,13 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import refresh_main
-from database_v3 import get_ledgers, get_vouchers
+from app.services import LedgerService, VoucherService
 from app.pages.journal_actions import show_new_voucher_dialog, show_voucher_detail
 
 
 def render_journal():
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -48,7 +48,7 @@ def render_journal():
 
                 # 按状态筛选获取凭证
                 filter_status = state.voucher_status_filter if state.voucher_status_filter != "all" else None
-                vouchers = get_vouchers(lid, state.selected_year, state.selected_month,
+                vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month,
                                        status=filter_status, limit=50)
                 if not vouchers:
                     with ui.card_section():
@@ -57,9 +57,9 @@ def render_journal():
                 status_labels = {"draft": "草稿", "posted": "已过账", "reversed": "已冲销", "pending_review": "待审核"}
                 status_colors = {"draft": "orange", "posted": "green", "reversed": "red", "pending_review": "blue"}
                 rows = [{**v,
-                    "status_label": status_labels.get(v["status"], v["status"]),
+                    "status_label": status_labels.get(v["status"], v["status"]) or "未知",
                     "status_color": status_colors.get(v["status"], "grey"),
-                    "total": f'¥{v["total_debit"]:,.2f}',
+                    "total": f'¥{(v["total_debit"] or 0):,.2f}',
                 } for v in vouchers]
 
                 cols = [

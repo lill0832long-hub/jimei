@@ -2,10 +2,7 @@ from datetime import datetime
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount, navigate
-from database_v3 import (
-    create_ledger, get_default_accounts,
-    import_accounts_from_template, get_ledgers, set_opening_balance,
-)
+from app.services import LedgerService, AccountService
 
 def render_setup_wizard():
     """首次使用引导向导 — 全屏对话框，5步完成账套初始化"""
@@ -108,7 +105,7 @@ def render_setup_wizard():
                     ui.label("第二步：导入会计科目").classes("text-xl font-bold")
                     ui.label("系统已根据所选会计制度准备了预设科目").classes("text-sm text-grey-5 -mt-3")
 
-                    default_accounts = get_default_accounts(wizard_state["system_type"])
+                    default_accounts = AccountService.get_defaults(wizard_state["system_type"])
 
                     with ui.row().classes("items-center gap-2"):
                         ui.icon("info", color="blue").classes("text-sm")
@@ -134,7 +131,7 @@ def render_setup_wizard():
                     ui.label("第三步：录入期初余额").classes("text-xl font-bold")
                     ui.label("输入各科目在启用期间的期初余额").classes("text-sm text-grey-5 -mt-3")
 
-                    accounts = wizard_state.get("imported_accounts") or get_default_accounts(wizard_state["system_type"])
+                    accounts = wizard_state.get("imported_accounts") or AccountService.get_defaults(wizard_state["system_type"])
                     top_accounts = [a for a in accounts if not a[4]]
 
                     balance_rows = []
@@ -220,7 +217,7 @@ def render_setup_wizard():
 
     def _import_accounts(accounts):
         try:
-            ledger_id = create_ledger(
+            ledger_id = LedgerService.create(
                 name=wizard_state["ledger_name"],
                 company=wizard_state["ledger_name"],
                 currency="CNY",
@@ -228,7 +225,7 @@ def render_setup_wizard():
                 fiscal_end=f"{wizard_state['enable_year']}-12-31",
             )
             wizard_state["ledger_id"] = ledger_id
-            count = import_accounts_from_template(ledger_id, wizard_state["system_type"])
+            count = AccountService.import_from_template(ledger_id, wizard_state["system_type"])
             wizard_state["imported_accounts"] = accounts
             show_toast(f"✅ 成功导入 {count} 个科目", "success")
             _go_step(3)
@@ -241,7 +238,7 @@ def render_setup_wizard():
             if lid and wizard_state["opening_balances"]:
                 for code, bal in wizard_state["opening_balances"].items():
                     if bal["debit"] != 0 or bal["credit"] != 0:
-                        set_opening_balance(lid, code, wizard_state["enable_year"], wizard_state["enable_month"], bal["debit"] - bal["credit"])
+                        LedgerService.set_opening_balance(lid, code, wizard_state["enable_year"], wizard_state["enable_month"], bal["debit"] - bal["credit"])
 
             state.selected_ledger_id = wizard_state.get("ledger_id")
             state.current_page = "dashboard"

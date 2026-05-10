@@ -2,7 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import refresh_main
-from database_v3 import get_voucher_detail, get_accounts
+from app.services import VoucherService, AccountService
 from app.pages.journal_actions import (
     do_submit_review, do_approve_voucher, do_post_voucher,
     show_reverse_dialog, show_reject_dialog, do_delete_voucher,
@@ -10,12 +10,12 @@ from app.pages.journal_actions import (
 
 
 def render_voucher_detail(voucher_no):
-    detail = get_voucher_detail(voucher_no)
-    if not detail:
+    detail = VoucherService.get_detail(voucher_no)
+    if not detail or not isinstance(detail, dict):
         return
     user = state.current_user
     role = user.get("role", "viewer") if user else "viewer"
-    status = detail["status"]
+    status = detail.get("status", "draft")
     status_labels = {"draft": "草稿", "posted": "已过账", "reversed": "已冲销", "pending_review": "待审核"}
     status_colors = {"draft": "orange", "posted": "green", "reversed": "red", "pending_review": "blue"}
 
@@ -52,8 +52,8 @@ def render_voucher_detail(voucher_no):
                     ui.label(voucher_no).classes("font-bold text-base").style("color:var(--c-text-primary)")
                     ui.badge(status_labels.get(status, status), color=status_colors.get(status, "grey"))
                 with ui.row().classes("gap-4 text-xs").style("color:var(--c-text-muted)"):
-                    ui.label(f"📅 {detail['date']}")
-                    ui.label(f"📝 {detail['description']}")
+                    ui.label(f"📅 {detail.get('date', '')}")
+                    ui.label(f"📝 {detail.get('description', '')}")
 
         # ── 分录明细 ──
         entries = detail.get("entries", [])

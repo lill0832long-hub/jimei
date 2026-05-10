@@ -2,17 +2,15 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import (
-    get_cash_flow_statement, get_cash_flow_categories, add_cash_flow_category,
-    init_cash_flow_categories,
-)
+from app.services import ReportService
+from database_v3 import init_cash_flow_categories
 
 
 def render_cash_flow():
     """现金流量表主页面"""
     if not state.selected_ledger_id:
-        from database_v3 import get_ledgers
-        ledgers = get_ledgers()
+        from app.services import LedgerService
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -22,7 +20,7 @@ def render_cash_flow():
     year, month = state.selected_year, state.selected_month
 
     # 获取现金流量数据（直接法）
-    cf = get_cash_flow_statement(lid, year, month, method="direct")
+    cf = ReportService.get_cash_flow_statement(lid, year, month, method="direct")
 
     with ui.row().classes("w-full gap-3"):
         # 左侧：现金流量表主体（2/3）
@@ -96,7 +94,7 @@ def render_cash_flow():
                         ui.label("🏷️ 现金流分类").classes("text-sm font-semibold")
                         ui.button("初始化", color="blue", on_click=lambda: _do_init_categories(lid)).props("dense")
 
-                cats = get_cash_flow_categories(lid)
+                cats = ReportService.get_cash_flow_categories(lid)
                 if cats:
                     current_section = None
                     for cat in cats:

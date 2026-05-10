@@ -63,20 +63,20 @@ def render_tax():
             with ui.card_section().classes("py-3 px-4"):
                 with ui.column().classes("items-center gap-1"):
                     ui.label("进项税额").classes("text-xs").style("color:var(--c-text-muted)")
-                    ui.label(f"¥{summary['input_tax']:,.2f}").classes("text-xl font-bold").style("color:var(--c-primary)")
+                    ui.label(f"¥{summary.get('input_tax', 0):,.2f}").classes("text-xl font-bold").style("color:var(--c-primary)")
                     ui.label(f"{year}年{month}月").classes("text-xs").style("color:var(--c-text-muted)")
 
         with ui.card().classes("flex-1"):
             with ui.card_section().classes("py-3 px-4"):
                 with ui.column().classes("items-center gap-1"):
                     ui.label("销项税额").classes("text-xs").style("color:var(--c-text-muted)")
-                    ui.label(f"¥{summary['output_tax']:,.2f}").classes("text-xl font-bold").style("color:var(--c-danger)")
+                    ui.label(f"¥{summary.get('output_tax', 0):,.2f}").classes("text-xl font-bold").style("color:var(--c-danger)")
                     ui.label(f"{year}年{month}月").classes("text-xs").style("color:var(--c-text-muted)")
 
         with ui.card().classes("flex-1"):
             with ui.card_section().classes("py-3 px-4"):
                 with ui.column().classes("items-center gap-1"):
-                    payable = summary['tax_payable']
+                    payable = summary.get('tax_payable', 0)
                     ui.label("应纳税额").classes("text-xs").style("color:var(--c-text-muted)")
                     ui.label(f"¥{payable:,.2f}").classes("text-xl font-bold").style(
                         f"color:{'var(--c-danger)' if payable > 0 else 'var(--c-success)'}"
@@ -87,8 +87,8 @@ def render_tax():
             with ui.card_section().classes("py-3 px-4"):
                 with ui.column().classes("items-center gap-1"):
                     ui.label("纳税人类型").classes("text-xs").style("color:var(--c-text-muted)")
-                    ui.label("一般纳税人" if summary['taxpayer_type'] == 'general' else "小规模纳税人").classes("text-xl font-bold").style("color:var(--c-text-primary)")
-                    ui.label(f"默认税率 {summary['default_rate']*100:.0f}%").classes("text-xs").style("color:var(--c-text-muted)")
+                    ui.label("一般纳税人" if summary.get('taxpayer_type') == 'general' else "小规模纳税人").classes("text-xl font-bold").style("color:var(--c-text-primary)")
+                    ui.label(f"默认税率 {(summary.get('default_rate', 0) or 0)*100:.0f}%").classes("text-xs").style("color:var(--c-text-muted)")
 
     # ── 下部：进项/销项明细 Tab ──
     with ui.card().classes("w-full mt-1"):
@@ -139,7 +139,7 @@ def _render_tax_detail(ledger_id: int, year: int, month: int, tax_type: str):
 
 def _save_tax_config(ledger_id, taxpayer_type, default_rate):
     try:
-        TaxService.set_config(ledger_id, taxpayer_type, float(default_rate or 0.13))
+        TaxService.set_config(ledger_id, taxpayer_type, float(default_rate if default_rate is not None else 0.13))
         show_toast("✅ 增值税配置已保存", "success")
         refresh_main()
     except Exception as e:

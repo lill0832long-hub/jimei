@@ -3,13 +3,11 @@ from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast
 from app.utils.period import generate_periods, period_labels
-from database_v3 import (
-    get_ledgers, get_income_statement, get_balance_sheet,
-)
+from app.services import LedgerService, ReportService
 
 def render_charts():
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -27,11 +25,11 @@ def render_charts():
     liability_data = []
 
     for py, pm in periods:
-        inc = get_income_statement(lid, py, pm)
+        inc = ReportService.get_income_statement(lid, py, pm)
         revenue_data.append(round(inc["total_revenue"], 2))
         expense_data.append(round(sum(r["ytd"] for r in inc["rows"] if r["type"] in ("expense_header","expense_item","subtotal")), 2))
         profit_data.append(round(inc["net_profit"], 2))
-        bs = get_balance_sheet(lid, py, pm)
+        bs = ReportService.get_balance_sheet(lid, py, pm)
         asset_data.append(round(bs["total_assets"], 2))
         liability_data.append(round(bs["total_liab"], 2))
 
@@ -79,7 +77,7 @@ def render_charts():
             with ui.card_section().classes("py-2 px-3"):
                 ui.label(f"🥧 收入结构 — {state.selected_year}-{state.selected_month:02d}").classes("text-base font-bold")
             with ui.card_section():
-                inc = get_income_statement(lid, state.selected_year, state.selected_month)
+                inc = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
                 pie_data = [{"value": round(r.get("ytd") or 0, 2), "name": r["name"]}
                             for r in inc["rows"] if r["type"] in ("revenue_item","revenue_header","rev_total") and (r.get("ytd") or 0) > 0]
                 if pie_data:
@@ -124,7 +122,7 @@ def render_charts():
                 # 按月汇总全年收支
                 months_data = []
                 for m in range(1, 13):
-                    inc = get_income_statement(lid, state.selected_year, m)
+                    inc = ReportService.get_income_statement(lid, state.selected_year, m)
                     rev = inc["total_revenue"]
                     exp = sum(r["ytd"] for r in inc["rows"] if r["type"] in ("expense_header","expense_item","subtotal"))
                     months_data.append({"month": f"{m}月", "revenue": round(rev, 2), "expense": round(exp, 2), "net": round(rev - exp, 2)})

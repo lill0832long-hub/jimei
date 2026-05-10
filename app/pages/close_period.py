@@ -2,22 +2,20 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount
-from database_v3 import (
-    get_ledgers, get_income_statement, get_period_status, close_period,
-    query_db,
-)
+from app.services import LedgerService, ReportService
+from database_v3 import query_db
 
 def render_close_period():
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
     if not lid:
         return
     lid = state.selected_ledger_id
-    period = get_period_status(lid, state.selected_year, state.selected_month)
-    inc = get_income_statement(lid, state.selected_year, state.selected_month)
+    period = LedgerService.get_period_status(lid, state.selected_year, state.selected_month)
+    inc = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
 
     # ── 结转前检查清单 ──
     checklist = []
@@ -112,7 +110,7 @@ def show_reverse_close_confirm():
 def _do_reverse_close(dialog):
     """执行反结转"""
     try:
-        close_period(state.selected_ledger_id, state.selected_year, state.selected_month, reverse=True)
+        LedgerService.close_period(state.selected_ledger_id, state.selected_year, state.selected_month, reverse=True)
         show_toast("反结转成功", "success")
         dialog.close()
         refresh_main()
@@ -122,7 +120,7 @@ def _do_reverse_close(dialog):
 def do_close_period(d):
     lid = state.selected_ledger_id
     try:
-        vn = close_period(lid, state.selected_year, state.selected_month)
+        vn = LedgerService.close_period(lid, state.selected_year, state.selected_month)
         if vn:
             show_toast(f"✅ 损益结转成功！凭证号：{vn}", "success")
         else:

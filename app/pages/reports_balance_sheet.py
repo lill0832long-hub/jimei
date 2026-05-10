@@ -2,14 +2,14 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import refresh_main
-from database_v3 import get_ledgers, get_balance_sheet
+from app.services import LedgerService, ReportService
 from app.pages.reports_export import _export_balance_sheet, _export_balance_sheet_pdf
 
 
 def render_balance_sheet():
     """资产负债表 — 左右两栏 ui.table，严格列对齐，同比/环比增强"""
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -51,7 +51,7 @@ def render_balance_sheet():
                 year_sel.on("update:value", lambda e: _on_period_change())
                 month_sel.on("update:value", lambda e: _on_period_change())
 
-    bs = get_balance_sheet(lid, state.selected_year, state.selected_month)
+    bs = ReportService.get_balance_sheet(lid, state.selected_year, state.selected_month)
 
     # 获取对比期间数据
     if compare_mode.value == "mom":
@@ -65,7 +65,7 @@ def render_balance_sheet():
         prev_year = state.selected_year - 1
         prev_month = state.selected_month
         label_prev = f"{prev_year}年{prev_month}月"
-    bs_prev = get_balance_sheet(lid, prev_year, prev_month)
+    bs_prev = ReportService.get_balance_sheet(lid, prev_year, prev_month)
 
     HC = "table-header-cell text-uppercase"
     num_style = "width:120px"

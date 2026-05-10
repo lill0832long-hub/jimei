@@ -173,9 +173,9 @@ def render_dashboard():
 
     # 第一行 KPI：资产/负债/权益（原有）
     with ui.row().classes("w-full gap-3"):
-        _kpi_card("资产总计",   f"¥{bs['total_assets']:,.0f}",   "account_balance", "blue",   "↑ 2.3%", "balance_sheet")
-        _kpi_card("负债总计",   f"¥{bs['total_liab']:,.0f}",     "credit_card",    "red",    "↓ 1.1%", "balance_sheet")
-        _kpi_card("所有者权益", f"¥{bs['total_equity']:,.0f}",   "savings",        "green",  "↑ 3.8%", "balance_sheet")
+        _kpi_card("资产总计",   f"¥{bs.get('total_assets', 0):,.0f}",   "account_balance", "blue",   "↑ 2.3%", "balance_sheet")
+        _kpi_card("负债总计",   f"¥{bs.get('total_liab', 0):,.0f}",     "credit_card",    "red",    "↓ 1.1%", "balance_sheet")
+        _kpi_card("所有者权益", f"¥{bs.get('total_equity', 0):,.0f}",   "savings",        "green",  "↑ 3.8%", "balance_sheet")
         _kpi_card("本月收入",   f"¥{inc.get('total_revenue',0):,.0f}", "trending_up","purple", "↑ 12.5%", "income_statement")
         _kpi_card("本月利润",   f"¥{inc.get('net_profit',0):,.0f}",    "attach_money","orange", "↑ 8.2%", "income_statement")
 

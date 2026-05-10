@@ -1,14 +1,12 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount, navigate
-from database_v3 import (
-    get_ledgers, get_account_ledger, get_accounts,
-)
+from app.services import LedgerService, AccountService
 
 def render_account_ledger():
     """科目明细账 — 科目选择+期间选择+明细列表（日期、凭证号、摘要、借方、贷方、余额）"""
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -16,7 +14,7 @@ def render_account_ledger():
         return
 
     # 获取所有科目供选择
-    accounts = get_accounts()
+    accounts = AccountService.get_all()
     acct_opts = {a["code"]: f"{a['code']} {a['name']}" for a in accounts}
 
     # 支持从报表钻取跳转（通过 state 传递科目ID）
@@ -46,7 +44,7 @@ def render_account_ledger():
     # 获取科目明细账数据
     current_code = getattr(state, '_drill_account_code', None) or default_code
     try:
-        ledger_data = get_account_ledger(lid, current_code, state.selected_year, state.selected_month)
+        ledger_data = AccountService.get_ledger(lid, current_code, state.selected_year, state.selected_month)
     except Exception:
         ledger_data = None
 

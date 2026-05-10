@@ -23,22 +23,23 @@ def render_invoices():
             with ui.card_section().classes("py-3 px-4"):
                 with ui.column().classes("items-center gap-1"):
                     ui.label("进项发票").classes("text-xs").style("color:var(--c-text-muted)")
-                    ui.label(f"{summary['input_count']} 张").classes("text-xl font-bold").style("color:var(--c-primary)")
-                    ui.label(f"¥{summary['input_total']:,.2f}").classes("text-xs").style("color:var(--c-text-muted)")
+                    ui.label(f"{summary.get('input_count', 0)} 张").classes("text-xl font-bold").style("color:var(--c-primary)")
+                    ui.label(f"¥{summary.get('input_total', 0):,.2f}").classes("text-xs").style("color:var(--c-text-muted)")
 
         with ui.card().classes("flex-1"):
             with ui.card_section().classes("py-3 px-4"):
                 with ui.column().classes("items-center gap-1"):
                     ui.label("销项发票").classes("text-xs").style("color:var(--c-text-muted)")
-                    ui.label(f"{summary['output_count']} 张").classes("text-xl font-bold").style("color:var(--c-success)")
-                    ui.label(f"¥{summary['output_total']:,.2f}").classes("text-xs").style("color:var(--c-text-muted)")
+                    ui.label(f"{summary.get('output_count', 0)} 张").classes("text-xl font-bold").style("color:var(--c-success)")
+                    ui.label(f"¥{summary.get('output_total', 0):,.2f}").classes("text-xs").style("color:var(--c-text-muted)")
 
         with ui.card().classes("flex-1"):
             with ui.card_section().classes("py-3 px-4"):
                 with ui.column().classes("items-center gap-1"):
                     ui.label("未核验").classes("text-xs").style("color:var(--c-text-muted)")
-                    ui.label(f"{summary['unverified_count']} 张").classes("text-xl font-bold").style(
-                        f"color:{'var(--c-warning)' if summary['unverified_count'] > 0 else 'var(--c-text-primary)'}"
+                    _unverified = summary.get('unverified_count', 0)
+                    ui.label(f"{_unverified} 张").classes("text-xl font-bold").style(
+                        f"color:{'var(--c-warning)' if _unverified > 0 else 'var(--c-text-primary)'}"
                     )
                     ui.label("待处理").classes("text-xs").style("color:var(--c-text-muted)")
 

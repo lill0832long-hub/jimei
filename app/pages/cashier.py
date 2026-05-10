@@ -3,10 +3,8 @@ import tempfile, os
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import (
-    get_ledgers, get_bank_accounts, create_bank_account, import_bank_statement,
-    auto_match_bank_statement, get_bank_reconciliation, parse_bank_csv, query_db,
-)
+from app.services import LedgerService, AccountService
+from database_v3 import query_db
 
 
 def _do_import_bank_statement(upload_event, bank_sel, result_label):
@@ -17,12 +15,12 @@ def _do_import_bank_statement(upload_event, bank_sel, result_label):
     try:
         content_bytes = upload_event.content.read()
         text = content_bytes.decode("utf-8-sig")
-        rows = parse_bank_csv(text)
+        rows = AccountService.parse_bank_csv(text)
         if not rows:
             show_toast("未能解析出有效数据，请检查CSV格式", "warning")
             return
         bank_id = bank_sel.value
-        count = import_bank_statement(bank_id, rows)
+        count = AccountService.import_bank_statement(bank_id, rows)
         result_label.text = f"✅ 成功导入 {count} 条银行流水"
         show_toast(f"✅ 成功导入 {count} 条银行流水", "success")
     except Exception as e:
@@ -36,7 +34,7 @@ def _do_auto_match(bank_sel, result_label):
         return
     try:
         bank_id = bank_sel.value
-        matched = auto_match_bank_statement(bank_id)
+        matched = AccountService.auto_match(bank_id)
         result_label.text = f"✅ 自动勾对完成，匹配 {matched} 笔"
         show_toast(f"✅ 自动勾对完成，匹配 {matched} 笔", "success")
     except Exception as e:
@@ -78,7 +76,7 @@ def _do_generate_reconciliation(bank_sel, result_table):
     try:
         bank_id = bank_sel.value
         period = f"{state.selected_year}-{state.selected_month:02d}"
-        data = get_bank_reconciliation(bank_id, period)
+        data = AccountService.get_bank_reconciliation(bank_id, period)
         if data:
             result_table.rows = data
             result_table.update()
@@ -105,13 +103,13 @@ def _do_generate_reconciliation(bank_sel, result_table):
 def render_cashier():
     """出纳管理 — 银行对账单导入+自动勾对+未达账项+余额调节表"""
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
 
     # 加载银行账户
-    bank_accounts = get_bank_accounts(lid) if lid else []
+    bank_accounts = AccountService.get_bank_accounts(lid) if lid else []
     bank_opts = {ba["id"]: f"{ba['bank_name']} {ba['account_no']}" for ba in bank_accounts}
 
     with ui.card().classes("w-full"):

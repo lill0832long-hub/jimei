@@ -1,17 +1,12 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount, navigate
-from database_v3 import (
-    get_ledgers, get_bank_accounts, get_bank_reconciliation,
-    get_bank_statements_list, get_unmatched_items,
-    import_bank_statement, auto_match_bank_statement,
-    match_bank_statement, unmatch_bank_statement,
-)
+from app.services import LedgerService, AccountService
 
 def render_bank_reconciliation():
     """银行对账 — 银行账号选择+CSV导入+自动匹配+手动匹配+余额调节表+未达账项"""
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -20,7 +15,7 @@ def render_bank_reconciliation():
 
     # 获取银行账户列表
     try:
-        bank_accounts = get_bank_accounts(lid)
+        bank_accounts = AccountService.get_bank_accounts(lid)
     except Exception:
         bank_accounts = []
 
@@ -42,7 +37,7 @@ def render_bank_reconciliation():
                         "reference_no": r.get("参考号", r.get("reference_no", "")),
                     })
                 if rows:
-                    count = import_bank_statement(bank_id, rows)
+                    count = AccountService.import_bank_statement(bank_id, rows)
                     show_toast(f"✅ 成功导入 {count} 条银行对账单", "success")
                     refresh_main()
                 else:
@@ -53,7 +48,7 @@ def render_bank_reconciliation():
 
     def _do_auto_match(bank_id):
         try:
-            matched = auto_match_bank_statement(bank_id)
+            matched = AccountService.auto_match(bank_id)
             show_toast(f"✅ 自动匹配完成，匹配 {matched} 笔", "success")
             refresh_main()
         except Exception as e:
@@ -61,7 +56,7 @@ def render_bank_reconciliation():
 
     def _do_match(stmt_id, bank_id):
         try:
-            match_bank_statement(stmt_id, None)
+            AccountService.match_statement(stmt_id, None)
             show_toast("✅ 已匹配", "success")
             refresh_main()
         except Exception as e:
@@ -69,7 +64,7 @@ def render_bank_reconciliation():
 
     def _do_unmatch(stmt_id):
         try:
-            unmatch_bank_statement(stmt_id)
+            AccountService.unmatch_statement(stmt_id)
             show_toast("✅ 已取消匹配", "success")
             refresh_main()
         except Exception as e:
@@ -116,17 +111,17 @@ def render_bank_reconciliation():
     # 获取对账数据
     period_str = f"{state.selected_year}-{state.selected_month:02d}"
     try:
-        recon_data = get_bank_reconciliation(selected_ba_id, period_str)
+        recon_data = AccountService.get_bank_reconciliation(selected_ba_id, period_str)
     except Exception:
         recon_data = None
 
     try:
-        stmt_list = get_bank_statements_list(selected_ba_id)
+        stmt_list = AccountService.get_bank_statements(selected_ba_id)
     except Exception:
         stmt_list = []
 
     try:
-        unmatched = get_unmatched_items(selected_ba_id)
+        unmatched = AccountService.get_unmatched(selected_ba_id)
     except Exception:
         unmatched = []
 

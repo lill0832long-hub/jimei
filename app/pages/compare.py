@@ -3,13 +3,11 @@ from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount
 from app.utils.period import generate_periods
-from database_v3 import (
-    get_ledgers, get_period_compare_income, get_period_compare_balance,
-)
+from app.services import LedgerService, ReportService
 
 def render_compare():
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -40,7 +38,7 @@ def render_compare():
         with ui.card_section().classes("py-2 px-3"):
             ui.label("📈 利润对比").classes("text-base font-bold")
 
-        inc_data = get_period_compare_income(lid, periods)
+        inc_data = ReportService.get_period_compare_income(lid, periods)
         if inc_data["items"] or any(v != 0 for v in inc_data["summary"]["total_revenue"]):
             # 汇总表头
             cols = [{"name":"item","label":"项目","field":"item","align":"left","headerClasses":"table-header-cell"}]
@@ -113,7 +111,7 @@ def render_compare():
         with ui.card_section().classes("py-2 px-3"):
             ui.label("📗 资产负债对比").classes("text-base font-bold")
 
-        bs_data = get_period_compare_balance(lid, periods)
+        bs_data = ReportService.get_period_compare_balance(lid, periods)
         if bs_data["periods"]:
             cols = [{"name":"item","label":"项目","field":"item","align":"left","headerClasses":"table-header-cell"}]
             for i, p in enumerate(bs_data["periods"]):

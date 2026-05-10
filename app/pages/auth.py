@@ -2,7 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast
-from database_v3 import authenticate, get_ledgers
+from app.services import AuthService, LedgerService
 
 
 def do_logout():
@@ -49,11 +49,11 @@ def do_login(username, password):
     if not username or not password:
         show_toast("请输入用户名和密码", "warning")
         return
-    user = authenticate(username, password)
+    user = AuthService.authenticate(username, password)
     if user:
         state.current_user = user
         state.current_page = "dashboard"
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers and not state.selected_ledger_id:
             state.selected_ledger_id = ledgers[0]["id"]
         show_toast(f"✅ 欢迎，{user['username']}！", "success")

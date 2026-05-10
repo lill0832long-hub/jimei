@@ -1,19 +1,19 @@
 """报表 — 科目余额表"""
 from nicegui import ui
 from app.components.state import state
-from database_v3 import get_ledgers, get_account_balances
+from app.services import LedgerService, ReportService
 
 
 def render_accounts():
     """科目余额表 — ui.table 严格列对齐，金额等宽，借贷分色"""
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
     if not lid:
         return
-    balances = get_account_balances(lid, state.selected_year, state.selected_month)
+    balances = ReportService.get_account_balances(lid, state.selected_year, state.selected_month)
 
     with ui.card().classes("w-full"):
         with ui.card_section().classes("py-2.5 px-4 border-b border-grey-2"):

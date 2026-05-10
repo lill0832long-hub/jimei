@@ -2,7 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast
-from database_v3 import get_audit_logs
+from app.services import AuthService
 
 
 def render_audit_log():
@@ -88,7 +88,7 @@ def _do_query(ledger_id, module, action, start_date, end_date):
     if not ledger_id:
         return []
     try:
-        return get_audit_logs(
+        return AuthService.get_audit_logs(
             ledger_id, limit=500,
             module=module or None,
             action=action.strip() or None,

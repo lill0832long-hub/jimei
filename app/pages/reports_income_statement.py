@@ -2,22 +2,22 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import refresh_main
-from database_v3 import get_ledgers, get_income_statement
+from app.services import LedgerService, ReportService
 from app.pages.reports_export import _export_income_statement
 
 
 def render_income_statement():
     """利润表 — 项目 | 行次 | 本年累计 | 本月金额 | 同比变化"""
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
     if not lid:
         return
 
-    inc = get_income_statement(lid, state.selected_year, state.selected_month)
-    inc_yoy = get_income_statement(lid, state.selected_year - 1, state.selected_month)
+    inc = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
+    inc_yoy = ReportService.get_income_statement(lid, state.selected_year - 1, state.selected_month)
 
     with ui.card().classes("w-full"):
         with ui.card_section().classes("py-2 px-4 border-b border-grey-2").style("color:var(--c-bg-hover)"):

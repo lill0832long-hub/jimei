@@ -1,16 +1,12 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount, navigate
-from database_v3 import (
-    get_ledgers, get_voucher_templates,
-    create_voucher_template, update_voucher_template,
-    delete_voucher_template, get_accounts, get_vouchers,
-)
+from app.services import LedgerService, VoucherService, AccountService
 
 def render_voucher_template():
     """凭证模板管理 — 列表+新增/编辑/删除/启用禁用/从模板生成凭证"""
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -52,7 +48,7 @@ def render_voucher_template():
             with ui.card_section():
                 ui.label("模板分录").classes("text-xs font-semibold text-grey-6 uppercase tracking-wide mb-2")
                 entries_col = ui.column().classes("w-full gap-1")
-                acct_opts = {a["code"]: f"{a['code']} {a['name']}" for a in get_accounts()}
+                acct_opts = {a["code"]: f"{a['code']} {a['name']}" for a in AccountService.get_all()}
                 entry_rows = []
 
                 def add_entry_row(entry=None):
@@ -114,7 +110,7 @@ def render_voucher_template():
             code = r["acct"].value
             if not code:
                 continue
-            name_acct = next((a["name"] for a in get_accounts() if a["code"] == code), code)
+            name_acct = next((a["name"] for a in AccountService.get_all() if a["code"] == code), code)
             direction = r["direction"].value
             debit_val = r["debit"].value or 0
             credit_val = r["credit"].value or 0
@@ -137,7 +133,7 @@ def render_voucher_template():
             return
         try:
             if tpl_id:
-                update_voucher_template(
+                VoucherService.update_template(
                     tpl_id, ledger_id,
                     name=name, description=desc_in.value,
                     entries=entries, category=cat_sel.value,
@@ -145,7 +141,7 @@ def render_voucher_template():
                 )
                 show_toast(f"✅ 模板「{name}」已更新", "success")
             else:
-                create_voucher_template(
+                VoucherService.create_template(
                     ledger_id, name, desc_in.value,
                     entries, category=cat_sel.value
                 )
@@ -156,7 +152,7 @@ def render_voucher_template():
             show_toast(f"❌ {e}", "error")
 
     def _do_edit(tpl_id):
-        tpl = next((t for t in get_voucher_templates(lid, include_inactive=True) if t["id"] == tpl_id), None)
+        tpl = next((t for t in VoucherService.get_templates(lid, include_inactive=True) if t["id"] == tpl_id), None)
         if not tpl:
             show_toast("模板不存在", "error")
             return
@@ -164,12 +160,12 @@ def render_voucher_template():
 
     def _do_toggle(tpl_id):
         try:
-            tpl = next((t for t in get_voucher_templates(lid, include_inactive=True) if t["id"] == tpl_id), None)
+            tpl = next((t for t in VoucherService.get_templates(lid, include_inactive=True) if t["id"] == tpl_id), None)
             if not tpl:
                 show_toast("模板不存在", "error")
                 return
             new_active = not tpl.get("is_active", 1)
-            update_voucher_template(tpl_id, lid, is_active=new_active)
+            VoucherService.update_template(tpl_id, lid, is_active=new_active)
             show_toast(f"模板已{'启用' if new_active else '禁用'}", "success")
             refresh_main()
         except Exception as e:
@@ -189,7 +185,7 @@ def render_voucher_template():
 
     def _confirm_delete(d, tpl_id):
         try:
-            delete_voucher_template(tpl_id, lid)
+            VoucherService.delete_template(tpl_id, lid)
             show_toast("✅ 模板已删除", "success")
             d.close()
             refresh_main()
@@ -197,7 +193,7 @@ def render_voucher_template():
             show_toast(f"❌ {e}", "error")
 
     def _do_generate(tpl_id):
-        tpl = next((t for t in get_voucher_templates(lid) if t["id"] == tpl_id), None)
+        tpl = next((t for t in VoucherService.get_templates(lid) if t["id"] == tpl_id), None)
         if not tpl:
             show_toast("模板不存在", "error")
             return
@@ -217,7 +213,7 @@ def render_voucher_template():
 
         # 加载模板列表
         try:
-            templates = get_voucher_templates(lid, include_inactive=True)
+            templates = VoucherService.get_templates(lid, include_inactive=True)
         except Exception:
             templates = []
 

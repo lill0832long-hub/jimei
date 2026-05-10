@@ -4,9 +4,8 @@ from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount, navigate, refresh_main
 from app.utils.pdf import build_pdf
-from database_v3 import (
-    get_ledgers, get_cash_flow_statement, query_db,
-)
+from app.services import LedgerService, ReportService
+from database_v3 import query_db
 
 def _export_cash_flow_excel(method):
     """导出现金流量表为Excel"""
@@ -17,7 +16,7 @@ def _export_cash_flow_excel(method):
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         fname = f"现金流量表_{state.selected_year}{state.selected_month:02d}_{ts}.xlsx"
         fpath = os.path.join(export_dir, fname)
-        data = get_cash_flow_statement(lid, state.selected_year, state.selected_month, method)
+        data = ReportService.get_cash_flow_statement(lid, state.selected_year, state.selected_month, method)
         if not data:
             show_toast("无现金流量表数据", "warning")
             return
@@ -61,7 +60,7 @@ def _export_cash_flow_pdf(method):
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         fname = f"现金流量表_{state.selected_year}{state.selected_month:02d}_{ts}.pdf"
         fpath = os.path.join(export_dir, fname)
-        data = get_cash_flow_statement(lid, state.selected_year, state.selected_month, method)
+        data = ReportService.get_cash_flow_statement(lid, state.selected_year, state.selected_month, method)
         if not data:
             show_toast("无现金流量表数据", "warning")
             return
@@ -80,7 +79,7 @@ def _export_cash_flow_pdf(method):
 def render_cash_flow_statement():
     """现金流量表 — 经营活动/投资活动/筹资活动三大类，直接法"""
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -115,7 +114,7 @@ def render_cash_flow_statement():
 
     # 获取现金流数据
     try:
-        cf = get_cash_flow_statement(lid, state.selected_year, state.selected_month, method=cf_method.value)
+        cf = ReportService.get_cash_flow_statement(lid, state.selected_year, state.selected_month, method=cf_method.value)
     except Exception:
         cf = None
 

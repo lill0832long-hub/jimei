@@ -4,10 +4,7 @@ from datetime import datetime
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import (
-    get_balance_sheet, get_income_statement,
-    export_balance_sheet_csv, export_income_statement_csv, export_account_balances_csv,
-)
+from app.services import ReportService
 
 
 def _build_pdf(filepath, title, data, headers, row_fn):
@@ -72,7 +69,7 @@ def _export_balance_sheet():
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         fname = f"资产负债表_{state.selected_year}{state.selected_month:02d}_{ts}.xlsx"
         fpath = os.path.join(export_dir, fname)
-        report = get_balance_sheet(lid, state.selected_year, state.selected_month)
+        report = ReportService.get_balance_sheet(lid, state.selected_year, state.selected_month)
         if not report:
             show_toast("无资产负债表数据", "warning")
             return
@@ -115,7 +112,7 @@ def _export_balance_sheet_pdf():
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         fname = f"资产负债表_{state.selected_year}{state.selected_month:02d}_{ts}.pdf"
         fpath = os.path.join(export_dir, fname)
-        report = get_balance_sheet(lid, state.selected_year, state.selected_month)
+        report = ReportService.get_balance_sheet(lid, state.selected_year, state.selected_month)
         if not report:
             show_toast("无资产负债表数据", "warning")
             return
@@ -141,7 +138,7 @@ def _export_income_statement():
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         fname = f"利润表_{state.selected_year}{state.selected_month:02d}_{ts}.xlsx"
         fpath = os.path.join(export_dir, fname)
-        report = get_income_statement(lid, state.selected_year, state.selected_month)
+        report = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
         if not report:
             show_toast("无利润表数据", "warning")
             return

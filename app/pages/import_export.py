@@ -5,14 +5,11 @@ from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
 from app.utils.pdf import build_pdf
-from database_v3 import (
-    get_ledgers, import_vouchers_from_excel, export_vouchers_csv,
-    export_balance_sheet_csv, export_income_statement_csv, export_account_balances_csv,
-)
+from app.services import LedgerService, VoucherService, ReportService
 
 def render_import():
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -69,7 +66,7 @@ def do_import(upload_event):
         tmp = tempfile.NamedTemporaryFile(suffix=".xlsx", delete=False)
         tmp.write(upload_event.content.read())
         tmp.close()
-        result = import_vouchers_from_excel(lid, tmp.name)
+        result = VoucherService.import_from_excel(lid, tmp.name)
         os.unlink(tmp.name)
 
         # 增强结果展示：部分成功 + 错误详情弹窗
@@ -148,8 +145,7 @@ def _export_vouchers_excel():
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         fname = f"凭证列表_{state.selected_year}{state.selected_month:02d}_{ts}.xlsx"
         fpath = os.path.join(export_dir, fname)
-        from database_v3 import get_vouchers
-        vouchers = get_vouchers(lid, state.selected_year, state.selected_month)
+        vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month)
         if not vouchers:
             show_toast("当月无凭证数据", "warning")
             return
@@ -191,8 +187,7 @@ def _export_vouchers_pdf():
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         fname = f"凭证列表_{state.selected_year}{state.selected_month:02d}_{ts}.pdf"
         fpath = os.path.join(export_dir, fname)
-        from database_v3 import get_vouchers
-        vouchers = get_vouchers(lid, state.selected_year, state.selected_month)
+        vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month)
         if not vouchers:
             show_toast("当月无凭证数据", "warning")
             return
@@ -215,8 +210,7 @@ def _export_account_balances_excel():
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         fname = f"科目余额表_{state.selected_year}{state.selected_month:02d}_{ts}.xlsx"
         fpath = os.path.join(export_dir, fname)
-        from database_v3 import get_account_balances
-        balances = get_account_balances(lid, state.selected_year, state.selected_month)
+        balances = ReportService.get_account_balances(lid, state.selected_year, state.selected_month)
         if not balances:
             show_toast("无科目余额数据", "warning")
             return
@@ -258,8 +252,7 @@ def _export_account_balances_pdf():
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         fname = f"科目余额表_{state.selected_year}{state.selected_month:02d}_{ts}.pdf"
         fpath = os.path.join(export_dir, fname)
-        from database_v3 import get_account_balances
-        balances = get_account_balances(lid, state.selected_year, state.selected_month)
+        balances = ReportService.get_account_balances(lid, state.selected_year, state.selected_month)
         if not balances:
             show_toast("无科目余额数据", "warning")
             return
@@ -284,8 +277,7 @@ def _export_journal_excel():
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         fname = f"凭证分录_{state.selected_year}{state.selected_month:02d}_{ts}.xlsx"
         fpath = os.path.join(export_dir, fname)
-        from database_v3 import get_vouchers
-        vouchers = get_vouchers(lid, state.selected_year, state.selected_month)
+        vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month)
         if not vouchers:
             show_toast("当月无凭证数据", "warning")
             return
@@ -327,8 +319,7 @@ def _export_journal_pdf():
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         fname = f"凭证分录_{state.selected_year}{state.selected_month:02d}_{ts}.pdf"
         fpath = os.path.join(export_dir, fname)
-        from database_v3 import get_vouchers
-        vouchers = get_vouchers(lid, state.selected_year, state.selected_month)
+        vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month)
         if not vouchers:
             show_toast("当月无凭证数据", "warning")
             return
@@ -344,7 +335,7 @@ def _export_journal_pdf():
 
 def render_export():
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -399,22 +390,22 @@ def do_export(export_type):
         if export_type == "vouchers":
             fname = f"凭证列表_{state.selected_year}{state.selected_month:02d}_{ts}.csv"
             fpath = os.path.join(export_dir, fname)
-            count = export_vouchers_csv(lid, state.selected_year, state.selected_month, fpath)
+            count = ReportService.export_vouchers_csv(lid, state.selected_year, state.selected_month, fpath)
             show_toast(f"✅ 已导出 {count} 条凭证 → {fname}", "success")
         elif export_type == "balances":
             fname = f"科目余额表_{state.selected_year}{state.selected_month:02d}_{ts}.csv"
             fpath = os.path.join(export_dir, fname)
-            count = export_account_balances_csv(lid, state.selected_year, state.selected_month, fpath)
+            count = ReportService.export_account_balances_csv(lid, state.selected_year, state.selected_month, fpath)
             show_toast(f"✅ 已导出 {count} 个科目 → {fname}", "success")
         elif export_type == "bs":
             fname = f"资产负债表_{state.selected_year}{state.selected_month:02d}_{ts}.csv"
             fpath = os.path.join(export_dir, fname)
-            export_balance_sheet_csv(lid, state.selected_year, state.selected_month, fpath)
+            ReportService.export_balance_sheet_csv(lid, state.selected_year, state.selected_month, fpath)
             show_toast(f"✅ 资产负债表已导出 → {fname}", "success")
         elif export_type == "is":
             fname = f"利润表_{state.selected_year}{state.selected_month:02d}_{ts}.csv"
             fpath = os.path.join(export_dir, fname)
-            export_income_statement_csv(lid, state.selected_year, state.selected_month, fpath)
+            ReportService.export_income_statement_csv(lid, state.selected_year, state.selected_month, fpath)
             show_toast(f"✅ 利润表已导出 → {fname}", "success")
         refresh_main()
     except Exception as e:

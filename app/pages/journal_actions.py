@@ -2,10 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import (
-    submit_for_review, approve_voucher, reject_voucher,
-    post_voucher, reverse_voucher, delete_voucher,
-)
+from app.services import VoucherService
 
 
 def _get_user_id():
@@ -15,7 +12,7 @@ def _get_user_id():
 def do_submit_review(voucher_no):
     try:
         lid = state.selected_ledger_id
-        submit_for_review(lid, voucher_no, user_id=_get_user_id())
+        VoucherService.submit_for_review(lid, voucher_no, user_id=_get_user_id())
         show_toast(f"凭证 {voucher_no} 已提交审核", "info")
         refresh_main()
     except Exception as e:
@@ -25,7 +22,7 @@ def do_submit_review(voucher_no):
 def do_approve_voucher(voucher_no):
     try:
         lid = state.selected_ledger_id
-        approve_voucher(lid, voucher_no, user_id=_get_user_id())
+        VoucherService.approve(lid, voucher_no, user_id=_get_user_id())
         show_toast(f"凭证 {voucher_no} 审核通过并已过账", "success")
         refresh_main()
     except Exception as e:
@@ -35,7 +32,7 @@ def do_approve_voucher(voucher_no):
 def do_reject_voucher(voucher_no, reason="审核拒绝"):
     try:
         lid = state.selected_ledger_id
-        reject_voucher(lid, voucher_no, reason=reason, user_id=_get_user_id())
+        VoucherService.reject(lid, voucher_no, reason=reason, user_id=_get_user_id())
         show_toast(f"凭证 {voucher_no} 已退回草稿", "warning")
         refresh_main()
     except Exception as e:
@@ -59,7 +56,8 @@ def show_reject_dialog(voucher_no):
 
 def do_post_voucher(voucher_no):
     try:
-        post_voucher(voucher_no)
+        lid = state.selected_ledger_id
+        VoucherService.post(lid, voucher_no)
         show_toast(f"凭证 {voucher_no} 已过账", "success")
         refresh_main()
     except Exception as e:
@@ -68,7 +66,7 @@ def do_post_voucher(voucher_no):
 
 def do_delete_voucher(voucher_no):
     try:
-        delete_voucher(voucher_no)
+        VoucherService.delete(voucher_no)
         show_toast(f"✅ 凭证 {voucher_no} 已删除", "success")
         state.selected_voucher_no = None
         refresh_main()
@@ -92,7 +90,7 @@ def show_reverse_dialog(voucher_no):
 
 def _do_reverse(d, voucher_no, reason):
     try:
-        rev_no = reverse_voucher(voucher_no, reason or "")
+        rev_no = VoucherService.reverse(voucher_no, reason or "")
         show_toast(f"✅ 已冲销，新凭证：{rev_no}", "success")
         d.close()
         refresh_main()

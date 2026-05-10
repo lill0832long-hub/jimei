@@ -46,8 +46,14 @@ def render_settings():
                             ob_year = ui.number("年份", value=state.selected_year, precision=0).props("outlined dense").classes("w-full")
                             ob_month = ui.number("月份", value=state.selected_month, precision=0).props("outlined dense").classes("w-full")
                             ob_balance = ui.number("期初余额", value=0, precision=2).props("outlined dense").classes("w-full")
-                            ui.button("💾 保存", color="green",
-                                      on_click=lambda: do_set_opening_balance(lid, ob_code.value, int(ob_year.value or 2026), int(ob_month.value or 1), ob_balance.value or 0)).props("dense").classes("w-full")
+                            def _save_opening():
+                                try:
+                                    _year = int(ob_year.value) if ob_year.value is not None else state.selected_year
+                                    _month = int(ob_month.value) if ob_month.value is not None else state.selected_month
+                                    do_set_opening_balance(lid, ob_code.value, _year, _month, ob_balance.value or 0)
+                                except (ValueError, TypeError) as e:
+                                    show_toast(f"输入无效: {e}", "error")
+                            ui.button("💾 保存", color="green", on_click=_save_opening).props("dense").classes("w-full")
 
                 # 科目管理
                 with ui.card().classes("flex-1"):

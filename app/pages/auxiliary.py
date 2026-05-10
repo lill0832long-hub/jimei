@@ -2,10 +2,8 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import (
-    get_ledgers, create_auxiliary, get_auxiliaries, update_auxiliary, delete_auxiliary,
-    query_db,
-)
+from app.services import LedgerService, AccountService
+from database_v3 import query_db
 
 # 辅助核算类型
 _AUX_TYPES = ["客户", "供应商", "产品线", "地区", "部门", "项目"]
@@ -30,7 +28,7 @@ def _do_add_dimension(aux_type):
                     show_toast("请先选择账套", "warning")
                     return
                 try:
-                    create_auxiliary(lid, aux_type, code, name)
+                    AccountService.create_auxiliary(lid, aux_type, code, name)
                     show_toast(f"✅ {aux_type}「{name}」已添加", "success")
                     dlg.close()
                     refresh_main()
@@ -55,7 +53,7 @@ def _do_edit_dimension(aux):
                     show_toast("请填写编码和名称", "warning")
                     return
                 try:
-                    update_auxiliary(aux["id"], code=code, name=name)
+                    AccountService.update_auxiliary(aux["id"], code=code, name=name)
                     show_toast(f"✅ 已更新为「{name}」", "success")
                     dlg.close()
                     refresh_main()
@@ -74,7 +72,7 @@ def _do_delete_dimension(aux):
             ui.button("取消", on_click=dlg.close).props("flat")
             def _confirm():
                 try:
-                    delete_auxiliary(aux["id"])
+                    AccountService.delete_auxiliary(aux["id"])
                     show_toast(f"✅ 已删除「{aux.get('name', '')}」", "success")
                     dlg.close()
                     refresh_main()
@@ -132,7 +130,7 @@ def _do_query_multi_dim(cust_sel, prod_sel, region_sel, result_table):
 def render_auxiliary():
     """辅助核算 — 自定义维度+多维度组合查询+维度余额表"""
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -141,7 +139,7 @@ def render_auxiliary():
     aux_data = {}
     if lid:
         for atype in _AUX_TYPES:
-            aux_data[atype] = get_auxiliaries(lid, atype)
+            aux_data[atype] = AccountService.get_auxiliaries(lid, atype)
 
     with ui.card().classes("w-full"):
         with ui.card_section().classes("py-2.5 px-4 border-b border-grey-2"):

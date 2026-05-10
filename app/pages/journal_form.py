@@ -2,8 +2,8 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import get_conn, get_ledgers
-from app.services import AccountService, VoucherService
+from database_v3 import get_conn
+from app.services import AccountService, LedgerService, VoucherService
 
 
 def _generate_voucher_no(lid, voucher_type="记"):
@@ -30,11 +30,11 @@ def _generate_voucher_no(lid, voucher_type="记"):
 def show_new_voucher_dialog():
     """新增凭证对话框"""
     if not state.selected_ledger_id:
-        ledgers = get_ledgers()
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
         else:
-            show_toast("❌ 请先创建账套", "error")
+            show_toast("请先创建账套", "error")
             return
     _render_voucher_form_dialog()
 
@@ -52,7 +52,7 @@ def _render_voucher_form_dialog(detail=None):
 
     with d, ui.card().classes("w-[750px] max-w-[95vw]"):
         with ui.card_section():
-            label = f"✏️ 编辑凭证 {detail['voucher_no']}" if is_edit else "📝 新增记账凭证"
+            label = f"✏️ 编辑凭证 {detail.get('voucher_no', '')}" if is_edit else "📝 新增记账凭证"
             ui.label(label).classes("text-xl font-bold")
 
         # 凭证模板快捷选择
@@ -95,8 +95,8 @@ def _render_voucher_form_dialog(detail=None):
                         ui.button("应用", on_click=_on_template_apply).props("dense color=primary").classes("px-3")
 
         with ui.card_section():
-            default_date = detail["date"] if is_edit else f"{state.selected_year}-{state.selected_month:02d}-01"
-            default_desc = detail["description"] if is_edit else ""
+            default_date = detail.get("date", f"{state.selected_year}-{state.selected_month:02d}-01") if is_edit else f"{state.selected_year}-{state.selected_month:02d}-01"
+            default_desc = detail.get("description", "") if is_edit else ""
             date_input = ui.input("日期", value=default_date).props("type=date outlined dense").classes("w-40")
             desc_input = ui.input("凭证摘要", value=default_desc).props("outlined dense").classes("flex-grow")
             if not is_edit:
@@ -377,6 +377,6 @@ def _collect_entries(row_refs, acct_list=None):
         if fcc and famt:
             entry["foreign_currency"] = fcc.value or ""
             entry["foreign_amount"] = float(famt.value or 0)
-            entry["exchange_rate"] = float(xr.value or 1) if xr else 1
+            entry["exchange_rate"] = float(xr.value if xr.value is not None else 1) if xr else 1
         voucher_entries.append(entry)
     return voucher_entries

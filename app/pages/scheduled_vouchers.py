@@ -2,18 +2,14 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import (
-    get_voucher_templates, save_voucher_template,
-    get_scheduled_vouchers, add_scheduled_voucher, run_scheduled_voucher,
-    get_accounts,
-)
+from app.services import VoucherService, AccountService
 
 
 def render_scheduled_vouchers():
     """定时自动凭证主页面"""
     if not state.selected_ledger_id:
-        from database_v3 import get_ledgers
-        ledgers = get_ledgers()
+        from app.services import LedgerService
+        ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
@@ -28,7 +24,7 @@ def render_scheduled_vouchers():
                     ui.label("📋 凭证模板").classes("text-sm font-semibold")
                     ui.button("➕ 新建模板", color="primary", on_click=lambda: _show_template_dialog(lid)).props("dense")
 
-            templates = get_voucher_templates(lid)
+            templates = VoucherService.get_templates(lid)
             if templates:
                 cols = [
                     {"name":"name","label":"模板名称","field":"name","align":"left","headerClasses":"table-header-cell text-uppercase"},
@@ -49,7 +45,7 @@ def render_scheduled_vouchers():
                     ui.label("⏰ 定时任务").classes("text-sm font-semibold")
                     ui.button("➕ 新建任务", color="blue", on_click=lambda: _show_schedule_dialog(lid)).props("dense")
 
-            schedules = get_scheduled_vouchers(lid)
+            schedules = VoucherService.get_scheduled(lid)
             if schedules:
                 cols = [
                     {"name":"name","label":"任务名称","field":"name","align":"left","headerClasses":"table-header-cell text-uppercase"},
@@ -88,7 +84,7 @@ def render_scheduled_vouchers():
 def _show_template_dialog(ledger_id: int):
     """新建凭证模板对话框"""
     d = ui.dialog()
-    accounts = get_accounts()
+    accounts = AccountService.get_all()
     acct_options = {f"{a['code']} {a['name']}": a for a in accounts}
     entry_rows = []
 
@@ -149,7 +145,7 @@ def _do_save_template(d, ledger_id, name, vtype, desc, rows, acct_options):
         show_toast("请至少填写一条有效分录", "warning")
         return
     try:
-        save_voucher_template(ledger_id, name, entries, desc, vtype)
+        VoucherService.save_template(ledger_id, name, entries, desc, vtype)
         show_toast(f"✅ 模板「{name}」保存成功", "success")
         d.close()
         refresh_main()
@@ -160,7 +156,7 @@ def _do_save_template(d, ledger_id, name, vtype, desc, rows, acct_options):
 def _show_schedule_dialog(ledger_id: int):
     """新建定时任务对话框"""
     d = ui.dialog()
-    templates = get_voucher_templates(lid=ledger_id)
+    templates = VoucherService.get_templates(lid=ledger_id)
     tpl_options = {t["id"]: t["name"] for t in templates}
 
     with d, ui.card().classes("w-[480px]"):
@@ -192,7 +188,7 @@ def _do_add_schedule(d, ledger_id, name, template_id, cron, next_run):
         show_toast("请选择凭证模板", "warning")
         return
     try:
-        add_scheduled_voucher(ledger_id, name, cron, template_id, next_run)
+        VoucherService.add_scheduled(ledger_id, name, cron, template_id, next_run)
         show_toast(f"✅ 定时任务「{name}」创建成功", "success")
         d.close()
         refresh_main()
@@ -232,7 +228,7 @@ def _quick_template(ledger_id: int, template_type: str):
     if not t:
         return
     try:
-        save_voucher_template(ledger_id, t["name"], t["entries"], t["description"])
+        VoucherService.save_template(ledger_id, t["name"], t["entries"], t["description"])
         show_toast(f"✅ 模板「{t['name']}」创建成功", "success")
         refresh_main()
     except Exception as e:
