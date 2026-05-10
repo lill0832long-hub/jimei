@@ -792,13 +792,19 @@ def generate_voucher_from_text(ledger_id: int, text: str) -> dict:
     return {"description": description, "entries": entries, "confidence": confidence,
             "composite": is_composite, "currency": currency, "exchange_rate": exchange_rate}
 
-def get_voucher_templates(ledger_id: int) -> list:
+def get_voucher_templates(ledger_id: int, include_inactive: bool = False) -> list:
     """获取凭证模板列表"""
     conn = get_conn()
-    rows = conn.execute(
-        "SELECT * FROM voucher_templates WHERE ledger_id = ? AND is_active = 1 ORDER BY name",
-        (ledger_id,)
-    ).fetchall()
+    if include_inactive:
+        rows = conn.execute(
+            "SELECT * FROM voucher_templates WHERE ledger_id = ? ORDER BY name",
+            (ledger_id,)
+        ).fetchall()
+    else:
+        rows = conn.execute(
+            "SELECT * FROM voucher_templates WHERE ledger_id = ? AND is_active = 1 ORDER BY name",
+            (ledger_id,)
+        ).fetchall()
     conn.close()
     return [dict(r) for r in rows]
 

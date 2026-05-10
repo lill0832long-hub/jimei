@@ -32,8 +32,8 @@ def render_fixed_assets():
                             with ui.card_section().classes("py-1.5 px-3"):
                                 with ui.column().classes("gap-0.5 text-xs").style("color:var(--c-text-secondary)"):
                                     ui.label(f"编码：{asset.get('code','')}").classes("font-mono")
-                                    ui.label(f"原值：¥{float(asset.get('purchase_price',0)):,.2f}").style("color:var(--c-text-secondary)")
-                                    ui.label(f"净值：¥{float(asset.get('net_value',0)):,.2f}").classes("font-bold").style("color:var(--c-success)")
+                                    ui.label(f"原值：¥{float(asset.get('purchase_price') or 0):,.2f}").style("color:var(--c-text-secondary)")
+                                    ui.label(f"净值：¥{float(asset.get('net_value') or 0):,.2f}").classes("font-bold").style("color:var(--c-success)")
                             with ui.card_section().classes("py-1 px-3 flex gap-1"):
                                 ui.button("📊 折旧明细", color="blue", on_click=lambda: show_toast("折旧明细", "info")).props("dense").classes("text-xs")
                                 ui.button("🔄 计提", color="green", on_click=lambda: show_toast("折旧计提成功", "success")).props("dense").classes("text-xs")

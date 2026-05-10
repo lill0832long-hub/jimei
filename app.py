@@ -6,7 +6,8 @@ import sys, os
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 
-from database_v3 import init_db, init_v3_tables, init_system_templates, get_ledgers
+from database.connection import init_db, init_v3_tables, init_system_templates
+from app.services import LedgerService
 
 # ── 初始化数据库 ──
 init_db()
@@ -15,7 +16,7 @@ try:
 except Exception as e:
     print(f"v3 init: {e}")
 try:
-    for ledger in get_ledgers():
+    for ledger in LedgerService.get_all():
         init_system_templates(ledger["id"])
 except Exception as e:
     print(f"templates init: {e}")

@@ -10,7 +10,7 @@ from app.pages.journal_actions import (
 
 
 def render_voucher_detail(voucher_no):
-    detail = VoucherService.get_detail(voucher_no)
+    detail = VoucherService.get_detail(state.selected_ledger_id, voucher_no)
     if not detail or not isinstance(detail, dict):
         return
     user = state.current_user
@@ -70,8 +70,8 @@ def render_voucher_detail(voucher_no):
         # ── 合计行 ──
         with ui.card_section().classes("py-1 px-3"):
             with ui.row().classes("justify-end gap-4 text-sm"):
-                ui.label(f"借：¥{detail['total_debit']:,.2f}").style("color:var(--c-danger)")
-                ui.label(f"贷：¥{detail['total_credit']:,.2f}").style("color:var(--c-primary)")
+                ui.label(f"借：¥{detail.get('total_debit', 0):,.2f}").style("color:var(--c-danger)")
+                ui.label(f"贷：¥{detail.get('total_credit', 0):,.2f}").style("color:var(--c-primary)")
 
         # ── 操作按钮（按权限显示）──
         with ui.card_section().classes("py-1 px-3"):

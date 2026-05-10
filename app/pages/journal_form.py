@@ -137,7 +137,7 @@ def _render_voucher_form_dialog(detail=None):
                 ui.button("取消", on_click=d.close)
                 if is_edit:
                     ui.button("💾 保存", color="primary",
-                              on_click=lambda: _do_edit(d, detail["voucher_no"], date_input.value, desc_input.value, row_refs))
+                              on_click=lambda: _do_edit(d, detail.get("voucher_no", ""), date_input.value, desc_input.value, row_refs))
                 else:
                     ui.button("💾 保存", color="primary",
                               on_click=lambda: _do_save(d, lid=state.selected_ledger_id,

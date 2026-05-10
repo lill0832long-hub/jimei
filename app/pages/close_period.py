@@ -30,7 +30,7 @@ def render_close_period():
         checklist.append(("损益数据有效", total_rev > 0 or total_exp > 0, "收入和费用均为0" if total_rev == 0 and total_exp == 0 else "数据有效"))
     except Exception as e:
         checklist.append(("系统检查", False, f"检查异常: {e}"))
-    all_passed = all(ok for _, ok, _ in checklist) and not period["closed"]
+    all_passed = all(ok for _, ok, _ in checklist) and not period.get("closed", False)
 
     with ui.card().classes("w-full"):
         with ui.card_section().classes("py-2.5 px-4 border-b border-grey-2"):
@@ -38,12 +38,12 @@ def render_close_period():
                 ui.label("🔄 期末损益结转").classes("text-base font-bold")
                 ui.label(f"{state.selected_year}年{state.selected_month}月").classes("text-sm").style("color:var(--c-text-muted)")
 
-        if period["closed"]:
+        if period.get("closed"):
             with ui.card_section().classes("py-2.5 px-4 bg-green-50"):
                 with ui.row().classes("items-center gap-2"):
                     ui.icon("check_circle").style("color:var(--c-success)")
                     ui.label("已结转").classes("font-semibold").style("color:var(--c-success)")
-                    ui.label(f"{period['voucher_no']} | {(period['closed_at'] or '')[:10]}").classes("text-xs tabular-nums").style("color:var(--c-success)")
+                    ui.label(f"{period.get('voucher_no', '')} | {(period.get('closed_at') or '')[:10]}").classes("text-xs tabular-nums").style("color:var(--c-success)")
                 ui.button("🔙 反结转（需谨慎）", color="orange", on_click=show_reverse_close_confirm).props("dense").classes("mt-2")
         else:
             with ui.card_section().classes("py-2.5 px-4 bg-orange-50"):
@@ -68,13 +68,13 @@ def render_close_period():
                     {"name":"amount","label":"金额","field":"amount","align":"right","classes":"tabular-nums text-sm","headerClasses":"table-header-cell"},
                 ]
                 rows = []
-                for r in inc["rows"]:
-                    if r["type"] in ("revenue_item","revenue_header","rev_total"):
-                        rows.append({"item": f"  ➕ {r['name']}", "amount": f"¥{r.get('ytd',0) or 0:,.2f}"})
-                for r in inc["rows"]:
-                    if r["type"] in ("expense_header","expense_item","subtotal"):
-                        rows.append({"item": f"  ➖ {r['name']}", "amount": f"¥{r.get('ytd',0) or 0:,.2f}"})
-                rows.append({"item": "💰 净利润", "amount": f"¥{inc['net_profit']:,.2f}"})
+                for r in inc.get("rows", []):
+                    if r.get("type") in ("revenue_item","revenue_header","rev_total"):
+                        rows.append({"item": f"  ➕ {r.get('name', '')}", "amount": f"¥{r.get('ytd') or 0:,.2f}"})
+                for r in inc.get("rows", []):
+                    if r.get("type") in ("expense_header","expense_item","subtotal"):
+                        rows.append({"item": f"  ➖ {r.get('name', '')}", "amount": f"¥{r.get('ytd') or 0:,.2f}"})
+                rows.append({"item": "💰 净利润", "amount": f"¥{inc.get('net_profit', 0):,.2f}"})
                 ui.table(columns=cols, rows=rows, row_key="item", pagination=False)
 
         with ui.card_section().classes("py-2 px-4"):

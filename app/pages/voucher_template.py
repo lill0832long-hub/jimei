@@ -185,7 +185,7 @@ def render_voucher_template():
 
     def _confirm_delete(d, tpl_id):
         try:
-            VoucherService.delete_template(tpl_id, lid)
+            VoucherService.delete_template(tpl_id, ledger_id=lid)
             show_toast("✅ 模板已删除", "success")
             d.close()
             refresh_main()

@@ -131,7 +131,8 @@ def render_setup_wizard():
                     ui.label("第三步：录入期初余额").classes("text-xl font-bold")
                     ui.label("输入各科目在启用期间的期初余额").classes("text-sm text-grey-5 -mt-3")
 
-                    accounts = wizard_state.get("imported_accounts") or AccountService.get_defaults(wizard_state["system_type"])
+                    _sys_type = wizard_state.get("system_type", "small_business")
+                    accounts = wizard_state.get("imported_accounts") or AccountService.get_defaults(_sys_type)
                     top_accounts = [a for a in accounts if not a[4]]
 
                     balance_rows = []
@@ -205,9 +206,9 @@ def render_setup_wizard():
                         ui.icon("check_circle").style("font-size:40px; color:var(--c-success);")
                     ui.label("账套初始化完成！").classes("text-2xl font-bold text-grey-8")
                     with ui.column().classes("gap-2 mt-2 items-center"):
-                        ui.label(f"账套名称：{wizard_state['ledger_name']}").classes("text-sm text-grey-6")
-                        ui.label(f"会计制度：{'小企业会计准则' if wizard_state['system_type'] == 'small_business' else '企业会计准则'}").classes("text-sm text-grey-6")
-                        ui.label(f"启用期间：{wizard_state['enable_year']}年{wizard_state['enable_month']}月").classes("text-sm text-grey-6")
+                        ui.label(f"账套名称：{wizard_state.get('ledger_name', '')}").classes("text-sm text-grey-6")
+                        ui.label(f"会计制度：{'小企业会计准则' if wizard_state.get('system_type') == 'small_business' else '企业会计准则'}").classes("text-sm text-grey-6")
+                        ui.label(f"启用期间：{wizard_state.get('enable_year', '')}年{wizard_state.get('enable_month', '')}月").classes("text-sm text-grey-6")
                         ui.label(f"导入科目：{len(wizard_state.get('imported_accounts', []))} 个").classes("text-sm text-grey-6")
                     ui.button("进入系统", color="primary", on_click=_finish_wizard).props("rounded").classes("mt-6 px-8").style("height:44px; font-size:16px;")
 

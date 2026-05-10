@@ -63,24 +63,24 @@ class VoucherService:
 
     # ── 凭证模板 ──
     @staticmethod
-    def get_templates(ledger_id):
-        return get_voucher_templates(ledger_id)
+    def get_templates(ledger_id, include_inactive=False):
+        return get_voucher_templates(ledger_id, include_inactive)
 
     @staticmethod
-    def create_template(ledger_id, name, entries):
-        return create_voucher_template(ledger_id, name, entries)
+    def create_template(ledger_id, name, description="", entries=None, category="general"):
+        return create_voucher_template(ledger_id, name, description, entries, category)
 
     @staticmethod
-    def update_template(template_id, **kwargs):
-        return update_voucher_template(template_id, **kwargs)
+    def update_template(template_id, ledger_id=None, **kwargs):
+        return update_voucher_template(template_id, ledger_id, **kwargs)
 
     @staticmethod
-    def delete_template(template_id):
-        return delete_voucher_template(template_id)
+    def delete_template(template_id, ledger_id=None):
+        return delete_voucher_template(template_id, ledger_id)
 
     @staticmethod
-    def save_template(ledger_id, name, entries):
-        return save_voucher_template(ledger_id, name, entries)
+    def save_template(ledger_id, name, entries, description="", voucher_type="记"):
+        return save_voucher_template(ledger_id, name, entries, description, voucher_type)
 
     # ── 计划凭证 ──
     @staticmethod

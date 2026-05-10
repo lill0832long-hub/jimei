@@ -252,12 +252,13 @@ def render_header():
                         with ui.element("div").classes("header-notif-dot"):
                             pass
                     with ui.row().classes("items-center gap-2"):
-                        first_letter = state.current_user['username'][0].upper() if state.current_user['username'] else "U"
+                        _username = state.current_user.get('username', '') if state.current_user else ''
+                        first_letter = _username[0].upper() if _username else "U"
                         with ui.element("div").classes("header-avatar"):
                             ui.label(first_letter)
                         with ui.column().classes("gap-0 leading-tight"):
-                            ui.label(f"{state.current_user['username']}").classes("header-username")
-                            role_text = "管理员" if state.current_user['role'] == 'admin' else "操作员"
+                            ui.label(_username).classes("header-username")
+                            role_text = "管理员" if (state.current_user or {}).get('role') == 'admin' else "操作员"
                             ui.label(role_text).classes("header-role")
                     ui.button(icon="dark_mode", on_click=lambda: ui.run_javascript("toggleDarkTheme()")) \
                         .props("flat dense").classes("header-logout-btn").classes("mr-1")
