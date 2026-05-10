@@ -7,14 +7,12 @@ from app.services.account_service import AccountService
 from app.services.auth_service import AuthService
 
 def render_settings():
-    if not state.selected_ledger_id:
-        ledgers = LedgerService.get_all()
-        if ledgers:
-            state.selected_ledger_id = ledgers[0]["id"]
+    ledgers = LedgerService.get_all()
+    if not state.selected_ledger_id and ledgers:
+        state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
     if not lid:
         return
-    lid = state.selected_ledger_id
     with ui.card().classes("w-full"):
         with ui.card_section().classes("py-2.5 px-4 border-b border-grey-2"):
             ui.label("⚙️ 系统设置").classes("text-base font-bold")
@@ -26,7 +24,6 @@ def render_settings():
                     with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
                         ui.label("📁 账套管理").classes("text-sm font-semibold")
                     with ui.card_section().classes("py-2 px-3"):
-                        ledgers = LedgerService.get_all()
                         if ledgers:
                             for lg in ledgers:
                                 with ui.row().classes("items-center justify-between py-1 border-b border-grey-1"):

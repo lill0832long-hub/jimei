@@ -102,7 +102,8 @@ def _render_voucher_form_dialog(detail=None):
             if not is_edit:
                 save_draft = ui.checkbox("保存为草稿", value=False)
 
-        acct_opts = {a["code"]: f"{a['code']} {a['name']}" for a in AccountService.get_all()}
+        _acct_data = AccountService.get_all()
+        acct_opts = {a["code"]: f"{a['code']} {a['name']}" for a in _acct_data}
 
         with ui.card_section():
             ui.label("分录明细").classes("text-xs font-semibold uppercase tracking-wide mb-2").style("color:var(--c-text-secondary)")
@@ -119,7 +120,7 @@ def _render_voucher_form_dialog(detail=None):
             if is_edit and detail:
                 for entry in detail.get("entries", []):
                     _add_row(
-                        entries_col, row_refs,
+                        entries_col, row_refs, acct_opts, _acct_data,
                         acct_code=entry.get("account_code", ""),
                         summary=entry.get("summary", ""),
                         debit=float(entry.get("debit", 0) or 0),
@@ -127,9 +128,9 @@ def _render_voucher_form_dialog(detail=None):
                     )
             else:
                 for _ in range(4):
-                    _add_row(entries_col, row_refs)
+                    _add_row(entries_col, row_refs, acct_opts, _acct_data)
 
-            ui.button("➕ 添加行", on_click=lambda: _add_row(entries_col, row_refs), color="blue").props("dense flat")
+            ui.button("➕ 添加行", on_click=lambda: _add_row(entries_col, row_refs, acct_opts, _acct_data), color="blue").props("dense flat")
 
         with ui.card_section():
             with ui.row().classes("justify-end gap-2"):
@@ -145,11 +146,15 @@ def _render_voucher_form_dialog(detail=None):
     d.open()
 
 
-def _add_row(entries_col, row_refs, acct_code="1002", summary="", debit=0, credit=0, foreign_ccy="", foreign_amount=0, exchange_rate=1):
+def _add_row(entries_col, row_refs, acct_opts, acct_list=None, acct_code="1002", summary="", debit=0, credit=0, foreign_ccy="", foreign_amount=0, exchange_rate=1):
     """创建一行分录，带智能联想功能"""
     from app.components.state import state
-    from app.services import AccountService, VoucherService
+    from app.services import AccountService
     from app.components.ui_helpers import show_toast
+
+    if acct_list is None:
+        acct_list = AccountService.get_all()
+    _acct_map = {a["code"]: a for a in acct_list}
 
     suggest_label = ui.label("").classes("text-xs text-blue-600 mt-0.5 mb-0 w-full").style("min-height:16px;transition:all 0.2s")
     avg_label = ui.label("").classes("text-xs text-green-600 mt-0 mb-0 w-full").style("min-height:16px")
@@ -165,7 +170,6 @@ def _add_row(entries_col, row_refs, acct_code="1002", summary="", debit=0, credi
                     ui.button("填充", color="primary", on_click=None).props("dense size=sm").classes("px-2")
 
             with ui.row().classes("items-center gap-2 w-full") as row_el:
-                acct_opts = {a["code"]: f"{a['code']} {a['name']}" for a in AccountService.get_all()}
                 sel = ui.select(options=acct_opts, value=acct_code, label="科目").props("outlined dense").classes("w-56")
                 summ = ui.input("摘要", value=summary).props("outlined dense").classes("flex-grow")
                 dr = ui.number("借方", value=debit, precision=2).props("outlined dense").classes("w-28")
@@ -224,18 +228,18 @@ def _add_row(entries_col, row_refs, acct_code="1002", summary="", debit=0, credi
             summ.on_value_change(_on_summary_change)
 
             # 科目选择 → 金额推荐 + 借贷方向判断
-            def _on_account_change(row_ref=r):
+            def _on_account_change(row_ref=r, _acct_map=_acct_map):
                 code = row_ref["acct"].value
                 if not code:
                     return
                 lid = state.selected_ledger_id
                 if not lid:
                     return
-                avg = VoucherService.get_avg_amount(lid, code)
+                avg = AccountService.get_avg_amount(lid, code)
                 if avg and avg > 0:
                     row_ref["suggest_box"].style("display:flex")
                     row_ref["suggest_info"].text = f"💰 近3月平均: ¥{avg:,.2f}"
-                    acct_info = next((a for a in AccountService.get_all() if a["code"] == code), None)
+                    acct_info = _acct_map.get(code, {})
                     if acct_info:
                         cat = acct_info.get("category", "")
                         if cat in ("资产", "费用", "成本"):
@@ -258,11 +262,12 @@ def _add_row(entries_col, row_refs, acct_code="1002", summary="", debit=0, credi
 
 def _do_save(d, lid, date_input, desc_input, save_draft, row_entries):
     """保存新凭证"""
-    from app.services import VoucherService
+    from app.services import VoucherService, BudgetService, AccountService
     from app.components.state import state
     from app.components.ui_helpers import show_toast, refresh_main
 
-    voucher_entries = _collect_entries(row_entries)
+    acct_list = AccountService.get_all()
+    voucher_entries = _collect_entries(row_entries, acct_list)
     if not voucher_entries:
         show_toast("请至少填写一条分录", "warning")
         return
@@ -280,7 +285,7 @@ def _do_save(d, lid, date_input, desc_input, save_draft, row_entries):
         over_budget_items = []
         for entry in voucher_entries:
             if entry["debit"] > 0:
-                result = VoucherService.check_budget_exceeded(lid, entry["account_code"], entry["debit"])
+                result = BudgetService.check_exceeded(lid, entry["account_code"], chk_year, chk_month, entry["debit"])
                 if result["has_budget"] and result["exceeded"]:
                     over_budget_items.append({
                         "account": f"{entry['account_code']} {entry['account_name']}",
@@ -349,9 +354,12 @@ def _do_edit(d, voucher_no, date_str, desc, entry_rows):
         show_toast(f"❌ {e}", "error")
 
 
-def _collect_entries(row_refs):
+def _collect_entries(row_refs, acct_list=None):
     """从行引用中收集凭证分录"""
-    from app.services import AccountService
+    if acct_list is None:
+        from app.services import AccountService
+        acct_list = AccountService.get_all()
+    acct_map = {a["code"]: a["name"] for a in acct_list}
     voucher_entries = []
     for r in row_refs:
         dr = r["debit"].value or 0
@@ -361,7 +369,7 @@ def _collect_entries(row_refs):
         code = r["acct"].value
         if not code:
             continue
-        name = next((a["name"] for a in AccountService.get_all() if a["code"] == code), code)
+        name = acct_map.get(code, code)
         entry = {"account_code": code, "account_name": name, "debit": dr, "credit": cr, "summary": r["summary"].value or ""}
         fcc = r.get("foreign_ccy")
         famt = r.get("foreign_amount")

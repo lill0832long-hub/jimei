@@ -3,8 +3,8 @@ from database_v3 import (
     create_ledger, get_ledgers, get_ledger, update_ledger, delete_ledger,
     set_opening_balance, get_opening_balance,
     get_period_status, close_period, reverse_close_period,
-    get_default_accounts, import_accounts_from_template,
 )
+from app.services.account_service import AccountService
 
 
 class LedgerService:
@@ -51,11 +51,11 @@ class LedgerService:
     def reverse_close_period(ledger_id, year, month):
         return reverse_close_period(ledger_id, year, month)
 
-    # ── 科目初始化 ──
+    # ── 科目初始化（委托给 AccountService） ──
     @staticmethod
     def get_default_accounts():
-        return get_default_accounts()
+        return AccountService.get_defaults()
 
     @staticmethod
     def import_accounts_from_template(ledger_id, template_name):
-        return import_accounts_from_template(ledger_id, template_name)
+        return AccountService.import_from_template(ledger_id, template_name)

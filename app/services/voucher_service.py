@@ -6,7 +6,6 @@ from database_v3 import (
     get_voucher_templates, create_voucher_template, update_voucher_template,
     delete_voucher_template, save_voucher_template,
     get_scheduled_vouchers, add_scheduled_voucher, run_scheduled_voucher,
-    check_budget_exceeded, get_avg_amount_for_account,
     import_vouchers_from_excel, generate_voucher_from_text,
 )
 
@@ -97,14 +96,6 @@ class VoucherService:
         return run_scheduled_voucher(scheduled_id)
 
     # ── 辅助方法 ──
-    @staticmethod
-    def check_budget_exceeded(ledger_id, account_code, amount):
-        return check_budget_exceeded(ledger_id, account_code, amount)
-
-    @staticmethod
-    def get_avg_amount(ledger_id, account_code):
-        return get_avg_amount_for_account(ledger_id, account_code)
-
     @staticmethod
     def import_from_excel(ledger_id, file_path):
         return import_vouchers_from_excel(ledger_id, file_path)

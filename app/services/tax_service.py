@@ -13,16 +13,16 @@ class TaxService:
         return get_tax_config(ledger_id)
 
     @staticmethod
-    def set_config(ledger_id, **kwargs):
-        return set_tax_config(ledger_id, **kwargs)
+    def set_config(ledger_id, taxpayer_type="general", default_tax_rate=0.13):
+        return set_tax_config(ledger_id, taxpayer_type=taxpayer_type, default_tax_rate=default_tax_rate)
 
     @staticmethod
     def get_rates(ledger_id):
         return get_tax_rates(ledger_id)
 
     @staticmethod
-    def add_rate(ledger_id, name, rate, **kwargs):
-        return add_tax_rate(ledger_id, name, rate, **kwargs)
+    def add_rate(ledger_id, rate, name, description="", is_default=0):
+        return add_tax_rate(ledger_id, rate, name, description=description, is_default=is_default)
 
     @staticmethod
     def get_summary(ledger_id, year, month):

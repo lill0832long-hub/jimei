@@ -1,4 +1,4 @@
-"""报表服务层 — 封装 database_v3 的报表/现金流/发票/预算汇总相关操作"""
+"""报表服务层 — 封装 database_v3 的报表/现金流/发票/Dashboard相关操作"""
 from database_v3 import (
     get_account_balances, get_balance_sheet, get_income_statement,
     export_balance_sheet_csv, export_income_statement_csv,
@@ -7,10 +7,11 @@ from database_v3 import (
     export_account_balances_pdf, export_vouchers_pdf,
     get_period_compare_income, get_period_compare_balance,
     get_cash_flow_statement, get_cash_flow_categories, add_cash_flow_category,
-    get_invoices, add_invoice, link_invoice_voucher, get_invoice_vouchers, get_invoice_summary,
+    get_invoices, add_invoice, link_invoice_voucher, get_invoice_vouchers,
+    get_invoice_summary, ocr_recognize_invoice,
     get_dashboard_kpi, get_monthly_trend, get_expense_breakdown,
-    get_budgets, set_budget, get_budget_execution, get_budget_summary,
 )
+from .budget_service import BudgetService
 
 
 class ReportService:
@@ -63,22 +64,22 @@ class ReportService:
     def get_expense_breakdown(ledger_id, year, month):
         return get_expense_breakdown(ledger_id, year, month)
 
-    # ── 预算汇总 ──
+    # ── 预算汇总（委托给 BudgetService） ──
     @staticmethod
     def get_budgets(ledger_id, year=None):
-        return get_budgets(ledger_id, year)
+        return BudgetService.get_all(ledger_id, year)
 
     @staticmethod
     def set_budget(ledger_id, account_code, year, month, amount):
-        return set_budget(ledger_id, account_code, year, month, amount)
+        return BudgetService.set(ledger_id, account_code, None, year, month, amount)
 
     @staticmethod
     def get_budget_execution(ledger_id, year, month):
-        return get_budget_execution(ledger_id, year, month)
+        return BudgetService.get_execution(ledger_id, year, month)
 
     @staticmethod
     def get_budget_summary(ledger_id, year):
-        return get_budget_summary(ledger_id, year)
+        return BudgetService.get_summary(ledger_id, year)
 
     # ── 发票 ──
     @staticmethod
@@ -100,6 +101,10 @@ class ReportService:
     @staticmethod
     def get_invoice_summary(ledger_id, year=None, month=None):
         return get_invoice_summary(ledger_id, year, month)
+
+    @staticmethod
+    def ocr_recognize_invoice(file_path):
+        return ocr_recognize_invoice(file_path)
 
     # ── CSV 导出 ──
     @staticmethod

@@ -24,5 +24,5 @@ class BudgetService:
         return get_budget_summary(ledger_id, year, month)
 
     @staticmethod
-    def check_exceeded(ledger_id, account_code, amount):
-        return check_budget_exceeded(ledger_id, account_code, amount)
+    def check_exceeded(ledger_id, account_code, year, month, amount):
+        return check_budget_exceeded(ledger_id, account_code, year, month, amount)
