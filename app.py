@@ -144,7 +144,7 @@ ui.add_head_html('''
 if __name__ == "__main__":
     ui.run(
         title="AI 财务系统 v3",
-        port=8091,
+        port=8090,
         host="0.0.0.0",
         reload=False,
         show=False,
