@@ -4,9 +4,10 @@ from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def add_audit_log(ledger_id, action, detail, voucher_id=None, user_id=None,
                   operator_name=None, module=None, target_table=None, target_id=None,
-                  old_value=None, new_value=None, ip_address=None, remark=None):
+                  old_value=None, new_value=None, ip_address=None, remark=None,
+                  conn=None):
     """写入审计日志（支持完整字段）
-    
+
     Args:
         ledger_id: 账套ID
         action: 操作类型 (create_voucher/delete_voucher/post_voucher/restore/...)
@@ -21,22 +22,29 @@ def add_audit_log(ledger_id, action, detail, voucher_id=None, user_id=None,
         new_value: 变更后值 (JSON字符串)
         ip_address: IP地址
         remark: 备注
+        conn: 外部数据库连接（用于事务内调用），为 None 时自动创建
     """
     import json as _json
-    conn = get_conn()
-    conn.execute(
-        """INSERT INTO audit_logs 
-           (ledger_id, action, detail, voucher_id, user_id, operator_name, module,
-            target_table, target_id, old_value, new_value, ip_address, remark)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
-        (ledger_id, action, detail, voucher_id, user_id, operator_name, module,
-         target_table, target_id,
-         _json.dumps(old_value, ensure_ascii=False) if old_value is not None else None,
-         _json.dumps(new_value, ensure_ascii=False) if new_value is not None else None,
-         ip_address, remark)
-    )
-    conn.commit()
-    conn.close()
+    external_conn = conn is not None
+    if not external_conn:
+        conn = get_conn()
+    try:
+        conn.execute(
+            """INSERT INTO audit_logs
+               (ledger_id, action, detail, voucher_id, user_id, operator_name, module,
+                target_table, target_id, old_value, new_value, ip_address, remark)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (ledger_id, action, detail, voucher_id, user_id, operator_name, module,
+             target_table, target_id,
+             _json.dumps(old_value, ensure_ascii=False) if old_value is not None else None,
+             _json.dumps(new_value, ensure_ascii=False) if new_value is not None else None,
+             ip_address, remark)
+        )
+        if not external_conn:
+            conn.commit()
+    finally:
+        if not external_conn:
+            conn.close()
     clear_query_cache()
 
 def get_audit_logs(ledger_id, limit=50, module=None, action=None, start_date=None, end_date=None):

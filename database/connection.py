@@ -23,6 +23,7 @@ def get_conn():
     conn.execute("PRAGMA temp_store=MEMORY")
     return conn
 
+@contextmanager
 def transaction(conn):
     """事务管理上下文管理器 — 自动 commit/rollback"""
     try:

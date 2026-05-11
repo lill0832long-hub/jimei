@@ -1,6 +1,7 @@
 """Database module: voucher domain"""
 
 from .connection import get_conn, transaction, DB_PATH, clear_query_cache
+from .audit import add_audit_log
 
 def create_voucher(ledger_id, date_str, description, entries, status="posted", voucher_no=None, user_id=None, operator_name=None):
     """
@@ -54,6 +55,7 @@ def create_voucher(ledger_id, date_str, description, entries, status="posted", v
                 user_id=user_id,
                 operator_name=operator_name,
                 remark=f"凭证号:{voucher_no}",
+                conn=conn,
             )
         return voucher_no
     finally:
@@ -105,6 +107,7 @@ def update_voucher(voucher_no, date_str=None, description=None, entries=None, us
                 user_id=user_id,
                 operator_name=operator_name,
                 remark=f"凭证号:{voucher_no}",
+                conn=conn,
             )
     finally:
         conn.close()
@@ -143,6 +146,7 @@ def post_voucher(ledger_id, voucher_no=None, user_id=None, operator_name=None):
         user_id=user_id,
         operator_name=operator_name,
         remark=f"凭证号:{voucher_no}",
+        conn=conn,
     )
     conn.commit()
     conn.close()
@@ -170,6 +174,7 @@ def approve_voucher(ledger_id, voucher_no, user_id=None, operator_name=None):
         target_table="vouchers",
         target_id=v["id"],
         remark=f"凭证号:{voucher_no}",
+        conn=conn,
     )
     conn.commit()
     conn.close()
@@ -198,6 +203,7 @@ def reject_voucher(ledger_id, voucher_no, reason="", user_id=None, operator_name
         target_table="vouchers",
         target_id=v["id"],
         remark=reason,
+        conn=conn,
     )
     conn.commit()
     conn.close()
@@ -260,6 +266,7 @@ def reverse_voucher(voucher_no, reason="", user_id=None, operator_name=None):
         user_id=user_id,
         operator_name=operator_name,
         remark=f"原凭证:{voucher_no} 冲销:{reverse_no}",
+        conn=conn,
     )
     conn.commit()
     conn.close()
@@ -294,6 +301,7 @@ def delete_voucher(voucher_no, ledger_id=None, user_id=None, operator_name=None)
                 user_id=user_id,
                 operator_name=operator_name,
                 remark=f"凭证号:{voucher_no}",
+                conn=conn,
             )
     finally:
         conn.close()
@@ -893,6 +901,7 @@ def submit_for_review(ledger_id, voucher_no, user_id=None, operator_name=None):
         target_table="vouchers",
         target_id=v["id"],
         remark=f"凭证号:{voucher_no}",
+        conn=conn,
     )
     conn.commit()
     conn.close()

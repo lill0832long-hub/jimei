@@ -182,6 +182,7 @@ def close_period(ledger_id, year, month, user_id=None, operator_name=None):
                 target_table="vouchers",
                 target_id=voucher_id,
                 remark=f"{year}-{month}月结转 净利润:{net_profit/100:.2f}元",
+                conn=conn,
             )
 
         return voucher_no

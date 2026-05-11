@@ -166,6 +166,7 @@ def restore_ledger_from_json(fpath: str, target_ledger_id: int = None, user_id: 
             user_id=user_id,
             operator_name=operator_name,
             remark=f"备份文件:{os.path.basename(fpath)}",
+            conn=conn,
         )
 
         conn.commit()

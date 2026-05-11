@@ -311,12 +311,14 @@ def _render_voucher_form_dialog(detail=None):
                 with ui.row().classes("gap-2"):
                     ui.button("取消", on_click=d.close)
                     if is_edit:
-                        ui.button("💾 保存", color="primary",
-                                  on_click=lambda: _do_edit_v3(d, detail.get("voucher_no", ""), date_input.value, desc_input.value, _acct_map))
+                        async def _on_edit_click():
+                            await _do_edit_v3(d, detail.get("voucher_no", ""), date_input.value, desc_input.value, _acct_map)
+                        ui.button("💾 保存", color="primary", on_click=_on_edit_click)
                     else:
                         save_draft = ui.checkbox("存为草稿", value=False).classes("text-xs")
-                        ui.button("💾 保存", color="primary",
-                                  on_click=lambda: _do_save_v3(d, date_input=date_input, desc_input=desc_input, save_draft=save_draft, acct_map=_acct_map))
+                        async def _on_save_click():
+                            await _do_save_v3(d, date_input=date_input, desc_input=desc_input, save_draft=save_draft, acct_map=_acct_map)
+                        ui.button("💾 保存", color="primary", on_click=_on_save_click)
 
         with ui.card_section().classes("pt-1 pb-2 border-t border-grey-1"):
             with ui.row().classes("w-full justify-between gap-4 text-xs text-grey-6"):
@@ -328,11 +330,11 @@ def _render_voucher_form_dialog(detail=None):
     d.open()
 
 
-def _collect_entries(acct_map):
+async def _collect_entries(acct_map):
     """从 JS 收集分录数据并验证。返回 (entries, total_debit, total_credit) 或抛出异常。"""
-    raw = ui.run_javascript("return v3collectEntries();")
+    raw = await ui.run_javascript("return v3collectEntries();")
     try:
-        entries_raw = json.loads(raw) if isinstance(raw, str) else json.loads(raw.result if hasattr(raw, 'result') else str(raw))
+        entries_raw = json.loads(raw) if isinstance(raw, str) else json.loads(str(raw))
     except Exception as e:
         show_toast(f"数据收集失败: {e}", "error")
         raise ValueError(str(e)) from e
@@ -362,12 +364,12 @@ def _collect_entries(acct_map):
     return entries, total_debit, total_credit
 
 
-def _do_save_v3(d, date_input, desc_input, save_draft, acct_map):
+async def _do_save_v3(d, date_input, desc_input, save_draft, acct_map):
     """保存新凭证 v3"""
     from app.services import BudgetService
 
     try:
-        entries, total_debit, total_credit = _collect_entries(acct_map)
+        entries, total_debit, total_credit = await _collect_entries(acct_map)
     except ValueError:
         return
 
@@ -396,7 +398,9 @@ def _do_save_v3(d, date_input, desc_input, save_draft, acct_map):
                 with ui.card_section():
                     with ui.row().classes("justify-end gap-2"):
                         ui.button("取消", on_click=cd.close)
-                        ui.button("⚠️ 强制保存", color="danger", on_click=lambda: _force_save_v3(d, cd, date_input, desc_input, entries))
+                        async def _on_force_save():
+                            await _force_save_v3(d, cd, date_input, desc_input, entries)
+                        ui.button("⚠️ 强制保存", color="danger", on_click=_on_force_save)
             cd.open()
             return
 
@@ -413,7 +417,7 @@ def _do_save_v3(d, date_input, desc_input, save_draft, acct_map):
         show_toast(f"❌ {e}", "error")
 
 
-def _force_save_v3(d, cd, date_input, desc_input, entries):
+async def _force_save_v3(d, cd, date_input, desc_input, entries):
     try:
         vn = VoucherService.create(state.selected_ledger_id,
             date_input.value or f"{state.selected_year}-{state.selected_month:02d}-01",
@@ -427,10 +431,10 @@ def _force_save_v3(d, cd, date_input, desc_input, entries):
         show_toast(f"❌ {e}", "error")
 
 
-def _do_edit_v3(d, voucher_no, date_str, desc, acct_map):
+async def _do_edit_v3(d, voucher_no, date_str, desc, acct_map):
     """保存编辑后的凭证 v3"""
     try:
-        entries, total_debit, total_credit = _collect_entries(acct_map)
+        entries, total_debit, total_credit = await _collect_entries(acct_map)
     except ValueError:
         return
 
