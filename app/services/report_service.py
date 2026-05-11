@@ -100,7 +100,7 @@ class ReportService:
 
     @staticmethod
     def get_invoice_summary(ledger_id, year=None, month=None):
-        return get_invoice_summary(ledger_id, year, month)
+        return get_invoice_summary(ledger_id)
 
     @staticmethod
     def ocr_recognize_invoice(file_path):

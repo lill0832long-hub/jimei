@@ -1,7 +1,21 @@
 """UI辅助函数 — Sidebar v2 重做版"""
 from nicegui import ui
 from app.components.state import state
-from database_v3 import query_db, get_ledgers, search_vouchers, search_accounts_by_kw
+from app.services import LedgerService, VoucherService, AccountService
+
+# 兼容别名：ui_helpers 中使用的函数名保持不变
+def query_db(sql, params=()):
+    from database_v3 import query_db as _query_db
+    return _query_db(sql, params)
+
+def get_ledgers():
+    return LedgerService.get_all()
+
+def search_vouchers(keyword, limit=10):
+    return VoucherService.search(state.selected_ledger_id, keyword=keyword, limit=limit)
+
+def search_accounts_by_kw(keyword, limit=10):
+    return AccountService.search(keyword, limit)
 # show_voucher_detail imported locally in open_global_search to avoid circular import
 
 def format_amount(value, show_currency=True):
@@ -109,9 +123,8 @@ def open_global_search():
                         with ui.row().classes("items-center gap-2 p-2 rounded hover:bg-blue-5 cursor-pointer") \
                                 .on_click(lambda vno=v['voucher_no']: (
                                     search_dialog.close(),
-                                    navigate('journal'),
                                     setattr(state, 'selected_voucher_no', vno),
-                                    refresh_main(),
+                                    navigate('journal'),
                                 )):
                             ui.label(v['voucher_no']).classes("text-sm font-mono w-24").style("color:var(--c-primary)")
                             ui.label(v.get('summary', '')[:30]).classes("text-sm flex-1").style("color:var(--c-text-secondary)")

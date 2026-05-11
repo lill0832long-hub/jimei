@@ -1,6 +1,6 @@
 """Database module: cash_flow domain"""
 
-from .connection import get_conn, transaction, DB_PATH
+from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def get_cash_flow_categories(ledger_id: int) -> list:
     """获取现金流分类列表"""

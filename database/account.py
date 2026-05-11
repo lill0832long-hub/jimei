@@ -1,6 +1,6 @@
 """Database module: account domain"""
 
-from .connection import get_conn, transaction, DB_PATH
+from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def get_account_balances(ledger_id, year, month) -> list[dict]:
     """科目余额表 — 6列金额：期初借贷/本期借贷/本年累计借贷/期末借贷"""
@@ -130,7 +130,7 @@ def search_accounts_by_kw(keyword, limit=10):
     conn = get_conn()
     kw = f"%{keyword}%"
     rows = conn.execute("""
-        SELECT code, name, category, subcategory, is_active
+        SELECT code, name, category, sub_category, is_active
         FROM accounts
         WHERE is_active = 1 AND (code LIKE ? OR name LIKE ?)
         ORDER BY code

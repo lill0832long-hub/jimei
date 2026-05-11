@@ -1,6 +1,6 @@
 """Database module: ai domain"""
 
-from .connection import get_conn, transaction, DB_PATH
+from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def get_ai_rules_complex(active_only=True) -> list:
     """获取所有复合业务规则"""

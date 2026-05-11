@@ -1,6 +1,6 @@
 """Database module: period domain"""
 
-from .connection import get_conn, transaction, DB_PATH
+from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def get_close_period_checklist(ledger_id, year, month) -> list:
     """获取期末结转检查清单（每项含名称/状态/描述）"""

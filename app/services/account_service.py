@@ -19,11 +19,13 @@ class AccountService:
     # ── 科目 ──
     @staticmethod
     def get_all(ledger_id=None, active_only=True):
-        return get_accounts(ledger_id, active_only)
+        # get_accounts 只接受 category 参数，ledger_id 暂不支持过滤
+        return get_accounts()
 
     @staticmethod
     def add(ledger_id, code, name, category, **kwargs):
-        return add_account(ledger_id, code, name, category, **kwargs)
+        # add_account(code, name, category, sub_category, parent_code)
+        return add_account(code, name, category, **kwargs)
 
     @staticmethod
     def search(keyword, limit=10):

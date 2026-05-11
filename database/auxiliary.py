@@ -1,6 +1,6 @@
 """Database module: auxiliary domain"""
 
-from .connection import get_conn, transaction, DB_PATH
+from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def create_auxiliary(ledger_id, aux_type, code, name, parent_id=None):
     """创建辅助核算项目"""

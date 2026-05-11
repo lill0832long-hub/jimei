@@ -1,6 +1,12 @@
 """全局状态"""
 from datetime import datetime
-from database_v3 import get_ledgers, get_ledger
+from app.services import LedgerService
+
+def _get_ledgers():
+    return LedgerService.get_all()
+
+def _get_ledger(ledger_id):
+    return LedgerService.get_by_id(ledger_id)
 
 class State:
     current_page = "dashboard"  # 默认首页
@@ -29,8 +35,8 @@ class State:
     @property
     def ledger(self):
         if self.selected_ledger_id:
-            return get_ledger(self.selected_ledger_id)
-        ledgers = get_ledgers()
+            return _get_ledger(self.selected_ledger_id)
+        ledgers = _get_ledgers()
         if ledgers and not self.selected_ledger_id:
             self.selected_ledger_id = ledgers[0]["id"]
         return ledgers[0] if ledgers else None

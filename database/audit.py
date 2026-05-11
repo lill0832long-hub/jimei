@@ -1,6 +1,6 @@
 """Database module: audit domain"""
 
-from .connection import get_conn, transaction, DB_PATH
+from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def add_audit_log(ledger_id, action, detail, voucher_id=None, user_id=None,
                   operator_name=None, module=None, target_table=None, target_id=None,

@@ -1,6 +1,6 @@
 """Database module: fixed_asset domain"""
 
-from .connection import get_conn, transaction, DB_PATH
+from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def create_fixed_asset(ledger_id, asset_code, asset_name, original_value,
                        useful_life_months, category_id=None, purchase_date=None,

@@ -1,7 +1,7 @@
 """Database module: multi_currency domain"""
 
 from datetime import datetime
-from .connection import get_conn, transaction, DB_PATH
+from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def _init_default_currencies(c):
     """Phase 10: 初始化默认币种数据"""

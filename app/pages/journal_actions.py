@@ -66,7 +66,8 @@ def do_post_voucher(voucher_no):
 
 def do_delete_voucher(voucher_no):
     try:
-        VoucherService.delete(voucher_no)
+        lid = state.selected_ledger_id
+        VoucherService.delete(voucher_no, ledger_id=lid)
         show_toast(f"✅ 凭证 {voucher_no} 已删除", "success")
         state.selected_voucher_no = None
         refresh_main()

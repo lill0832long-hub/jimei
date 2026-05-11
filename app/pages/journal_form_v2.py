@@ -6,7 +6,6 @@ from nicegui import ui
 
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import get_conn
 from app.services import AccountService, LedgerService, VoucherService
 
 
@@ -146,7 +145,8 @@ def _render_voucher_form_dialog(detail=None):
     acct_opts_list = sorted([(a["code"], f"{a['code']} {a['name']}") for a in _acct_data])
     _acct_map = {a["code"]: a for a in _acct_data}
 
-    _ccy_conn = get_conn()
+    from database.connection import get_conn as _get_conn
+    _ccy_conn = _get_conn()
     _ccys = _ccy_conn.execute("SELECT code FROM currencies WHERE is_active=1 ORDER BY code").fetchall()
     _ccy_conn.close()
 
@@ -260,30 +260,34 @@ def _render_voucher_form_dialog(detail=None):
                         template_select = ui.select(options=template_opts, value=None, label="选择模板").props("outlined dense clearable").classes("w-48")
 
                         def _on_tpl_apply():
-                            tpl_id = template_select.value
-                            if not tpl_id:
-                                return
-                            tpl = next((t for t in _templates if t["id"] == tpl_id), None)
-                            if not tpl:
-                                return
-                            desc_input.value = tpl.get("description", "")
-                            entries = tpl.get("entries", [])
-                            new_entries = []
-                            for entry in entries:
-                                direction = entry.get("direction", "debit")
-                                amount = entry.get("amount", 0) or 0
-                                new_entries.append({
-                                    "acct_code": entry.get("account_code", ""),
-                                    "summary": entry.get("summary", ""),
-                                    "debit": str(amount) if direction == "debit" else "",
-                                    "credit": str(amount) if direction == "credit" else "",
-                                })
-                            while len(new_entries) < 4:
-                                new_entries.append({"acct_code": "", "summary": "", "debit": "", "credit": ""})
-                            acct_opts_json = json.dumps(_acct_options_html())
-                            entries_json = json.dumps(new_entries)
-                            ui.run_javascript(f"v3rebuildTable({acct_opts_json}, {entries_json});")
-                            show_toast(f"已应用模板：{tpl['name']}", "success")
+                            try:
+                                tpl_id = template_select.value
+                                if not tpl_id:
+                                    return
+                                tpl = next((t for t in _templates if t["id"] == tpl_id), None)
+                                if not tpl:
+                                    show_toast("模板不存在", "error")
+                                    return
+                                desc_input.value = tpl.get("description", "")
+                                entries = tpl.get("entries", [])
+                                new_entries = []
+                                for entry in entries:
+                                    direction = entry.get("direction", "debit")
+                                    amount = entry.get("amount", 0) or 0
+                                    new_entries.append({
+                                        "acct_code": entry.get("account_code", ""),
+                                        "summary": entry.get("summary", ""),
+                                        "debit": str(amount) if direction == "debit" else "",
+                                        "credit": str(amount) if direction == "credit" else "",
+                                    })
+                                while len(new_entries) < 4:
+                                    new_entries.append({"acct_code": "", "summary": "", "debit": "", "credit": ""})
+                                acct_opts_json = json.dumps(_acct_options_html())
+                                entries_json = json.dumps(new_entries)
+                                ui.run_javascript(f"v3rebuildTable({acct_opts_json}, {entries_json});")
+                                show_toast(f"已应用模板：{tpl['name']}", "success")
+                            except Exception as e:
+                                show_toast(f"应用模板失败: {e}", "error")
 
                         ui.button("应用", on_click=_on_tpl_apply).props("dense color=primary").classes("px-3")
 
@@ -342,7 +346,7 @@ def _collect_entries(acct_map):
         code = e.get("acct_code", "")
         if not code:
             continue
-        name = acct_map.get(code, code)
+        name = acct_map.get(code, {}).get("name", code) if isinstance(acct_map.get(code), dict) else code
         entries.append({"account_code": code, "account_name": name, "debit": dr, "credit": cr, "summary": e.get("summary", "")})
 
     if not entries:

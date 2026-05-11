@@ -1,6 +1,6 @@
 """Database module: voucher domain"""
 
-from .connection import get_conn, transaction, DB_PATH
+from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def create_voucher(ledger_id, date_str, description, entries, status="posted", voucher_no=None, user_id=None, operator_name=None):
     """

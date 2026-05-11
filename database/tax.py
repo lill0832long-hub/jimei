@@ -1,6 +1,6 @@
 """Database module: tax domain"""
 
-from .connection import get_conn, transaction, DB_PATH
+from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def get_tax_config(ledger_id: int) -> dict:
     """获取账套增值税配置"""

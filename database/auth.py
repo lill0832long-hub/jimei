@@ -1,14 +1,21 @@
 """Database module: auth domain"""
 
-from .connection import get_conn, transaction, DB_PATH
+from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def hash_password(password: str) -> str:
     import bcrypt
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()
 
 def verify_password(password: str, password_hash: str) -> bool:
-    import bcrypt
-    return bcrypt.checkpw(password.encode(), password_hash.encode())
+    import bcrypt, hashlib
+    # bcrypt hashes start with $2b$/$2a$/$2y$
+    if password_hash.startswith("$2"):
+        return bcrypt.checkpw(password.encode(), password_hash.encode())
+    # legacy SHA-256 hash (64 hex chars)
+    if len(password_hash) == 64:
+        return hashlib.sha256(password.encode()).hexdigest() == password_hash
+    # legacy SHA-1 hash (40 hex chars)
+    return hashlib.sha1(password.encode()).hexdigest() == password_hash
 
 def create_user(username: str, password: str, role: str = "user", ledger_id: int = None):
     """创建用户"""

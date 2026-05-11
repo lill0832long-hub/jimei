@@ -1,6 +1,6 @@
 """Database module: ledger domain"""
 
-from .connection import get_conn, transaction, DB_PATH
+from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
 def create_ledger(name, company="默认公司", currency="CNY", fiscal_start=None, fiscal_end=None, settings=None):
     """创建新账套"""
