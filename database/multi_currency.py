@@ -1,5 +1,6 @@
 """Database module: multi_currency domain"""
 
+from datetime import datetime
 from .connection import get_conn, transaction, DB_PATH
 
 def _init_default_currencies(c):

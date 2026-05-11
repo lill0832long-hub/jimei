@@ -124,10 +124,10 @@ import os
 _CSS_PATH = os.path.join(os.path.dirname(__file__), "app", "static", "style.css")
 _JS_PATH  = os.path.join(os.path.dirname(__file__), "app", "static", "script.js")
 if os.path.exists(_CSS_PATH):
-    with open(_CSS_PATH) as _css_f:
+    with open(_CSS_PATH, encoding="utf-8") as _css_f:
         ui.add_head_html(f"<style>{_css_f.read()}</style>", shared=True)
 if os.path.exists(_JS_PATH):
-    with open(_JS_PATH) as _js_f:
+    with open(_JS_PATH, encoding="utf-8") as _js_f:
         ui.add_head_html(f"<script>{_js_f.read()}</script>", shared=True)
 
 # ── 手机端抽屉式侧边栏 + 遮罩层 ──

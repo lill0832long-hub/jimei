@@ -3,7 +3,7 @@ from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import refresh_main
 from app.services import LedgerService, VoucherService
-from app.pages.journal_actions import show_new_voucher_dialog, show_voucher_detail
+from app.pages.journal_form_v2 import show_new_voucher_dialog, show_edit_voucher_dialog
 
 
 def render_journal():

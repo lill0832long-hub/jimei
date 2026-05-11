@@ -2,7 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from database_v3 import query_db, get_ledgers, search_vouchers, search_accounts_by_kw
-from app.pages.journal_list import show_voucher_detail
+# show_voucher_detail imported locally in open_global_search to avoid circular import
 
 def format_amount(value, show_currency=True):
     """统一金额格式化：¥1,234.56 或 —"""
@@ -107,7 +107,12 @@ def open_global_search():
                     ui.label(f"📋 凭证 ({len(vouchers)}条)").classes("text-xs font-bold mt-2 mb-1").style("color:var(--c-text-muted)")
                     for v in vouchers[:10]:
                         with ui.row().classes("items-center gap-2 p-2 rounded hover:bg-blue-5 cursor-pointer") \
-                                .on_click(lambda vno=v['voucher_no']: (search_dialog.close(), navigate('journal'), show_voucher_detail(vno))):
+                                .on_click(lambda vno=v['voucher_no']: (
+                                    search_dialog.close(),
+                                    navigate('journal'),
+                                    setattr(state, 'selected_voucher_no', vno),
+                                    refresh_main(),
+                                )):
                             ui.label(v['voucher_no']).classes("text-sm font-mono w-24").style("color:var(--c-primary)")
                             ui.label(v.get('summary', '')[:30]).classes("text-sm flex-1").style("color:var(--c-text-secondary)")
                             ui.label(v.get('date', '')).classes("text-xs").style("color:var(--c-text-muted)")

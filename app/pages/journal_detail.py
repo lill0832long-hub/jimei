@@ -95,6 +95,15 @@ def render_voucher_detail(voucher_no):
                     ui.label("已冲销").classes("text-sm").style("color:var(--c-danger)")
 
 
+def render_voucher_detail_page():
+    """页面路由入口 — 从 state 读取凭证号"""
+    if state.selected_voucher_no:
+        render_voucher_detail(state.selected_voucher_no)
+    else:
+        ui.label("请先选择一张凭证").classes("text-center p-8").style("color:var(--c-text-muted)")
+
+
 def _show_edit_dialog(detail):
-    from app.pages.journal_form import show_edit_voucher_dialog
+    # deferred to avoid circular import: journal_form_v2 -> ui_helpers -> journal_detail
+    from app.pages.journal_form_v2 import show_edit_voucher_dialog
     show_edit_voucher_dialog(detail)

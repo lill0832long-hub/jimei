@@ -33,11 +33,8 @@ def transaction(conn):
         raise
 
 def clear_query_cache():
-    """清除所有查询缓存 — 在写操作后调用"""
-    get_balance_sheet.cache_clear()
-    get_income_statement.cache_clear()
-    get_vouchers.cache_clear()
-    get_ledgers.cache_clear()
+    """清除所有查询缓存 — 在写操作后调用（当前无缓存函数，留作扩展用）"""
+    pass
 
 def init_db():
     conn = get_conn()
@@ -272,6 +269,7 @@ def init_db():
     c.execute("CREATE INDEX IF NOT EXISTS idx_currency_active ON currencies(is_active)")
 
     # 初始化默认币种数据
+    from .multi_currency import _init_default_currencies, _init_default_exchange_rates
     _init_default_currencies(c)
 
     # 初始化默认汇率数据
@@ -300,12 +298,14 @@ def init_db():
     c.execute("CREATE INDEX IF NOT EXISTS idx_voucher_ledger_status ON vouchers(ledger_id, status)")
 
     # 初始化标准科目
+    from .init_data import _init_chart_of_accounts, _init_missing_accounts
     _init_chart_of_accounts(c)
 
     # 补全缺失科目（Phase 1 迁移：从52个补到85+个）
     _init_missing_accounts(c)
 
     # 初始化复合业务规则 (Phase 7)
+    from .ai import _init_complex_rules
     _init_complex_rules(c)
 
     # 创建默认账套
@@ -316,8 +316,6 @@ def init_db():
             ("默认账套", "我的公司", "CNY", f"{datetime.now().year}-01-01", f"{datetime.now().year}-12-31")
         )
         default_lid = c.lastrowid
-        # 初始化默认现金流分类
-        _init_default_cash_flow_categories(c, default_lid)
 
     # ── P2-1: 审核流程数据库迁移 ──
 
@@ -490,6 +488,15 @@ def init_db():
             UNIQUE(ledger_id, code)
         )
     """)
+
+    # 初始化默认现金流分类（需在 cash_flow_categories 表创建后执行）
+    c.execute("SELECT COUNT(*) FROM cash_flow_categories")
+    if c.fetchone()[0] == 0:
+        from .cash_flow import _init_default_cash_flow_categories
+        c.execute("SELECT id FROM ledgers ORDER BY ID LIMIT 1")
+        row = c.fetchone()
+        if row:
+            _init_default_cash_flow_categories(c, row[0])
 
     # ── P2-2: 增值税管理数据库迁移 ──
 
@@ -733,6 +740,7 @@ def init_v3_tables():
 
     # 兼容旧表：添加新列
     for _col, _typ, _def in [
+        ("is_system", "INTEGER", "0"),
         ("category", "TEXT", "'general'"),
         ("is_active", "INTEGER", "1"),
         ("updated_at", "TEXT", "datetime('now','localtime')"),
