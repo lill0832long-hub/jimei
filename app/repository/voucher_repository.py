@@ -83,14 +83,12 @@ class VoucherRepository(BaseRepository):
             return voucher
 
     async def _generate_voucher_no(self, session, ledger_id: int, date: str) -> str:
-        """Generate next voucher number for the date."""
-        date_prefix = date.replace("-", "")
-        stmt = select(func.count(Voucher.id)).where(
-            and_(Voucher.ledger_id == ledger_id, Voucher.date == date)
-        )
+        """Generate next voucher number per ledger using sequential numbering."""
+        stmt = select(func.count(Voucher.id)).where(Voucher.ledger_id == ledger_id)
         result = await session.execute(stmt)
         count = result.scalar() or 0
-        return f"PZ{date_prefix}{count + 1:04d}"
+        seq = count + 1
+        return f"PZ{ledger_id:02d}{seq:06d}"
 
     async def update(self, voucher_no: str, **kwargs):
         async with get_db() as session:

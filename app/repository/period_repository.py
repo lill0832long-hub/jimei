@@ -21,7 +21,7 @@ class PeriodRepository(BaseRepository):
                 )
             )
             result = await session.execute(stmt)
-            return "closed" if result.scalar_one_or_none() else "open"
+            return "closed" if result.first() else "open"
 
     async def get_opening_balance(self, ledger_id: int, account_code: str, year: int, month: int):
         async with get_db() as session:
