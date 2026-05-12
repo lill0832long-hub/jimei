@@ -1,4 +1,4 @@
-"""凭证表单 v3 — 原生 HTML 表格方案（ui.html + sanitize=False）"""
+"""凭证表单 v4 — 传统 Excel 记账凭证风格（NiceGUI 组件 + 原生 HTML 表格）"""
 import html as html_mod
 import json
 
@@ -44,10 +44,12 @@ def show_edit_voucher_dialog(detail):
     _render_voucher_form_dialog(detail=detail)
 
 
+# ─── 原生 HTML 表格方案（Excel 风格，打印友好） ───
+
 _VC_JS = '''
 <script>
-if (!window.v3calcTotals) {
-    window.v3calcTotals = function() {
+if (!window.v4calcTotals) {
+    window.v4calcTotals = function() {
         var rows = document.querySelectorAll('#vcBody tr');
         var tDr = 0, tCr = 0;
         rows.forEach(function(row, idx) {
@@ -60,28 +62,28 @@ if (!window.v3calcTotals) {
         var drEl = document.getElementById('vcDrTotal');
         var crEl = document.getElementById('vcCrTotal');
         var balEl = document.getElementById('vcBalance');
-        if (drEl) drEl.textContent = tDr.toFixed(2);
-        if (crEl) crEl.textContent = tCr.toFixed(2);
+        if (drEl) drEl.textContent = '¥' + tDr.toFixed(2);
+        if (crEl) crEl.textContent = '¥' + tCr.toFixed(2);
         if (balEl) {
             var diff = Math.abs(tDr - tCr);
             if (diff > 0.01) {
-                balEl.textContent = '✗ 差额 ' + diff.toFixed(2);
+                balEl.textContent = '借贷不平衡，差额 ' + diff.toFixed(2);
                 balEl.className = 'vc-balance-bad';
             } else {
-                balEl.textContent = '✓ 借贷平衡';
+                balEl.textContent = '借贷平衡';
                 balEl.className = 'vc-balance-ok';
             }
         }
     };
-    window.v3delRow = function(btn) {
+    window.v4delRow = function(btn) {
         var row = btn.closest('tr');
         var tbody = row.closest('tbody');
         if (tbody && tbody.querySelectorAll('tr').length > 1) {
             row.remove();
-            v3calcTotals();
+            v4calcTotals();
         }
     };
-    window.v3addRow = function(acctOpts) {
+    window.v4addRow = function(acctOpts) {
         var tbody = document.getElementById('vcBody');
         if (!tbody) return;
         var idx = tbody.querySelectorAll('tr').length;
@@ -91,26 +93,14 @@ if (!window.v3calcTotals) {
             + '<td class="vctd vctd-acct"><select class="vctd-sel" name="r' + idx + '_acct">' + acctOpts + '</select></td>'
             + '<td class="vctd vctd-debit"><input type="number" class="vctd-inp vctd-num" name="r' + idx + '_dr" value="" placeholder="0.00" step="0.01" min="0" /></td>'
             + '<td class="vctd vctd-credit"><input type="number" class="vctd-inp vctd-num" name="r' + idx + '_cr" value="" placeholder="0.00" step="0.01" min="0" /></td>'
-            + '<td class="vctd vctd-del"><button type="button" class="vctd-del-btn" onclick="v3delRow(this)">✕</button></td>';
+            + '<td class="vctd vctd-del"><button type="button" class="vctd-del-btn" onclick="v4delRow(this)">✕</button></td>';
         tbody.appendChild(tr);
         tr.querySelectorAll('.vctd-num').forEach(function(inp) {
-            inp.addEventListener('input', v3calcTotals);
+            inp.addEventListener('input', v4calcTotals);
         });
-        v3calcTotals();
+        v4calcTotals();
     };
-    window.v3collectEntries = function() {
-        var rows = document.querySelectorAll('#vcBody tr');
-        var entries = [];
-        rows.forEach(function(row) {
-            var summ = row.querySelector('[name$="_summ"]').value;
-            var acct = row.querySelector('[name$="_acct"]').value;
-            var dr = parseFloat(row.querySelector('[name$="_dr"]').value) || 0;
-            var cr = parseFloat(row.querySelector('[name$="_cr"]').value) || 0;
-            entries.push({summary: summ, acct_code: acct, debit: dr, credit: cr});
-        });
-        return JSON.stringify(entries);
-    };
-    window.v3rebuildTable = function(acctOpts, entries) {
+    window.v4rebuildTable = function(acctOpts, entries) {
         var tbody = document.getElementById('vcBody');
         if (!tbody) return;
         tbody.innerHTML = '';
@@ -122,13 +112,25 @@ if (!window.v3calcTotals) {
                 + '<td class="vctd vctd-acct"><select class="vctd-sel" name="r' + idx + '_acct">' + sel + '</select></td>'
                 + '<td class="vctd vctd-debit"><input type="number" class="vctd-inp vctd-num" name="r' + idx + '_dr" value="' + (e.debit || '') + '" placeholder="0.00" step="0.01" min="0" /></td>'
                 + '<td class="vctd vctd-credit"><input type="number" class="vctd-inp vctd-num" name="r' + idx + '_cr" value="' + (e.credit || '') + '" placeholder="0.00" step="0.01" min="0" /></td>'
-                + '<td class="vctd vctd-del"><button type="button" class="vctd-del-btn" onclick="v3delRow(this)">✕</button></td>';
+                + '<td class="vctd vctd-del"><button type="button" class="vctd-del-btn" onclick="v4delRow(this)">✕</button></td>';
             tbody.appendChild(tr);
             tr.querySelectorAll('.vctd-num').forEach(function(inp) {
-                inp.addEventListener('input', v3calcTotals);
+                inp.addEventListener('input', v4calcTotals);
             });
         });
-        v3calcTotals();
+        v4calcTotals();
+    };
+    window.v4collectEntries = function() {
+        var rows = document.querySelectorAll('#vcBody tr');
+        var entries = [];
+        rows.forEach(function(row) {
+            var summ = row.querySelector('[name$="_summ"]').value;
+            var acct = row.querySelector('[name$="_acct"]').value;
+            var dr = parseFloat(row.querySelector('[name$="_dr"]').value) || 0;
+            var cr = parseFloat(row.querySelector('[name$="_cr"]').value) || 0;
+            entries.push({summary: summ, acct_code: acct, debit: dr, credit: cr});
+        });
+        return JSON.stringify(entries);
     };
 }
 </script>
@@ -136,7 +138,7 @@ if (!window.v3calcTotals) {
 
 
 def _render_voucher_form_dialog(detail=None):
-    """凭证表单 v3 — 原生 HTML 表格"""
+    """凭证表单 v4 — 传统 Excel 记账凭证风格"""
     ui.add_body_html(_VC_JS, shared=True)
     d = ui.dialog()
     is_edit = detail is not None
@@ -147,6 +149,7 @@ def _render_voucher_form_dialog(detail=None):
 
     _ccys = CurrencyService.get_active_codes()
 
+    # 初始化分录数据
     init_entries = []
     if is_edit and detail:
         for entry in detail.get("entries", []):
@@ -156,11 +159,11 @@ def _render_voucher_form_dialog(detail=None):
                 "debit": str(entry.get("debit", 0) or ""),
                 "credit": str(entry.get("credit", 0) or ""),
             })
-    while len(init_entries) < 4:
+    while len(init_entries) < 6:
         init_entries.append({"acct_code": "", "summary": "", "debit": "", "credit": ""})
 
-    # 构建科目选项 HTML（只构建一次，复用于所有行）
-    _acct_opts_base = '<option value="">选择科目</option>' + ''.join(
+    # 科目选项 HTML（只构建一次）
+    _acct_opts_base = '<option value="">— 选择科目 —</option>' + ''.join(
         f'<option value="{c}">{html_mod.escape(disp)}</option>'
         for c, disp in acct_opts_list
     )
@@ -186,17 +189,20 @@ def _render_voucher_form_dialog(detail=None):
                 <td class="vctd vctd-acct"><select class="vctd-sel" name="r{i}_acct">{acct_sel}</select></td>
                 <td class="vctd vctd-debit"><input type="number" class="vctd-inp vctd-num" name="r{i}_dr" value="{debit_val}" placeholder="0.00" step="0.01" min="0" /></td>
                 <td class="vctd vctd-credit"><input type="number" class="vctd-inp vctd-num" name="r{i}_cr" value="{credit_val}" placeholder="0.00" step="0.01" min="0" /></td>
-                <td class="vctd vctd-del"><button type="button" class="vctd-del-btn" onclick="v3delRow(this)">✕</button></td>
+                <td class="vctd vctd-del"><button type="button" class="vctd-del-btn" onclick="v4delRow(this)">&times;</button></td>
             </tr>'''
         return rows
 
     def _build_table_html(entries):
         rows = _build_rows_html(entries)
+        # 计算初始合计
+        tDr = sum(float(e.get("debit", 0) or 0) for e in entries)
+        tCr = sum(float(e.get("credit", 0) or 0) for e in entries)
         return f'''<table class="vctable" id="vcTable">
 <thead>
     <tr>
         <th class="vcth vcth-seq">序号</th>
-        <th class="vcth vcth-summary">摘要</th>
+        <th class="vcth vcth-summary">摘　　要</th>
         <th class="vcth vcth-acct">会计科目</th>
         <th class="vcth vcth-debit">借方金额</th>
         <th class="vcth vcth-credit">贷方金额</th>
@@ -207,10 +213,10 @@ def _render_voucher_form_dialog(detail=None):
 <tfoot>
     <tr class="vctfoot-total">
         <td class="vctd"></td>
-        <td class="vctd vctfoot-label">合　计</td>
+        <td class="vctd vctfoot-label" style="text-align:center;font-weight:700;">合　计</td>
         <td class="vctd"></td>
-        <td class="vctd vctd-num"><span id="vcDrTotal">0.00</span></td>
-        <td class="vctd vctd-num"><span id="vcCrTotal">0.00</span></td>
+        <td class="vctd vctd-num vc-total-debit"><span id="vcDrTotal">¥{tDr:.2f}</span></td>
+        <td class="vctd vctd-num vc-total-credit"><span id="vcCrTotal">¥{tCr:.2f}</span></td>
         <td class="vctd"></td>
     </tr>
     <tr class="vctfoot-balance">
@@ -227,32 +233,39 @@ def _render_voucher_form_dialog(detail=None):
     default_desc = detail.get("description", "") if is_edit else ""
     vn = detail.get("voucher_no", "") if is_edit else _generate_voucher_no(state.selected_ledger_id)
 
-    with d, ui.card().classes("w-[960px] max-w-[95vw]"):
-        with ui.card_section().classes("pb-2"):
+    with d, ui.card().classes("w-[980px] max-w-[96vw] rounded-lg shadow-xl"):
+        # ── 标题栏 ──
+        with ui.card_section().classes("py-3 px-5 bg-indigo-600 text-white rounded-t-lg"):
             with ui.row().classes("w-full items-center justify-between"):
-                label = f"✏️ 编辑凭证 {detail.get('voucher_no', '')}" if is_edit else "📝 新增记账凭证"
-                ui.label(label).classes("text-xl font-bold")
-                ui.label(f"凭证号：{vn}").classes("text-sm text-grey-6 font-mono")
+                label = f"✏️ 编辑凭证" if is_edit else "📝 新增记账凭证"
+                ui.label(label).classes("text-lg font-bold tracking-wide")
+                with ui.column().classes("items-end gap-0"):
+                    ui.label(f"凭证号：{vn}").classes("text-sm font-mono opacity-90")
+                    if is_edit:
+                        ui.label(f"日期：{default_date}").classes("text-xs opacity-75")
 
-        with ui.card_section().classes("pt-2 pb-2"):
+        # ── 凭证头信息 ──
+        with ui.card_section().classes("py-3 px-5 bg-indigo-50 border-b border-indigo-100"):
             with ui.row().classes("w-full gap-4 items-center"):
                 vtype_sel = ui.select(vtype_opts, value=default_vtype, label="凭证字").props("outlined dense").classes("w-24")
                 date_input = ui.input("日期", value=default_date).props("type=date outlined dense").classes("w-40")
-                attach_input = ui.number("附件", value=(detail.get("attach_count", 0) if is_edit else 0), precision=0).props("outlined dense").classes("w-20")
+                attach_input = ui.number("附件数", value=(detail.get("attach_count", 0) if is_edit else 0), precision=0).props("outlined dense").classes("w-20")
 
-        with ui.card_section().classes("pt-2 pb-2"):
-            desc_input = ui.input("凭证摘要", value=default_desc).props("outlined dense").classes("w-full")
+        # ── 摘要 ──
+        with ui.card_section().classes("py-2 px-5 border-b border-grey-100"):
+            desc_input = ui.input("凭证摘要", value=default_desc, placeholder="请输入凭证摘要...").props("outlined dense").classes("w-full")
 
+        # ── 凭证模板 ──
         if not is_edit:
             try:
                 _templates = VoucherService.get_templates(state.selected_ledger_id) if state.selected_ledger_id else []
             except Exception:
                 _templates = []
             if _templates:
-                with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
+                with ui.card_section().classes("py-2 px-5 bg-amber-50 border-b border-amber-100"):
                     with ui.row().classes("items-center gap-2 flex-wrap"):
-                        ui.icon("description").style("color:var(--c-primary)")
-                        ui.label("模板").classes("text-xs font-semibold").style("color:var(--c-text-secondary)")
+                        ui.icon("description", size="sm").classes("text-amber-600")
+                        ui.label("凭证模板").classes("text-xs font-semibold").classes("text-amber-700")
                         template_opts = {t["id"]: t["name"] for t in _templates}
                         template_select = ui.select(options=template_opts, value=None, label="选择模板").props("outlined dense clearable").classes("w-48")
 
@@ -277,59 +290,61 @@ def _render_voucher_form_dialog(detail=None):
                                         "debit": str(amount) if direction == "debit" else "",
                                         "credit": str(amount) if direction == "credit" else "",
                                     })
-                                while len(new_entries) < 4:
+                                while len(new_entries) < 6:
                                     new_entries.append({"acct_code": "", "summary": "", "debit": "", "credit": ""})
                                 acct_opts_json = json.dumps(_acct_options_html())
                                 entries_json = json.dumps(new_entries)
-                                ui.run_javascript(f"v3rebuildTable({acct_opts_json}, {entries_json});")
+                                ui.run_javascript(f"v4rebuildTable({acct_opts_json}, {entries_json});")
                                 show_toast(f"已应用模板：{tpl['name']}", "success")
                             except Exception as e:
                                 show_toast(f"应用模板失败: {e}", "error")
 
-                        ui.button("应用", on_click=_on_tpl_apply).props("dense color=primary").classes("px-3")
+                        ui.button("应用", on_click=_on_tpl_apply).props("dense color=warning").classes("px-3 text-xs")
 
-        with ui.card_section().classes("pt-2 pb-1"):
-            ui.label("分录明细").classes("text-xs font-semibold uppercase tracking-wide mb-1").style("color:var(--c-text-secondary)")
-
+        # ── 分录明细表格 ──
+        with ui.card_section().classes("p-0"):
             table_html = _build_table_html(init_entries)
-            table_el = ui.html(table_html, sanitize=False)
-
+            ui.html(table_html, sanitize=False)
             ui.run_javascript("""
                 document.querySelectorAll('#vcBody .vctd-num').forEach(function(inp) {
-                    inp.addEventListener('input', v3calcTotals);
+                    inp.addEventListener('input', v4calcTotals);
                 });
-                v3calcTotals();
+                v4calcTotals();
             """)
 
-        with ui.card_section().classes("pt-3 pb-2"):
+        # ── 操作按钮 ──
+        with ui.card_section().classes("py-3 px-5 border-t border-grey-100"):
             with ui.row().classes("w-full justify-between items-center"):
-                acct_opts_json = json.dumps(_acct_options_html())
-                ui.button("➕ 添加行", on_click=lambda: ui.run_javascript(f"v3addRow({acct_opts_json});")).props("dense flat color=blue")
                 with ui.row().classes("gap-2"):
-                    ui.button("取消", on_click=d.close)
+                    acct_opts_json = json.dumps(_acct_options_html())
+                    ui.button("➕ 添加行", on_click=lambda: ui.run_javascript(f"v4addRow({acct_opts_json});")).props("dense flat color=primary").classes("text-sm")
+                with ui.row().classes("gap-3 items-center"):
+                    if not is_edit:
+                        save_draft = ui.checkbox("存为草稿", value=False).classes("text-xs")
+                    ui.button("取消", on_click=d.close).props("flat")
                     if is_edit:
                         async def _on_edit_click():
                             await _do_edit_v3(d, detail.get("voucher_no", ""), date_input.value, desc_input.value, _acct_map)
-                        ui.button("💾 保存", color="primary", on_click=_on_edit_click)
+                        ui.button("💾 保存修改", color="primary", on_click=_on_edit_click).props("unelevated")
                     else:
-                        save_draft = ui.checkbox("存为草稿", value=False).classes("text-xs")
                         async def _on_save_click():
                             await _do_save_v3(d, date_input=date_input, desc_input=desc_input, save_draft=save_draft, acct_map=_acct_map)
-                        ui.button("💾 保存", color="primary", on_click=_on_save_click)
+                        ui.button("💾 保存凭证", color="primary", on_click=_on_save_click).props("unelevated")
 
-        with ui.card_section().classes("pt-1 pb-2 border-t border-grey-1"):
-            with ui.row().classes("w-full justify-between gap-4 text-xs text-grey-6"):
+        # ── 底部签章 ──
+        with ui.card_section().classes("py-2 px-5 border-t border-grey-100 bg-grey-50 rounded-b-lg"):
+            with ui.row().classes("w-full justify-between gap-4 text-xs text-grey-500"):
                 maker = state.current_user.get('username', '') if state.current_user else ''
-                ui.label(f"制单人：{maker}")
-                ui.label("审核人：")
-                ui.label("记账人：")
+                ui.label(f"制单：{maker}")
+                ui.label("审核：__________")
+                ui.label("记账：__________")
 
     d.open()
 
 
 async def _collect_entries(acct_map):
-    """从 JS 收集分录数据并验证。返回 (entries, total_debit, total_credit) 或抛出异常。"""
-    raw = await ui.run_javascript("return v3collectEntries();")
+    """从 JS 收集分录数据并验证。"""
+    raw = await ui.run_javascript("return v4collectEntries();")
     try:
         entries_raw = json.loads(raw) if isinstance(raw, str) else json.loads(str(raw))
     except Exception as e:
@@ -337,108 +352,88 @@ async def _collect_entries(acct_map):
         raise ValueError(str(e)) from e
 
     entries = []
-    for e in entries_raw:
-        dr = float(e.get("debit") or 0)
-        cr = float(e.get("credit") or 0)
-        if dr == 0 and cr == 0:
-            continue
-        code = e.get("acct_code", "")
-        if not code:
-            continue
-        name = acct_map.get(code, {}).get("name", code) if isinstance(acct_map.get(code), dict) else code
-        entries.append({"account_code": code, "account_name": name, "debit": dr, "credit": cr, "summary": e.get("summary", "")})
+    total_debit = 0.0
+    total_credit = 0.0
+    for i, row in enumerate(entries_raw):
+        acct_code = row.get("acct_code", "").strip()
+        summary = row.get("summary", "").strip()
+        debit = float(row.get("debit", 0) or 0)
+        credit = float(row.get("credit", 0) or 0)
+
+        if not acct_code:
+            if debit == 0 and credit == 0:
+                continue
+            show_toast(f"第 {i + 1} 行：请选择会计科目", "warning")
+            raise ValueError(f"第 {i + 1} 行缺少科目")
+
+        acct_info = acct_map.get(acct_code, {})
+        entries.append({
+            "account_code": acct_code,
+            "account_name": acct_info.get("name", ""),
+            "summary": summary,
+            "debit": debit,
+            "credit": credit,
+        })
+        total_debit += debit
+        total_credit += credit
 
     if not entries:
         show_toast("请至少填写一条分录", "warning")
-        raise ValueError("empty entries")
+        raise ValueError("空分录")
 
-    total_debit = sum(e["debit"] for e in entries)
-    total_credit = sum(e["credit"] for e in entries)
-    if abs(total_debit - total_credit) > 0.01:
-        show_toast(f"❌ 借贷不平衡！借方 ¥{total_debit:,.2f} ≠ 贷方 ¥{total_credit:,.2f}", "error")
-        raise ValueError("unbalanced")
+    diff = abs(total_debit - total_credit)
+    if diff > 0.01:
+        show_toast(f"借贷不平衡，差额 ¥{diff:.2f}", "warning")
+        raise ValueError(f"借贷不平衡: {diff}")
 
     return entries, total_debit, total_credit
 
 
 async def _do_save_v3(d, date_input, desc_input, save_draft, acct_map):
-    """保存新凭证 v3"""
-    from app.services import BudgetService
-
     try:
-        entries, total_debit, total_credit = await _collect_entries(acct_map)
-    except ValueError:
-        return
+        lid = state.selected_ledger_id
+        date_str = date_input.value or ""
+        desc = desc_input.value or ""
+        entries, total_dr, total_cr = await _collect_entries(acct_map)
 
-    if not save_draft.value:
-        date_str = date_input.value or f"{state.selected_year}-{state.selected_month:02d}-01"
-        try:
-            from datetime import datetime
-            dt = datetime.strptime(date_str[:10], "%Y-%m-%d")
-            chk_year, chk_month = dt.year, dt.month
-        except Exception:
-            chk_year, chk_month = state.selected_year, state.selected_month
-        over = []
-        for entry in entries:
-            if entry["debit"] > 0:
-                result = BudgetService.check_exceeded(state.selected_ledger_id, entry["account_code"], chk_year, chk_month, entry["debit"])
-                if result["has_budget"] and result["exceeded"]:
-                    over.append({"account": f"{entry['account_code']} {entry['account_name']}", "budget": result["budget_amount"], "actual": result["actual_amount"], "projected": result["projected"], "remaining": result["remaining"]})
-        if over:
-            msg = ["⚠️ 超预算预警：以下科目将超预算\n"]
-            for item in over:
-                msg.append(f"• {item['account']}：预算 ¥{item['budget']:,.2f}，已用 ¥{item['actual']:,.2f}")
-            msg.append("\n仍要保存吗？")
-            with ui.dialog() as cd, ui.card().classes("w-[520px]"):
-                with ui.card_section():
-                    ui.label("\n".join(msg)).classes("text-sm whitespace-pre-wrap")
-                with ui.card_section():
-                    with ui.row().classes("justify-end gap-2"):
-                        ui.button("取消", on_click=cd.close)
-                        async def _on_force_save():
-                            await _force_save_v3(d, cd, date_input, desc_input, entries)
-                        ui.button("⚠️ 强制保存", color="danger", on_click=_on_force_save)
-            cd.open()
+        if not date_str:
+            show_toast("请填写日期", "warning")
             return
 
-    try:
         status = "draft" if save_draft.value else "posted"
-        vn = VoucherService.create(state.selected_ledger_id,
-            date_input.value or f"{state.selected_year}-{state.selected_month:02d}-01",
-            desc_input.value or "无摘要", entries, status=status)
-        show_toast(f"✅ 凭证 {vn} 保存成功" + ("（草稿）" if status == "draft" else ""), "success")
+        vn = VoucherService.create(
+            lid, date_str, desc,
+            entries=[{"account_code": e["account_code"], "account_name": e["account_name"],
+                       "summary": e["summary"], "debit": e["debit"], "credit": e["credit"]}
+                     for e in entries],
+            status=status,
+            user_id=state.current_user.get("id") if state.current_user else None,
+        )
         d.close()
-        state.selected_voucher_no = vn
+        show_toast(f"✅ 凭证 {vn} 保存成功！", "success")
         refresh_main()
     except Exception as e:
-        show_toast(f"❌ {e}", "error")
-
-
-async def _force_save_v3(d, cd, date_input, desc_input, entries):
-    try:
-        vn = VoucherService.create(state.selected_ledger_id,
-            date_input.value or f"{state.selected_year}-{state.selected_month:02d}-01",
-            desc_input.value or "无摘要", entries, status="posted")
-        show_toast(f"✅ 凭证 {vn} 已强制保存", "warning")
-        cd.close()
-        d.close()
-        state.selected_voucher_no = vn
-        refresh_main()
-    except Exception as e:
-        show_toast(f"❌ {e}", "error")
+        if "借贷不平衡" not in str(e) and "请选择" not in str(e) and "空分录" not in str(e):
+            show_toast(f"❌ 保存失败: {e}", "error")
 
 
 async def _do_edit_v3(d, voucher_no, date_str, desc, acct_map):
-    """保存编辑后的凭证 v3"""
     try:
-        entries, total_debit, total_credit = await _collect_entries(acct_map)
-    except ValueError:
-        return
+        entries, total_dr, total_cr = await _collect_entries(acct_map)
+        if not date_str:
+            show_toast("请填写日期", "warning")
+            return
 
-    try:
-        VoucherService.update(voucher_no, date_str=date_str, description=desc, entries=entries)
-        show_toast("✅ 凭证已更新", "success")
+        VoucherService.update(
+            voucher_no, date_str=date_str, description=desc,
+            entries=[{"account_code": e["account_code"], "account_name": e["account_name"],
+                       "summary": e["summary"], "debit": e["debit"], "credit": e["credit"]}
+                     for e in entries],
+            user_id=state.current_user.get("id") if state.current_user else None,
+        )
         d.close()
+        show_toast(f"✅ 凭证 {voucher_no} 修改成功！", "success")
         refresh_main()
     except Exception as e:
-        show_toast(f"❌ {e}", "error")
+        if "借贷不平衡" not in str(e) and "请选择" not in str(e) and "空分录" not in str(e):
+            show_toast(f"❌ 修改失败: {e}", "error")

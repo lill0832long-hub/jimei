@@ -829,44 +829,48 @@ body[data-theme="dark"] .skeleton {
 
 
 
-/* ===== 凭证表单 v3 — 原生 HTML 表格 ===== */
+/* ===== 凭证表单 v4 — 传统 Excel 记账凭证风格 ===== */
 .vctable {
     width: 100%;
     border-collapse: collapse;
     border: 2px solid #333;
     font-size: 13px;
     table-layout: fixed;
+    font-family: "Microsoft YaHei", "SimHei", sans-serif;
 }
 .vctable thead tr {
-    background: #e8eaf6;
+    background: #f0f0f0;
 }
 .vcth {
-    border: 1px solid #9fa8da;
-    padding: 6px 8px;
+    border: 1px solid #333;
+    padding: 8px 10px;
     text-align: center;
-    font-weight: 600;
-    color: #283593;
-    font-size: 12px;
+    font-weight: 700;
+    color: #333;
+    font-size: 13px;
     white-space: nowrap;
+    letter-spacing: 2px;
 }
-.vcth-seq     { width: 40px; }
+.vcth-seq     { width: 42px; }
 .vcth-summary { width: auto; }
-.vcth-acct    { width: 200px; }
-.vcth-debit   { width: 120px; }
-.vcth-credit  { width: 120px; }
-.vcth-del     { width: 36px; }
+.vcth-acct    { width: 210px; }
+.vcth-debit   { width: 130px; }
+.vcth-credit  { width: 130px; }
+.vcth-del     { width: 32px; }
 
 .vctd {
-    border: 1px solid #c5cae9;
+    border: 1px solid #999;
     padding: 0;
     vertical-align: middle;
+    height: 36px;
 }
 .vctd-seq {
     text-align: center;
-    color: #666;
+    color: #888;
     font-size: 12px;
     padding: 4px 0;
     background: #fafafa;
+    border-right: 1px solid #333;
 }
 .vctd-summary {}
 .vctd-acct   {}
@@ -878,10 +882,11 @@ body[data-theme="dark"] .skeleton {
     width: 100%;
     border: none;
     outline: none;
-    padding: 6px 8px;
+    padding: 8px 10px;
     font-size: 13px;
     background: transparent;
     box-sizing: border-box;
+    font-family: "Microsoft YaHei", "SimHei", sans-serif;
 }
 .vctd-inp:focus {
     background: #fffde7;
@@ -889,16 +894,18 @@ body[data-theme="dark"] .skeleton {
 }
 .vctd-num {
     text-align: right;
+    font-family: "Consolas", "Courier New", monospace;
 }
 .vctd-sel {
     width: 100%;
     border: none;
     outline: none;
-    padding: 6px 4px;
+    padding: 8px 6px;
     font-size: 13px;
     background: transparent;
     box-sizing: border-box;
     cursor: pointer;
+    font-family: "Microsoft YaHei", "SimHei", sans-serif;
 }
 .vctd-sel:focus {
     background: #fffde7;
@@ -907,39 +914,60 @@ body[data-theme="dark"] .skeleton {
 .vctd-del-btn {
     background: none;
     border: none;
-    color: #d32f2f;
+    color: #999;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 16px;
     padding: 2px 6px;
     border-radius: 3px;
+    transition: all 0.15s;
 }
 .vctd-del-btn:hover {
+    color: #d32f2f;
     background: #ffebee;
 }
 
-/* 合计行 */
+/* 合计行 — Excel 风格粗边框 */
 .vctfoot-total td {
-    border: 1px solid #9fa8da;
-    padding: 8px;
-    font-weight: 600;
-    background: #e8eaf6;
-    font-size: 13px;
+    border: 1px solid #333;
+    border-top: 2px solid #333;
+    padding: 10px 10px;
+    font-weight: 700;
+    background: #f5f5f5;
+    font-size: 14px;
 }
 .vctfoot-label {
-    text-align: right;
-    color: #283593;
+    text-align: center;
+    color: #333;
+    letter-spacing: 4px;
 }
+.vc-total-debit,
+.vc-total-credit {
+    font-family: "Consolas", "Courier New", monospace;
+    font-size: 14px;
+    color: #1a237e;
+}
+
+/* 平衡校验行 */
 .vctfoot-balance td,
 .vctfoot-balance-cell {
-    padding: 6px 12px;
+    padding: 8px 12px;
     text-align: center;
     font-size: 13px;
     font-weight: 600;
-    border: 1px solid #9fa8da;
+    border: 1px solid #333;
+    border-top: none;
     background: #fafafa;
 }
 .vc-balance-ok   { color: #2e7d32; }
 .vc-balance-bad  { color: #c62828; }
+
+/* 打印优化 */
+@media print {
+    .vctd-del, .vcth-del { display: none !important; }
+    .vctable { border: 2px solid #000 !important; }
+    .vcth, .vctd { border-color: #000 !important; }
+    .vctfoot-total td { border-top: 2px solid #000 !important; }
+}
 
 /* 响应式 */
 @media (max-width: 768px) {
