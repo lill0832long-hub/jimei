@@ -2,6 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast
+from app.components.ui_components import KpiCard, EmptyState, SectionHeader, StatusBadge
 from app.services.fixed_asset_service import FixedAssetService
 
 
@@ -22,10 +23,9 @@ def render_fixed_assets():
         cards_container.clear()
         if not assets:
             with cards_container:
-                with ui.card_section().classes("py-12 text-center"):
-                    ui.icon("precision_manufacturing").style("font-size: 48px; color: var(--gray-300)")
-                    ui.label("暂无固定资产").classes("text-lg font-semibold mt-4").style("color:var(--c-text-muted)")
-                    ui.label("点击「新增资产」添加").classes("text-sm mt-2").style("color:var(--c-text-muted)")
+                EmptyState(icon="precision_manufacturing", message="暂无固定资产",
+                          hint="点击右上角「新增资产」添加第一张资产卡片",
+                          action=_show_add_dialog, action_label="新增资产")
             return
         with cards_container:
             with ui.row().classes("gap-3 flex-wrap"):
@@ -33,38 +33,51 @@ def render_fixed_assets():
                     _render_asset_card(asset)
 
     def _render_asset_card(asset):
-        with ui.card().classes("w-[300px] shadow-sm"):
-            # 标题栏
-            status_color = "bg-blue-50" if asset.status == "in_use" else "bg-grey-100"
-            status_label = "在用" if asset.status == "in_use" else "已处置"
-            with ui.card_section().classes(f"py-2 px-3 {status_color}"):
+        ov = asset.original_value / 100 if isinstance(asset.original_value, int) else (asset.original_value or 0)
+        nv = asset.net_value / 100 if isinstance(asset.net_value, int) else (asset.net_value or 0)
+        ad = asset.accumulated_depreciation / 100 if isinstance(asset.accumulated_depreciation, int) else (asset.accumulated_depreciation or 0)
+        is_in_use = asset.status == "in_use"
+
+        with ui.card().classes("w-[300px]"):
+            # 标题栏 — 状态色彩条
+            bar_color = "var(--c-primary)" if is_in_use else "var(--c-text-muted)"
+            with ui.element("div").style(f"height:3px; background:{bar_color}; border-radius:12px 12px 0 0;"):
+                pass
+            with ui.card_section().classes("py-2.5 px-3"):
                 with ui.row().classes("items-center justify-between"):
-                    ui.label(asset.asset_name or "未命名").classes("text-sm font-bold")
-                    ui.label(status_label).classes("text-xs px-2 py-0.5 rounded").style(
-                        "background:#4caf50;color:white" if asset.status == "in_use" else "background:#9e9e9e;color=white"
-                    )
+                    with ui.column().classes("gap-0"):
+                        ui.label(asset.asset_name or "未命名").classes("text-sm font-semibold").style("color:var(--c-text-primary)")
+                        ui.label(asset.asset_code or "").classes("text-xs font-mono").style("color:var(--c-text-muted)")
+                    StatusBadge("在用" if is_in_use else "已处置",
+                               "approved" if is_in_use else "reversed")
 
             # 资产信息
-            ov = asset.original_value / 100 if isinstance(asset.original_value, int) else (asset.original_value or 0)
-            nv = asset.net_value / 100 if isinstance(asset.net_value, int) else (asset.net_value or 0)
-            ad = asset.accumulated_depreciation / 100 if isinstance(asset.accumulated_depreciation, int) else (asset.accumulated_depreciation or 0)
-            with ui.card_section().classes("py-1.5 px-3"):
-                with ui.column().classes("gap-0.5 text-xs").style("color:var(--c-text-secondary)"):
-                    ui.label(f"编码：{asset.asset_code}").classes("font-mono")
-                    ui.label(f"原值：¥{ov:,.2f}")
-                    ui.label(f"累计折旧：¥{ad:,.2f}")
-                    ui.label(f"净值：¥{nv:,.2f}").classes("font-bold").style("color:var(--c-success)")
-                    ui.label(f"使用年限：{asset.useful_life_months}个月")
+            with ui.card_section().classes("py-2 px-3"):
+                with ui.column().classes("gap-1"):
+                    with ui.row().classes("items-center justify-between"):
+                        ui.label("原值").classes("text-xs").style("color:var(--c-text-muted)")
+                        ui.label(f"¥{ov:,.2f}").classes("text-xs tabular-nums font-medium").style("color:var(--c-text-primary)")
+                    with ui.row().classes("items-center justify-between"):
+                        ui.label("累计折旧").classes("text-xs").style("color:var(--c-text-muted)")
+                        ui.label(f"¥{ad:,.2f}").classes("text-xs tabular-nums").style("color:var(--c-text-secondary)")
+                    with ui.element("div").style("height:1px; background:var(--c-border-light); margin:4px 0;"):
+                        pass
+                    with ui.row().classes("items-center justify-between"):
+                        ui.label("净值").classes("text-xs font-semibold").style("color:var(--c-text-muted)")
+                        ui.label(f"¥{nv:,.2f}").classes("text-sm tabular-nums font-bold").style("color:var(--c-success)")
+                    with ui.row().classes("items-center justify-between"):
+                        ui.label("使用年限").classes("text-xs").style("color:var(--c-text-muted)")
+                        ui.label(f"{asset.useful_life_months} 个月").classes("text-xs tabular-nums").style("color:var(--c-text-secondary)")
                     if asset.department:
-                        ui.label(f"使用部门：{asset.department}")
+                        with ui.row().classes("items-center justify-between"):
+                            ui.label("使用部门").classes("text-xs").style("color:var(--c-text-muted)")
+                            ui.label(asset.department).classes("text-xs").style("color:var(--c-text-secondary)")
 
             # 操作按钮
-            if asset.status == "in_use":
-                with ui.card_section().classes("py-1 px-3 flex gap-1"):
-                    ui.button("📊 折旧", color="blue",
-                              on_click=lambda a=asset: _do_depreciate(a)).props("dense").classes("text-xs")
-                    ui.button("🗑 处置", color="red",
-                              on_click=lambda a=asset: _do_dispose(a)).props("dense").classes("text-xs")
+            if is_in_use:
+                with ui.card_section().classes("py-1.5 px-3 flex gap-1.5 border-t border-grey-1"):
+                    ui.button("折旧", icon="calculate", on_click=lambda a=asset: _do_depreciate(a)).props("dense no-caps").classes("text-xs")
+                    ui.button("处置", icon="delete_outline", on_click=lambda a=asset: _do_dispose(a)).props("dense no-caps color=negative").classes("text-xs")
 
     def _do_depreciate(asset):
         try:
@@ -162,11 +175,22 @@ def render_fixed_assets():
     # ── 主界面 ──
     assets = FixedAssetService.get_all(lid) or []
 
-    with ui.card().classes("w-full"):
-        with ui.card_section().classes("py-2.5 px-4 border-b border-grey-2"):
-            with ui.row().classes("items-center justify-between"):
-                ui.label("🏭 固定资产").classes("text-base font-bold")
-                ui.button("➕ 新增资产", color="green", on_click=_show_add_dialog).props("dense")
+    # KPI 概览行
+    total_count = len(assets)
+    in_use_count = sum(1 for a in assets if a.status == "in_use")
+    total_ov = sum((a.original_value or 0) / 100 for a in assets)
+    total_nv = sum((a.net_value or 0) / 100 for a in assets)
+    total_ad = sum((a.accumulated_depreciation or 0) / 100 for a in assets)
 
+    with ui.row().classes("w-full gap-3"):
+        KpiCard("资产总数", str(total_count), "precision_manufacturing", "blue")
+        KpiCard("在用资产", str(in_use_count), "check_circle", "green")
+        KpiCard("资产原值", f"¥{total_ov:,.0f}", "account_balance", "purple")
+        KpiCard("累计折旧", f"¥{total_ad:,.0f}", "trending_down", "orange")
+        KpiCard("资产净值", f"¥{total_nv:,.0f}", "savings", "teal")
+
+    # 资产卡片列表
+    with ui.card().classes("w-full mt-3"):
+        SectionHeader("资产列表", icon="inventory_2", action=_show_add_dialog, action_icon="新增资产", action_color="positive")
         cards_container = ui.card().classes("w-full")
         _build_cards()

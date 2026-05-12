@@ -1,5 +1,6 @@
 """发票管理 P2-3"""
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
 from app.services import ReportService, LedgerService
@@ -47,7 +48,7 @@ def render_invoices():
     with ui.card().classes("w-full mt-1"):
         with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
             with ui.row().classes("items-center justify-between"):
-                ui.label("📄 发票台账").classes("text-sm font-semibold")
+                SectionHeader("发票台账", icon="receipt")
                 with ui.row().classes("gap-2"):
                     ui.button("📷 OCR识别", color="blue", on_click=lambda: _show_ocr_dialog(lid)).props("dense outline")
                     ui.button("➕ 手动录入", color="primary", on_click=lambda: _show_add_invoice_dialog(lid)).props("dense")
@@ -71,7 +72,7 @@ def _render_invoice_table(ledger_id: int, invoice_type: str = None, status: str 
     invoices = ReportService.get_invoices(ledger_id, invoice_type=invoice_type, status=status)
     if not invoices:
         with ui.card_section():
-            ui.label("暂无发票数据").classes("text-sm py-4 text-center").style("color:var(--c-text-muted)")
+            EmptyState(icon="receipt", message="暂无发票数据", hint="点击上方按钮录入发票")
         return
 
     cols = [

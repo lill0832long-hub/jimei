@@ -2,6 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount
+from app.components.ui_components import SectionHeader, MetricRow
 from app.services import LedgerService, ReportService, VoucherService
 
 def render_close_period():

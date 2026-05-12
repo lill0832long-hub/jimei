@@ -2,6 +2,7 @@
 import os, tempfile
 from datetime import datetime
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
 from app.utils.pdf import build_pdf
@@ -20,7 +21,7 @@ def render_import():
         with ui.column().classes("w-1/2 gap-2"):
             with ui.card().classes("w-full"):
                 with ui.card_section().classes("py-2 px-3"):
-                    ui.label("📥 上传 Excel 凭证文件").classes("text-sm font-semibold")
+                    SectionHeader("上传 Excel 凭证文件", icon="file_upload")
                 with ui.card_section().classes("py-1 px-3"):
                     ui.label("Excel 格式：日期 | 摘要 | 科目代码 | 科目名称 | 借方 | 贷方").classes("text-sm").style("color:var(--c-text-muted)")
                     ui.label("同一凭证的行保持相同日期+摘要，程序自动合并").classes("text-sm").style("color:var(--c-text-muted)")
@@ -34,7 +35,7 @@ def render_import():
 
             with ui.card().classes("w-full"):
                 with ui.card_section().classes("py-2 px-3"):
-                    ui.label("📋 Excel 模板").classes("text-sm font-semibold")
+                    SectionHeader("Excel 模板", icon="table_chart")
                 with ui.card_section().classes("py-1 px-3"):
                     ui.button("⬇️ 下载模板文件", color="blue",
                               on_click=lambda: ui.download(_generate_template())).props("dense")
@@ -43,7 +44,7 @@ def render_import():
         with ui.column().classes("w-1/2"):
             with ui.card().classes("w-full"):
                 with ui.card_section().classes("py-2 px-3"):
-                    ui.label("📋 导入说明").classes("text-sm font-semibold")
+                    SectionHeader("导入说明", icon="info")
                 with ui.card_section().classes("py-1 px-3"):
                     with ui.column().classes("gap-1 text-sm").style("color:var(--c-text-secondary)"):
                         tips = [
@@ -347,7 +348,7 @@ def render_export():
 
     with ui.card().classes("w-full"):
         with ui.card_section().classes("py-2.5 px-4 border-b border-grey-2"):
-            ui.label("📦 数据导出").classes("text-base font-bold")
+            SectionHeader("数据导出", icon="file_download")
 
         with ui.card_section().classes("py-3 px-4"):
             with ui.row().classes("gap-3"):

@@ -946,3 +946,128 @@ body[data-theme="dark"] .skeleton {
     .vcth-acct { width: 140px; }
     .vcth-debit, .vcth-credit { width: 90px; }
 }
+
+/* ================================================================
+   SectionHeader — 分组标题栏
+   ================================================================ */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+}
+.section-header-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--c-text-primary);
+}
+.section-header-icon {
+    font-size: 16px;
+    color: var(--c-primary);
+}
+
+/* ================================================================
+   动画 & 微交互
+   ================================================================ */
+
+/* 页面淡入 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.main-content-area > * {
+    animation: fadeIn 0.25s ease-out;
+}
+
+/* 卡片入场 */
+@keyframes cardIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.q-card {
+    animation: cardIn 0.3s ease-out;
+}
+
+/* 按钮按压反馈 */
+.q-btn:active {
+    transform: scale(0.97) !important;
+}
+
+/* 表格行悬浮高亮增强 */
+.q-table tbody tr:hover {
+    box-shadow: inset 3px 0 0 var(--c-primary);
+}
+
+/* 输入框聚焦发光 */
+.q-field__control:focus-within {
+    box-shadow: 0 0 0 2px var(--c-primary-light) !important;
+}
+
+/* 对话框弹出 */
+.q-dialog .q-card {
+    animation: dialogIn 0.2s ease-out;
+}
+@keyframes dialogIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* 通知提示滑入 */
+.q-notification {
+    animation: notifIn 0.3s ease-out;
+}
+@keyframes notifIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* 数值变化闪烁 */
+@keyframes numFlash {
+    0%   { color: var(--c-primary); }
+    100% { color: inherit; }
+}
+.num-flash {
+    animation: numFlash 1s ease-out;
+}
+
+/* 平滑滚动 */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Tab 切换过渡 */
+.q-tab-panel {
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Tooltip 增强 */
+.q-tooltip {
+    font-size: 12px !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: var(--shadow-lg) !important;
+    padding: 6px 10px !important;
+}
+
+/* 打印优化 */
+@media print {
+    .header-bar,
+    .sidebar-nav,
+    .bottom-nav,
+    .q-btn,
+    .q-field,
+    .q-select {
+        display: none !important;
+    }
+    .main-content-area {
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+    .q-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+}

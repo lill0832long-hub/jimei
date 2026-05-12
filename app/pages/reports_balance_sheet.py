@@ -2,6 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import refresh_main
+from app.components.ui_components import SectionHeader
 from app.services import LedgerService, ReportService
 from app.pages.reports_export import _export_balance_sheet, _export_balance_sheet_pdf
 

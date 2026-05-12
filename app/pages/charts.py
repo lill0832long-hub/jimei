@@ -1,5 +1,6 @@
 """图表分析"""
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast
 from app.utils.period import generate_periods, period_labels
@@ -35,8 +36,7 @@ def render_charts():
 
     # 收入/费用/利润趋势图
     with ui.card().classes("w-full"):
-        with ui.card_section().classes("py-2 px-3"):
-            ui.label("📈 收入/费用/利润趋势（近12个月）").classes("text-base font-bold")
+        SectionHeader("收入/费用/利润趋势（近12个月）", icon="trending_up")
         with ui.card_section():
             ui.echart({
                 "tooltip": {"trigger": "axis"},
@@ -54,8 +54,7 @@ def render_charts():
 
     # 资产负债趋势图
     with ui.card().classes("w-full mt-3"):
-        with ui.card_section().classes("py-2 px-3"):
-            ui.label("📗 资产负债趋势（近12个月）").classes("text-base font-bold")
+        SectionHeader("资产负债趋势（近12个月）", icon="account_balance")
         with ui.card_section():
             ui.echart({
                 "tooltip": {"trigger": "axis"},
@@ -74,8 +73,7 @@ def render_charts():
     # 收入结构饼图（当月）
     with ui.row().classes("w-full mt-3 gap-3"):
         with ui.card().classes("w-1/2"):
-            with ui.card_section().classes("py-2 px-3"):
-                ui.label(f"🥧 收入结构 — {state.selected_year}-{state.selected_month:02d}").classes("text-base font-bold")
+            SectionHeader(f"收入结构 — {state.selected_year}-{state.selected_month:02d}", icon="pie_chart")
             with ui.card_section():
                 inc = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
                 pie_data = [{"value": round(r.get("ytd") or 0, 2), "name": r["name"]}
@@ -94,8 +92,7 @@ def render_charts():
                     ui.label("暂无收入数据").classes("text-sm").style("color:var(--c-text-muted)").classes("p-4")
 
         with ui.card().classes("w-1/2"):
-            with ui.card_section().classes("py-2 px-3"):
-                ui.label(f"🍩 费用结构 — {state.selected_year}-{state.selected_month:02d}").classes("text-base font-bold")
+            SectionHeader(f"费用结构 — {state.selected_year}-{state.selected_month:02d}", icon="donut_large")
             with ui.card_section():
                 pie_data = [{"value": round(r.get("ytd") or 0, 2), "name": r["name"]}
                             for r in inc["rows"] if r["type"] in ("expense_header","expense_item") and (r.get("ytd") or 0) > 0]
@@ -115,8 +112,7 @@ def render_charts():
 
     # ── 现金流瀑布图 ──
     with ui.card().classes("w-full mt-3"):
-        with ui.card_section().classes("py-2 px-3"):
-            ui.label(f"🌊 现金流瀑布图 — {state.selected_year}年").classes("text-base font-bold")
+        SectionHeader(f"现金流瀑布图 — {state.selected_year}年", icon="waterfall_chart")
         with ui.card_section():
             try:
                 # 按月汇总全年收支

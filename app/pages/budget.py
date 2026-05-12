@@ -1,5 +1,6 @@
 """预算管理 P2-4"""
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
 from app.services import BudgetService, AccountService, LedgerService
@@ -53,9 +54,7 @@ def render_budget():
     with ui.row().classes("w-full gap-3 mt-1"):
         with ui.card().classes("flex-1"):
             with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
-                with ui.row().classes("items-center justify-between"):
-                    ui.label("📝 预算编制").classes("text-sm font-semibold")
-                    ui.button("➕ 添加预算科目", color="primary", on_click=lambda: _show_add_budget_dialog(lid, year, month)).props("dense")
+                SectionHeader("预算编制", icon="edit_note", action=lambda: _show_add_budget_dialog(lid, year, month))
 
             budgets = BudgetService.get_all(lid, year, month)
             if budgets:
@@ -68,12 +67,11 @@ def render_budget():
                 ui.table(columns=cols, rows=rows, row_key="id",
                          pagination={"rowsPerPage": 10}).classes("w-full text-sm")
             else:
-                with ui.card_section():
-                    ui.label("暂无预算数据，点击「添加预算科目」").classes("text-sm py-4 text-center").style("color:var(--c-text-muted)")
+                EmptyState(icon="edit_note", message="暂无预算数据", hint="点击「添加预算科目」按钮创建", action=lambda: _show_add_budget_dialog(lid, year, month), action_label="添加预算科目")
 
         with ui.card().classes("flex-1"):
             with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
-                ui.label("📊 执行追踪").classes("text-sm font-semibold")
+                SectionHeader("执行追踪", icon="monitoring")
 
             execution = BudgetService.get_execution(lid, year, month)
             if execution:
@@ -97,8 +95,7 @@ def render_budget():
                 ui.table(columns=cols, rows=rows, row_key="id",
                          pagination={"rowsPerPage": 10}).classes("w-full text-sm")
             else:
-                with ui.card_section():
-                    ui.label("暂无执行数据").classes("text-sm py-4 text-center").style("color:var(--c-text-muted)")
+                EmptyState(icon="monitoring", message="暂无执行数据")
 
 
 def _show_add_budget_dialog(ledger_id: int, year: int, month: int):

@@ -2,6 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import refresh_main
+from app.components.ui_components import SectionHeader, EmptyState
 from app.services import LedgerService, VoucherService
 from app.pages.journal_form_v2 import show_new_voucher_dialog, show_edit_voucher_dialog
 
@@ -23,36 +24,39 @@ def render_journal():
         # ── 左侧：凭证列表（2/3）──
         with ui.column().classes("w-2/3 gap-2"):
             with ui.card().classes("w-full"):
-                # 标题行 + 状态筛选
-                with ui.card_section().classes("py-2 px-3"):
-                    with ui.row().classes("items-center justify-between"):
-                        ui.label("📋 凭证列表").classes("text-base font-bold")
-                        with ui.row().classes("items-center gap-2"):
-                            ALL_STATUS = [
-                                ("all", "全部"), ("draft", "草稿"),
-                                ("pending_review", "待审核"), ("posted", "已过账"),
-                                ("reversed", "已冲销"),
-                            ]
-                            for skey, slabel in ALL_STATUS:
-                                is_active = state.voucher_status_filter == skey
-                                ui.chip(slabel, on_click=lambda k=skey: (
-                                    setattr(state, 'voucher_status_filter', k),
-                                    refresh_main()
-                                )).props("outline dense").style(
-                                    f"background:{'var(--c-primary-light)' if is_active else 'transparent'};"
-                                    f"color:{'var(--c-primary)' if is_active else 'var(--c-text-secondary)'};"
-                                    f"border-color:{'var(--c-primary)' if is_active else 'var(--c-border)'}"
-                                )
-                            if can_create:
-                                ui.button("➕ 新增凭证", color="primary", on_click=show_new_voucher_dialog).props("dense")
+                # 标题行
+                with ui.card_section().classes("py-2.5 px-3"):
+                    SectionHeader("凭证列表", icon="receipt_long",
+                                  action=show_new_voucher_dialog if can_create else None,
+                                  action_icon="新增凭证")
+
+                # 状态筛选 chip 栏
+                with ui.card_section().classes("py-1.5 px-3 border-t border-grey-1"):
+                    with ui.row().classes("items-center gap-1.5"):
+                        ALL_STATUS = [
+                            ("all", "全部"), ("draft", "草稿"),
+                            ("pending_review", "待审核"), ("posted", "已过账"),
+                            ("reversed", "已冲销"),
+                        ]
+                        for skey, slabel in ALL_STATUS:
+                            is_active = state.voucher_status_filter == skey
+                            ui.chip(slabel, on_click=lambda k=skey: (
+                                setattr(state, 'voucher_status_filter', k),
+                                refresh_main()
+                            )).props("outline dense").style(
+                                f"background:{'var(--c-primary-light)' if is_active else 'transparent'};"
+                                f"color:{'var(--c-primary)' if is_active else 'var(--c-text-secondary)'};"
+                                f"border-color:{'var(--c-primary)' if is_active else 'var(--c-border)'}"
+                            )
 
                 # 按状态筛选获取凭证
                 filter_status = state.voucher_status_filter if state.voucher_status_filter != "all" else None
                 vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month,
                                        status=filter_status, limit=50)
                 if not vouchers:
-                    with ui.card_section():
-                        ui.label("本月暂无凭证").classes("text-sm").style("color:var(--c-text-muted)")
+                    EmptyState(message="本月暂无凭证", hint="点击右上角「新增凭证」创建第一张凭证",
+                              action=show_new_voucher_dialog if can_create else None,
+                              action_label="新增凭证")
 
                 status_labels = {"draft": "草稿", "posted": "已过账", "reversed": "已冲销", "pending_review": "待审核"}
                 status_colors = {"draft": "orange", "posted": "green", "reversed": "red", "pending_review": "blue"}

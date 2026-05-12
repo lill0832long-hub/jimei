@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount, navigate, refresh_main
 from app.utils.pdf import build_pdf

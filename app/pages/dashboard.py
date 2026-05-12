@@ -4,6 +4,7 @@ from datetime import datetime
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount, navigate
+from app.components.ui_components import KpiCard, EmptyState, SectionHeader, StatusBadge
 from app.services import LedgerService, ReportService, VoucherService
 
 # 外部 API（已关闭）
@@ -154,50 +155,44 @@ def render_dashboard():
                             ui.label("AI 助手").classes("text-sm font-semibold")
                         ui.label("使用 AI 助手查询汇率、计算税额、生成凭证建议").classes("text-xs text-grey-5 ml-6")
 
-    # ── 第一行：KPI 卡片（增强版）──
-    # 获取 Dashboard KPI 数据
+    # ── KPI 指标区 ──
     try:
         kpi = ReportService.get_dashboard_kpi(lid, state.selected_year, state.selected_month)
     except Exception:
         kpi = {}
 
     # 时间段选择器
-    with ui.row().classes("w-full items-center gap-2 mb-1"):
-        ui.icon("calendar_today").classes("text-grey-5 text-sm")
-        ui.label(f"{state.selected_year}年{state.selected_month}月").classes("text-sm text-grey-6")
+    with ui.row().classes("w-full items-center gap-2 mb-2"):
+        ui.icon("calendar_today").classes("text-sm").style("color:var(--c-text-muted)")
+        ui.label(f"{state.selected_year}年{state.selected_month}月").classes("text-sm").style("color:var(--c-text-secondary)")
         ui.select(
             options={"month": "本月", "quarter": "本季", "year": "本年"},
-            value="month",
-            label="时间范围"
+            value="month", label="时间范围"
         ).props("outlined dense").classes("w-28").style("font-size:12px;")
 
-    # 第一行 KPI：资产/负债/权益（原有）
+    # 第一行 KPI：资产负债权益 + 收入利润
     with ui.row().classes("w-full gap-3"):
-        _kpi_card("资产总计",   f"¥{bs.get('total_assets', 0):,.0f}",   "account_balance", "blue",   "↑ 2.3%", "balance_sheet")
-        _kpi_card("负债总计",   f"¥{bs.get('total_liab', 0):,.0f}",     "credit_card",    "red",    "↓ 1.1%", "balance_sheet")
-        _kpi_card("所有者权益", f"¥{bs.get('total_equity', 0):,.0f}",   "savings",        "green",  "↑ 3.8%", "balance_sheet")
-        _kpi_card("本月收入",   f"¥{inc.get('total_revenue',0):,.0f}", "trending_up","purple", "↑ 12.5%", "income_statement")
-        _kpi_card("本月利润",   f"¥{inc.get('net_profit',0):,.0f}",    "attach_money","orange", "↑ 8.2%", "income_statement")
+        KpiCard("资产总计",   f"¥{bs.get('total_assets', 0):,.0f}",   "account_balance", "blue",   trend="↑ 2.3%", on_click=lambda: navigate("balance_sheet"))
+        KpiCard("负债总计",   f"¥{bs.get('total_liab', 0):,.0f}",     "credit_card",    "red",    trend="↓ 1.1%", on_click=lambda: navigate("balance_sheet"))
+        KpiCard("所有者权益", f"¥{bs.get('total_equity', 0):,.0f}",   "savings",        "green",  trend="↑ 3.8%", on_click=lambda: navigate("balance_sheet"))
+        KpiCard("本月收入",   f"¥{inc.get('total_revenue',0):,.0f}",  "trending_up",    "purple", trend="↑ 12.5%", on_click=lambda: navigate("income_statement"))
+        KpiCard("本月利润",   f"¥{inc.get('net_profit',0):,.0f}",     "attach_money",   "orange", trend="↑ 8.2%",  on_click=lambda: navigate("income_statement"))
 
-    # 第二行 KPI：应收账款/应付账款/银行存款/本月费用/现金净流量（新增）
-    with ui.row().classes("w-full gap-3 mt-2"):
-        _kpi_card("应收账款",   f"¥{kpi.get('ar_balance', 0):,.0f}",  "receipt",        "indico",  None, "account_ledger")
-        _kpi_card("应付账款",   f"¥{kpi.get('ap_balance', 0):,.0f}",  "payment",        "orange",  None, "account_ledger")
-        _kpi_card("银行存款",   f"¥{kpi.get('bank_balance', 0):,.0f}", "account_balance_wallet", "cyan", None, "cashier")
-        _kpi_card("本月费用",   f"¥{kpi.get('month_expense', 0):,.0f}", "money_off",     "red",   None, "income_statement")
-        _kpi_card("现金净流量", f"¥{kpi.get('net_cash_flow', 0):,.0f}", "swap_horiz",  "teal",  kpi.get('net_cash_flow', 0) >= 0 and "↑" or "↓", "cash_flow_statement")
+    # 第二行 KPI：应收/应付/银行存款/费用/现金流
+    with ui.row().classes("w-full gap-3 mt-3"):
+        KpiCard("应收账款",   f"¥{kpi.get('ar_balance', 0):,.0f}",  "receipt",                  "indigo", on_click=lambda: navigate("account_ledger"))
+        KpiCard("应付账款",   f"¥{kpi.get('ap_balance', 0):,.0f}",  "payment",                  "orange", on_click=lambda: navigate("account_ledger"))
+        KpiCard("银行存款",   f"¥{kpi.get('bank_balance', 0):,.0f}","account_balance_wallet",   "cyan",   on_click=lambda: navigate("cashier"))
+        KpiCard("本月费用",   f"¥{kpi.get('month_expense', 0):,.0f}","money_off",                "red",    on_click=lambda: navigate("income_statement"))
+        KpiCard("现金净流量", f"¥{kpi.get('net_cash_flow', 0):,.0f}","swap_horiz",               "teal",
+                trend=kpi.get('net_cash_flow', 0) >= 0 and "↑" or "↓", on_click=lambda: navigate("cash_flow_statement"))
 
 
     # ── 第二行：最近凭证 + 快捷操作 ──
-    with ui.row().classes("w-full gap-4 mt-2"):
+    with ui.row().classes("w-full gap-4 mt-4"):
         # 左侧：最近凭证（占 2/3 宽度）
         with ui.card().classes("flex-[2]"):
-            with ui.card_section().classes("py-3 px-4 border-b border-grey-1"):
-                with ui.row().classes("items-center justify-between"):
-                    with ui.row().classes("items-center gap-2"):
-                        ui.icon("receipt_long").classes("text-blue-7")
-                        ui.label("最近凭证").classes("text-sm font-semibold")
-                    ui.button("查看全部", on_click=lambda: navigate("journal")).props("flat dense").classes("text-xs text-blue-7")
+            SectionHeader("最近凭证", icon="receipt_long", action=lambda: navigate("journal"), action_icon="查看全部")
             if recent_vouchers:
                 cols = [
                     {"name":"voucher_no","label":"凭证号","field":"voucher_no","align":"left","headerClasses":"text-xs font-semibold text-grey-6 uppercase"},
@@ -215,38 +210,30 @@ def render_dashboard():
                 tbl.add_slot("body-cell-total", r"""<q-td key="total" :props="props" class="tabular-nums text-sm font-medium">¥{{ props.row.total_debit !== null ? Number(props.row.total_debit).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—' }}</q-td>""")
                 tbl.on("view", lambda e: navigate("journal"))
             else:
-                with ui.card_section().classes("py-12 text-center"):
-                    ui.icon("inbox").classes("text-grey-3 text-3xl")
-                    ui.label("暂无凭证").classes("text-grey-4 text-sm mt-2")
-                    ui.button("新增凭证", icon="add", on_click=lambda: navigate("journal")).props("flat").classes("text-blue-7 mt-2")
+                EmptyState(message="暂无凭证", hint="点击右上角「查看全部」查看历史凭证", action=lambda: navigate("journal"), action_label="前往凭证列表")
 
         # 右侧：快捷操作（占 1/3 宽度）
         with ui.card().classes("w-72"):
-            with ui.card_section().classes("py-3 px-4 border-b border-grey-1"):
-                with ui.row().classes("items-center gap-2"):
-                    ui.icon("bolt").classes("text-orange-6")
-                    ui.label("快捷操作").classes("text-sm font-semibold")
+            SectionHeader("快捷操作", icon="bolt")
             with ui.card_section().classes("py-2 px-3"):
-                with ui.column().classes("gap-1.5"):
-                    for nav, icon_n, label, color in [
-                        ("journal","add","新增凭证","var(--blue-600)"),
-                        ("accounts","table_chart","科目余额",""),
-                        ("balance_sheet","account_balance","资产负债表",""),
-                        ("income_statement","trending_up","利润表",""),
-                        ("close_period","sync_alt","期末结转",""),
-                        ("ai_assistant","smart_toy","AI助手",""),
-                        ("export","cloud_download","导出数据",""),
-                    ]:
-                        ui.button(label, icon=icon_n, on_click=lambda n=nav: navigate(n)).props("dense").classes("w-full justify-start nav-btn").style(f"color: {color or 'inherit'}")
+                with ui.column().classes("gap-1"):
+                    _quick_actions = [
+                        ("journal",              "add",           "新增凭证",   "var(--c-primary)"),
+                        ("account_ledger",       "table_chart",   "科目余额",   ""),
+                        ("balance_sheet",        "account_balance","资产负债表", ""),
+                        ("income_statement",     "trending_up",   "利润表",     ""),
+                        ("close_period",         "sync_alt",      "期末结转",   ""),
+                        ("ai_assistant",         "smart_toy",     "AI助手",     ""),
+                        ("export",               "cloud_download","导出数据",   ""),
+                    ]
+                    for nav, icon_n, label, color in _quick_actions:
+                        ui.button(label, icon=icon_n, on_click=lambda n=nav: navigate(n)).props("dense no-caps").classes("w-full justify-start nav-btn").style(f"color: {color or 'var(--c-text-secondary)'}")
 
     # ── 第三行：图表（月度趋势 + 费用占比）──
-    with ui.row().classes("w-full gap-4 mt-3"):
+    with ui.row().classes("w-full gap-4 mt-4"):
         # 左侧：月度收支趋势图
         with ui.card().classes("flex-1"):
-            with ui.card_section().classes("py-3 px-4 border-b border-grey-1"):
-                with ui.row().classes("items-center gap-2"):
-                    ui.icon("show_chart").classes("text-blue-7")
-                    ui.label("月度收支趋势").classes("text-sm font-semibold")
+            SectionHeader("月度收支趋势", icon="show_chart")
             with ui.card_section().classes("py-3 px-4"):
                 try:
                     trend_data = ReportService.get_monthly_trend(lid, 12)
@@ -267,20 +254,13 @@ def render_dashboard():
                         }
                         ui.chart(trend_option).classes("h-64 w-full")
                     else:
-                        with ui.column().classes("items-center justify-center py-8 gap-2"):
-                            ui.icon("bar_chart").classes("text-3xl text-grey-3")
-                            ui.label("暂无趋势数据").classes("text-sm text-grey-4")
-                except Exception as e:
-                    with ui.column().classes("items-center justify-center py-8 gap-2"):
-                        ui.icon("error_outline").classes("text-3xl text-grey-3")
-                        ui.label("图表加载失败").classes("text-sm text-grey-4")
+                        EmptyState(icon="bar_chart", message="暂无趋势数据")
+                except Exception:
+                    EmptyState(icon="error_outline", message="图表加载失败")
 
         # 右侧：费用占比饼图
         with ui.card().classes("flex-1"):
-            with ui.card_section().classes("py-3 px-4 border-b border-grey-1"):
-                with ui.row().classes("items-center gap-2"):
-                    ui.icon("pie_chart").classes("text-purple-7")
-                    ui.label("费用占比分析").classes("text-sm font-semibold")
+            SectionHeader("费用占比分析", icon="pie_chart")
             with ui.card_section().classes("py-3 px-4"):
                 try:
                     expense_data = ReportService.get_expense_breakdown(lid, state.selected_year, state.selected_month)
@@ -301,15 +281,11 @@ def render_dashboard():
                         }
                         ui.chart(pie_option).classes("h-64 w-full")
                     else:
-                        with ui.column().classes("items-center justify-center py-8 gap-2"):
-                            ui.icon("pie_chart").classes("text-3xl text-grey-3")
-                            ui.label("暂无费用数据").classes("text-sm text-grey-4")
-                except Exception as e:
-                    with ui.column().classes("items-center justify-center py-8 gap-2"):
-                        ui.icon("error_outline").classes("text-3xl text-grey-3")
-                        ui.label("图表加载失败").classes("text-sm text-grey-4")
+                        EmptyState(icon="pie_chart", message="暂无费用数据")
+                except Exception:
+                    EmptyState(icon="error_outline", message="图表加载失败")
 
-    # ── 第四行：系统健康状态面板（Week 4 可观测性）──
+    # ── 第四行：系统健康状态面板 ──
     try:
         _health = _get_system_health()
         _db = _health.get("database", {})
@@ -320,68 +296,37 @@ def render_dashboard():
         _dk_warn = _dk.get("warning", False)
         _overall = "healthy" if (_db_ok and _bk_ok and not _dk_warn) else "warning"
 
-        with ui.row().classes("w-full gap-3 mt-1"):
+        with ui.row().classes("w-full gap-3 mt-3"):
             # 数据库状态
             with ui.card().classes("flex-1"):
-                with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
-                    with ui.row().classes("items-center gap-2"):
-                        ui.icon("storage").classes("text-blue-7")
-                        ui.label("系统状态").classes("text-sm font-semibold")
-                        ui.label("● " + ("正常" if _overall == "healthy" else "警告")).classes("text-xs font-semibold ml-auto").style(
-                            "color: var(--c-success);" if _overall == "healthy" else "color: var(--c-warning);"
-                        )
+                SectionHeader("系统状态", icon="storage",
+                    action_label="● " + ("正常" if _overall == "healthy" else "警告"))
                 with ui.card_section().classes("py-2 px-3"):
                     with ui.column().classes("gap-1.5"):
-                        with ui.row().classes("items-center justify-between"):
-                            ui.label("数据库").classes("text-xs text-grey-5")
-                            ui.label("✅ 正常" if _db_ok else "❌ 异常").classes("text-xs font-semibold").style(
-                                "color: var(--c-success);" if _db_ok else "color: var(--c-danger);"
-                            )
-                        with ui.row().classes("items-center justify-between"):
-                            ui.label("凭证/分录").classes("text-xs text-grey-5")
-                            ui.label(f"{_db.get('vouchers',0)} / {_db.get('entries',0)}").classes("text-xs tabular-nums text-grey-7")
-                        with ui.row().classes("items-center justify-between"):
-                            ui.label("数据库大小").classes("text-xs text-grey-5")
-                            ui.label(f"{_db.get('size_mb',0):.1f} MB").classes("text-xs tabular-nums text-grey-7")
+                        MetricRow("数据库", "✅ 正常" if _db_ok else "❌ 异常",
+                                  value_color="var(--c-success)" if _db_ok else "var(--c-danger)")
+                        MetricRow("凭证/分录", f"{_db.get('vouchers',0)} / {_db.get('entries',0)}")
+                        MetricRow("数据库大小", f"{_db.get('size_mb',0):.1f} MB")
 
             # 备份状态
             with ui.card().classes("flex-1"):
-                with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
-                    with ui.row().classes("items-center gap-2"):
-                        ui.icon("backup").classes("text-green-7")
-                        ui.label("备份状态").classes("text-sm font-semibold")
-                        ui.label("自动" if _bk.get("enabled") else "关闭").classes("text-xs text-grey-4 ml-auto")
+                SectionHeader("备份状态", icon="backup")
                 with ui.card_section().classes("py-2 px-3"):
                     with ui.column().classes("gap-1.5"):
-                        with ui.row().classes("items-center justify-between"):
-                            ui.label("上次备份").classes("text-xs text-grey-5")
-                            _lb = _bk.get("last_backup", "--")
-                            ui.label(_lb[:19].replace("T", " ") if _lb and _lb != "--" else "--").classes("text-xs tabular-nums text-grey-7")
-                        with ui.row().classes("items-center justify-between"):
-                            ui.label("备份总数").classes("text-xs text-grey-5")
-                            ui.label(f"{_bk.get('total_backups', 0)} 次").classes("text-xs tabular-nums text-grey-7")
-                        with ui.row().classes("items-center justify-between"):
-                            ui.label("状态").classes("text-xs text-grey-5")
-                            ui.label("✅ " + str(_bk.get("last_status","--")) if _bk_ok else "⚠️ " + str(_bk.get("last_status","--"))).classes("text-xs font-semibold").style(
-                                "color: var(--c-success);" if _bk_ok else "color: var(--c-warning);"
-                            )
+                        _lb = _bk.get("last_backup", "--")
+                        MetricRow("上次备份", _lb[:19].replace("T", " ") if _lb and _lb != "--" else "--")
+                        MetricRow("备份总数", f"{_bk.get('total_backups', 0)} 次")
+                        MetricRow("状态", "✅ " + str(_bk.get("last_status","--")) if _bk_ok else "⚠️ " + str(_bk.get("last_status","--")),
+                                  value_color="var(--c-success)" if _bk_ok else "var(--c-warning)")
 
             # 磁盘空间
             with ui.card().classes("flex-1"):
-                with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
-                    with ui.row().classes("items-center gap-2"):
-                        ui.icon("sd_storage").classes("text-purple-7")
-                        ui.label("磁盘空间").classes("text-sm font-semibold")
+                SectionHeader("磁盘空间", icon="sd_storage")
                 with ui.card_section().classes("py-2 px-3"):
                     with ui.column().classes("gap-1.5"):
-                        with ui.row().classes("items-center justify-between"):
-                            ui.label("已用").classes("text-xs text-grey-5")
-                            ui.label(f"{_dk.get('usage_pct', 0):.1f}%").classes("text-xs tabular-nums font-semibold").style(
-                                "color: var(--c-danger);" if _dk_warn else "color: var(--c-success);"
-                            )
-                        with ui.row().classes("items-center justify-between"):
-                            ui.label("可用").classes("text-xs text-grey-5")
-                            ui.label(f"{_dk.get('free_gb', 0):.0f} GB").classes("text-xs tabular-nums text-grey-7")
+                        MetricRow("已用", f"{_dk.get('usage_pct', 0):.1f}%",
+                                  value_color="var(--c-danger)" if _dk_warn else "var(--c-success)")
+                        MetricRow("可用", f"{_dk.get('free_gb', 0):.0f} GB")
                         # 进度条
                         with ui.element("div").style("width:100%; height:6px; background:var(--c-border); border-radius:3px; margin-top:2px;"):
                             ui.element("div").style(
@@ -389,8 +334,7 @@ def render_dashboard():
                                 f"background:{'var(--c-danger)' if _dk_warn else 'var(--c-success)'}; "
                                 f"border-radius:3px;"
                             )
-    except Exception as _he:
-        # 健康面板加载失败不影响主界面
+    except Exception:
         pass
 def _kpi_card(title: str, value: str, icon: str, color: str, trend: str = None, navigate_to: str = None):
     """KPI 卡片 — 大数字 + 等宽 + 趋势标签 + 点击跳转"""

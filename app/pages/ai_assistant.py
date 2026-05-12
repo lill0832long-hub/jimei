@@ -1,5 +1,6 @@
 """AI助手"""
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast
 from app.services import LedgerService, ReportService, VoucherService
@@ -168,23 +169,20 @@ def render_ai_assistant():
     with ui.row().classes("w-full gap-3"):
         with ui.column().classes("w-1/2 gap-2"):
             with ui.card().classes("w-full"):
-                with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
-                    ui.label("🤖 智能凭证").classes("text-sm font-semibold")
+                SectionHeader("智能凭证", icon="smart_toy")
                 with ui.card_section().classes("py-2 px-3"):
                     ai_input = ui.input("业务描述", placeholder="例：收到股东投资款100万").props("outlined dense").classes("w-full")
                     ui.button("🧠 生成分录", color="primary", on_click=lambda: do_ai_generate(ai_input.value)).props("dense").classes("w-full mt-1")
 
             with ui.card().classes("w-full"):
-                with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
-                    ui.label("📷 发票OCR").classes("text-sm font-semibold")
+                SectionHeader("发票OCR", icon="document_scanner")
                 with ui.card_section().classes("py-2 px-3"):
                     ocr_input = ui.textarea("OCR文本", placeholder="粘贴发票OCR识别结果...").props("outlined dense").classes("w-full")
                     ui.button("🔍 提取信息", color="orange", on_click=lambda: do_ocr_extract(ocr_input.value)).props("dense").classes("w-full mt-1")
 
             # ── P1-5: 自然语言查询 ──
             with ui.card().classes("w-full"):
-                with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
-                    ui.label("💬 自然语言查询").classes("text-sm font-semibold")
+                SectionHeader("自然语言查询", icon="chat")
                 with ui.card_section().classes("py-2 px-3"):
                     nl_input = ui.input("问财务问题", placeholder="例：上月利润是多少？银行存款余额？").props("outlined dense").classes("w-full")
                     nl_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[60px] whitespace-pre-wrap").style("color:var(--c-text-secondary)")
@@ -192,8 +190,7 @@ def render_ai_assistant():
 
             # ── P1-5: 财务知识问答 ──
             with ui.card().classes("w-full"):
-                with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
-                    ui.label("📚 财务知识库").classes("text-sm font-semibold")
+                SectionHeader("财务知识库", icon="menu_book")
                 with ui.card_section().classes("py-2 px-3"):
                     kb_input = ui.input("搜索知识", placeholder="例：什么是借贷记账法？").props("outlined dense").classes("w-full")
                     kb_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[80px] whitespace-pre-wrap").style("color:var(--c-text-secondary)")
@@ -201,8 +198,7 @@ def render_ai_assistant():
 
         with ui.column().classes("w-1/2 gap-2"):
             with ui.card().classes("w-full"):
-                with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
-                    ui.label("📖 支持场景").classes("text-sm font-semibold")
+                SectionHeader("支持场景", icon="list_alt")
                 with ui.card_section().classes("py-2 px-3"):
                     with ui.column().classes("gap-0.5 text-sm"):
                         scenes = [
@@ -222,10 +218,7 @@ def render_ai_assistant():
             # 汇率转换工具
             if _EXTERNAL_APIS_OK:
                 with ui.card().classes("w-full"):
-                    with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
-                        with ui.row().classes("items-center gap-2"):
-                            ui.icon("currency_exchange").style("color:var(--c-primary)")
-                            ui.label("汇率转换").classes("text-sm font-semibold")
+                    SectionHeader("汇率转换", icon="currency_exchange")
                     with ui.card_section().classes("py-2 px-3"):
                         with ui.column().classes("gap-1.5"):
                             fx_amount = ui.number("金额", value=100, precision=2).props("outlined dense").classes("w-full")
@@ -248,10 +241,7 @@ def render_ai_assistant():
 
             # 自然语言查报表
             with ui.card().classes("w-full"):
-                with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
-                    with ui.row().classes("items-center gap-2"):
-                        ui.icon("chat").style("color:var(--c-primary)")
-                        ui.label("💬 自然语言查询").classes("text-sm font-semibold")
+                SectionHeader("自然语言查询", icon="chat")
                 with ui.card_section().classes("py-2 px-3"):
                     nl_input = ui.input("问财务问题", placeholder="例：上月利润是多少？银行存款余额？").props("outlined dense").classes("w-full")
                     nl_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[40px]").style("color:var(--c-text-secondary)")
@@ -259,10 +249,7 @@ def render_ai_assistant():
 
             # 财务知识问答
             with ui.card().classes("w-full"):
-                with ui.card_section().classes("py-2 px-3 border-b border-grey-1"):
-                    with ui.row().classes("items-center gap-2"):
-                        ui.icon("menu_book").style("color:var(--c-success)")
-                        ui.label("📚 财务知识库").classes("text-sm font-semibold")
+                SectionHeader("财务知识库", icon="menu_book")
                 with ui.card_section().classes("py-2 px-3"):
                     kb_input = ui.input("搜索知识", placeholder="例：什么是借贷记账法？").props("outlined dense").classes("w-full")
                     kb_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[40px]").style("color:var(--c-text-secondary)")

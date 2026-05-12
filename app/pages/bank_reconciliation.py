@@ -1,4 +1,5 @@
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount, navigate
 from app.services import LedgerService, AccountService
@@ -72,36 +73,36 @@ def render_bank_reconciliation():
 
     # ===== 页面主体 =====
 
+    SectionHeader("银行对账", icon="account_balance")
+
     with ui.card().classes("w-full"):
         with ui.card_section().classes("py-2.5 px-4 border-b border-grey-2"):
-            with ui.row().classes("items-center justify-between"):
-                ui.label("🏦 银行对账").classes("text-base font-bold")
-                with ui.row().classes("gap-3 items-center"):
-                    if bank_accounts:
-                        ba_opts = {ba["id"]: f"{ba.get('bank_name','')} - {ba.get('account_no','')}" for ba in bank_accounts}
-                        ba_select = ui.select(options=ba_opts, value=bank_accounts[0]["id"],
-                                             label="银行账户").props("outlined dense").classes("w-64")
-                    else:
-                        ba_select = None
-                        ui.label("请先添加银行账户").classes("text-sm text-grey-5")
-                    ui.separator().props("vertical")
-                    br_year_sel = ui.select(options=list(range(2020, 2031)), value=state.selected_year, label="年度").props("dense outlined").classes("w-28")
-                    br_month_sel = ui.select(options=list(range(1, 13)), value=state.selected_month, label="月份").props("dense outlined").classes("w-24")
+            with ui.row().classes("gap-3 items-center justify-end"):
+                if bank_accounts:
+                    ba_opts = {ba["id"]: f"{ba.get('bank_name','')} - {ba.get('account_no','')}" for ba in bank_accounts}
+                    ba_select = ui.select(options=ba_opts, value=bank_accounts[0]["id"],
+                                         label="银行账户").props("outlined dense").classes("w-64")
+                else:
+                    ba_select = None
+                    ui.label("请先添加银行账户").classes("text-sm text-grey-5")
+                ui.separator().props("vertical")
+                br_year_sel = ui.select(options=list(range(2020, 2031)), value=state.selected_year, label="年度").props("dense outlined").classes("w-28")
+                br_month_sel = ui.select(options=list(range(1, 13)), value=state.selected_month, label="月份").props("dense outlined").classes("w-24")
 
-                    def _on_br_period():
-                        state.selected_year = br_year_sel.value
-                        state.selected_month = br_month_sel.value
-                        refresh_main()
+                def _on_br_period():
+                    state.selected_year = br_year_sel.value
+                    state.selected_month = br_month_sel.value
+                    refresh_main()
 
-                    br_year_sel.on("update:value", lambda e: _on_br_period())
-                    br_month_sel.on("update:value", lambda e: _on_br_period())
+                br_year_sel.on("update:value", lambda e: _on_br_period())
+                br_month_sel.on("update:value", lambda e: _on_br_period())
 
     if not bank_accounts:
-        with ui.card().classes("w-full"):
-            with ui.card_section().classes("py-12 text-center"):
-                ui.icon("account_balance").style("font-size: 48px; color: var(--gray-300)")
-                ui.label("暂无银行账户").classes("text-lg font-semibold text-grey-4 mt-4")
-                ui.label("请先在出纳管理中添加银行账户").classes("text-sm text-grey-3 mt-2")
+        EmptyState(
+            icon="account_balance",
+            message="暂无银行账户",
+            hint="请先在出纳管理中添加银行账户",
+        )
         return
 
     selected_ba_id = ba_select.value if ba_select else None
@@ -197,8 +198,12 @@ def render_bank_reconciliation():
                     stmt_tbl.on("stmt_match", lambda e: _do_match(e.args, selected_ba_id))
                     stmt_tbl.on("stmt_unmatch", lambda e: _do_unmatch(e.args))
                 else:
-                    with ui.card_section().classes("py-6 text-center"):
-                        ui.label("暂无对账单数据").classes("text-grey-5 text-sm")
+                    with ui.card_section():
+                        EmptyState(
+                            icon="description",
+                            message="暂无对账单数据",
+                            hint="请上传银行对账单 CSV 文件",
+                        )
 
         # 右侧：余额调节表 + 未达账项
         with ui.column().classes("w-1/2 gap-2"):

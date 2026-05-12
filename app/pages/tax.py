@@ -2,6 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
+from app.components.ui_components import SectionHeader
 from app.services import TaxService, AccountService, LedgerService
 
 
@@ -21,9 +22,7 @@ def render_tax():
     with ui.row().classes("w-full gap-3"):
         with ui.card().classes("flex-1"):
             with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
-                with ui.row().classes("items-center justify-between"):
-                    ui.label("🧾 纳税人信息").classes("text-sm font-semibold")
-                    ui.button("保存", color="primary", on_click=lambda: _save_tax_config(lid, tp_type.value, tp_rate.value)).props("dense")
+                SectionHeader("纳税人信息", icon="receipt", action=lambda: _save_tax_config(lid, tp_type.value, tp_rate.value), action_icon="保存")
             with ui.card_section().classes("py-2 px-3"):
                 config = TaxService.get_config(lid)
                 with ui.row().classes("gap-3"):
@@ -38,9 +37,7 @@ def render_tax():
 
         with ui.card().classes("flex-1"):
             with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
-                with ui.row().classes("items-center justify-between"):
-                    ui.label("📊 税率设置").classes("text-sm font-semibold")
-                    ui.button("➕ 添加", color="blue", on_click=lambda: _show_add_rate_dialog(lid)).props("dense")
+                SectionHeader("税率设置", icon="percent", action=lambda: _show_add_rate_dialog(lid), action_icon="添加", action_color="blue")
             with ui.card_section().classes("py-2 px-3"):
                 rates = TaxService.get_rates(lid)
                 if rates:

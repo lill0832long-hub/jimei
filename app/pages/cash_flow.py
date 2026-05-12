@@ -1,5 +1,6 @@
 """现金流量表 P2-5"""
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
 from app.services import ReportService
@@ -26,11 +27,12 @@ def render_cash_flow():
         with ui.column().classes("w-2/3 gap-2"):
             with ui.card().classes("w-full"):
                 with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
-                    with ui.row().classes("items-center justify-between"):
-                        ui.label("📊 现金流量表（直接法）").classes("text-base font-bold")
-                        with ui.row().classes("items-center gap-2"):
-                            ui.label(f"{year}年{month}月").classes("text-sm").style("color:var(--c-text-muted)")
-                            ui.button("🔄 刷新", on_click=refresh_main).props("dense outline")
+                    SectionHeader(
+                        f"现金流量表（直接法）   {year}年{month}月",
+                        icon="analytics",
+                        action=refresh_main,
+                        action_icon="refresh",
+                    )
 
                 # ── 经营活动 ──
                 with ui.card_section().classes("py-2 px-3").style("background:var(--c-bg-hover)"):
@@ -89,9 +91,7 @@ def render_cash_flow():
         with ui.column().classes("w-1/3 gap-2"):
             with ui.card().classes("w-full"):
                 with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
-                    with ui.row().classes("items-center justify-between"):
-                        ui.label("🏷️ 现金流分类").classes("text-sm font-semibold")
-                        ui.button("初始化", color="blue", on_click=lambda: _do_init_categories(lid)).props("dense")
+                    SectionHeader("现金流分类", icon="label", action=lambda: _do_init_categories(lid), action_icon="play_arrow", action_color="blue")
 
                 cats = ReportService.get_cash_flow_categories(lid)
                 if cats:
@@ -111,13 +111,18 @@ def render_cash_flow():
                                 ui.label(cat["name"]).classes("text-sm")
                                 ui.label(cat["code"]).classes("text-xs font-mono").style("color:var(--c-text-muted)")
                 else:
-                    with ui.card_section():
-                        ui.label("暂无分类，点击「初始化」创建默认分类").classes("text-xs").style("color:var(--c-text-muted)")
+                    EmptyState(
+                        icon="label_off",
+                        message="暂无现金流分类",
+                        hint="点击「初始化」创建默认分类",
+                        action=lambda: _do_init_categories(lid),
+                        action_label="初始化",
+                    )
 
             # ── 三表勾稽校验 ──
             with ui.card().classes("w-full"):
                 with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
-                    ui.label("🔗 三表勾稽").classes("text-sm font-semibold")
+                    SectionHeader("三表勾稽", icon="link")
                 with ui.card_section().classes("py-2 px-3"):
                     checks = [
                         ("现金流量净额 = 期末现金 - 期初现金", True),

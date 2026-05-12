@@ -1,5 +1,6 @@
 """定时自动凭证 P2-7"""
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
 from app.services import VoucherService, AccountService
@@ -19,10 +20,7 @@ def render_scheduled_vouchers():
     # ── 凭证模板区域 ──
     with ui.row().classes("w-full gap-3"):
         with ui.card().classes("flex-1"):
-            with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
-                with ui.row().classes("items-center justify-between"):
-                    ui.label("📋 凭证模板").classes("text-sm font-semibold")
-                    ui.button("➕ 新建模板", color="primary", on_click=lambda: _show_template_dialog(lid)).props("dense")
+            SectionHeader("凭证模板", icon="description", action=lambda: _show_template_dialog(lid))
 
             templates = VoucherService.get_templates(lid)
             if templates:
@@ -35,15 +33,11 @@ def render_scheduled_vouchers():
                 ui.table(columns=cols, rows=rows, row_key="id",
                          pagination={"rowsPerPage": 10}).classes("w-full text-sm")
             else:
-                with ui.card_section():
-                    ui.label("暂无凭证模板，点击「新建模板」创建").classes("text-sm py-4 text-center").style("color:var(--c-text-muted)")
+                EmptyState(message="暂无凭证模板", hint="点击右上角按钮创建模板")
 
         # ── 定时任务区域 ──
         with ui.card().classes("flex-1"):
-            with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
-                with ui.row().classes("items-center justify-between"):
-                    ui.label("⏰ 定时任务").classes("text-sm font-semibold")
-                    ui.button("➕ 新建任务", color="blue", on_click=lambda: _show_schedule_dialog(lid)).props("dense")
+            SectionHeader("定时任务", icon="schedule", action=lambda: _show_schedule_dialog(lid), action_color="blue")
 
             schedules = VoucherService.get_scheduled(lid)
             if schedules:
@@ -67,8 +61,7 @@ def render_scheduled_vouchers():
                 ui.table(columns=cols, rows=rows, row_key="id",
                          pagination={"rowsPerPage": 10}).classes("w-full text-sm")
             else:
-                with ui.card_section():
-                    ui.label("暂无定时任务，点击「新建任务」创建").classes("text-sm py-4 text-center").style("color:var(--c-text-muted)")
+                EmptyState(message="暂无定时任务", hint="点击右上角按钮创建任务")
 
     # ── 快速模板：租金摊销/工资计提 ──
     with ui.card().classes("w-full mt-1"):

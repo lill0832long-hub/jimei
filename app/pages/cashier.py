@@ -1,6 +1,7 @@
 """出纳管理"""
 import tempfile, os
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
 from app.services import LedgerService, AccountService
@@ -110,7 +111,7 @@ def render_cashier():
 
     with ui.card().classes("w-full"):
         with ui.card_section().classes("py-2.5 px-4 border-b border-grey-2"):
-            ui.label("💳 出纳管理").classes("text-base font-bold")
+            SectionHeader("出纳管理", icon="account_balance_wallet")
 
         with ui.row().classes("w-full gap-3"):
             # 左侧：银行对账单导入 + 自动勾对
@@ -118,7 +119,7 @@ def render_cashier():
                 # 银行账户选择
                 with ui.card().classes("w-full"):
                     with ui.card_section().classes("py-2 px-3").style("border-bottom:1px solid var(--c-border)"):
-                        ui.label("🏦 银行账户").classes("text-sm font-semibold")
+                        SectionHeader("银行账户", icon="account_balance")
                     with ui.card_section().classes("py-2 px-3"):
                         bank_sel = ui.select(
                             options=bank_opts,
@@ -126,11 +127,11 @@ def render_cashier():
                             label="选择账户"
                         ).props("outlined dense").classes("w-full")
                         if not bank_accounts:
-                            ui.label("暂无银行账户，请先在科目中添加银行存款科目").classes("text-xs mt-1").style("color:var(--c-text-muted)")
+                            EmptyState(icon="account_balance", message="暂无银行账户", hint="请先在科目中添加银行存款科目")
 
                 with ui.card().classes("w-full"):
                     with ui.card_section().classes("py-2 px-3").style("border-bottom:1px solid var(--c-border)"):
-                        ui.label("📥 导入银行对账单").classes("text-sm font-semibold")
+                        SectionHeader("导入银行对账单", icon="file_upload")
                     with ui.card_section().classes("py-1 px-3"):
                         ui.label("支持 CSV 格式（日期,摘要,借方,贷方,参考号）").classes("text-xs").style("color:var(--c-text-muted)")
                         import_result = ui.label("").classes("text-sm mt-1").style("color:var(--c-text-secondary)")
@@ -143,7 +144,7 @@ def render_cashier():
 
                 with ui.card().classes("w-full"):
                     with ui.card_section().classes("py-2 px-3").style("border-bottom:1px solid var(--c-border)"):
-                        ui.label("🔄 自动勾对").classes("text-sm font-semibold")
+                        SectionHeader("自动勾对", icon="sync_alt")
                     with ui.card_section().classes("py-1 px-3"):
                         ui.label("按金额+日期匹配银行流水与凭证分录").classes("text-xs").style("color:var(--c-text-muted)")
                         match_result = ui.label("").classes("text-sm mt-1").styles("color:var(--c-text-secondary)")
@@ -157,7 +158,7 @@ def render_cashier():
             with ui.column().classes("w-1/2"):
                 with ui.card().classes("w-full"):
                     with ui.card_section().classes("py-2 px-3").style("border-bottom:1px solid var(--c-border)"):
-                        ui.label("📋 银行存款余额调节表").classes("text-sm font-semibold")
+                        SectionHeader("银行存款余额调节表", icon="table_chart")
                     with ui.card_section().classes("py-2 px-3"):
                         ui.label(f"期间：{state.selected_year}年{state.selected_month}月").classes("text-xs mb-2").style("color:var(--c-text-muted)")
                         recon_cols = [

@@ -1,5 +1,6 @@
 """多币种支持 P2-6"""
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
 from app.services import LedgerService, CurrencyService
@@ -27,9 +28,8 @@ def render_multi_currency():
         with ui.card().classes("w-1/2"):
             with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
                 with ui.row().classes("items-center justify-between"):
-                    ui.label("💱 币种管理").classes("text-sm font-semibold")
+                    SectionHeader("币种管理", icon="currency_exchange", action=lambda: _show_add_currency_dialog())
                     ui.label(f"本位币: {base_ccy}").classes("text-xs").style("color:var(--c-text-muted)")
-                    ui.button("➕ 添加币种", color="primary", on_click=lambda: _show_add_currency_dialog()).props("dense")
 
             currencies = CurrencyService.get_all(active_only=False)
 
@@ -60,9 +60,7 @@ def render_multi_currency():
         # ── 右侧：汇率管理 ──
         with ui.card().classes("w-1/2"):
             with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
-                with ui.row().classes("items-center justify-between"):
-                    ui.label("📈 汇率管理").classes("text-sm font-semibold")
-                    ui.button("➕ 录入汇率", color="blue", on_click=lambda: _show_add_rate_dialog(lid)).props("dense")
+                SectionHeader("汇率管理", icon="show_chart", action=lambda: _show_add_rate_dialog(lid), action_color="blue")
 
             rate_results = CurrencyService.get_all_rates_with_currency(limit=50)
 
@@ -89,7 +87,7 @@ def render_multi_currency():
     # ── 外币报表说明 ──
     with ui.card().classes("w-full mt-1"):
         with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
-            ui.label("📊 外币报表").classes("text-sm font-semibold")
+            SectionHeader("外币报表", icon="assessment")
         with ui.card_section().classes("py-2 px-3"):
             with ui.row().classes("gap-4"):
                 ui.label(f"• 本位币：{base_ccy}（所有报表默认以本位币展示）").classes("text-xs").style("color:var(--c-text-secondary)")

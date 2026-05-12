@@ -1,5 +1,6 @@
 """审计日志 — 独立页面"""
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast
 from app.services import AuthService
@@ -14,8 +15,7 @@ def render_audit_log():
         return
 
     with ui.card().classes("w-full"):
-        with ui.card_section().classes("py-2.5 px-4 border-b border-grey-2"):
-            ui.label("📋 审计日志").classes("text-base font-bold")
+        SectionHeader("审计日志", icon="list_alt")
 
         # ── 筛选区 ──
         with ui.card_section().classes("py-2 px-4 border-b border-grey-1"):

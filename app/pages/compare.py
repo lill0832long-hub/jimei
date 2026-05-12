@@ -1,5 +1,6 @@
 """对比分析"""
 from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount
 from app.utils.period import generate_periods
@@ -17,26 +18,24 @@ def render_compare():
 
     # 期间选择器
     with ui.card().classes("w-full"):
+        SectionHeader("多期间对比分析", icon="compare_arrows")
         with ui.card_section().classes("py-2 px-3"):
-            with ui.row().classes("items-center justify-between"):
-                ui.label("📊 多期间对比分析").classes("text-base font-bold")
-                with ui.row().classes("items-center gap-2"):
-                    ui.label("基准年：").classes("text-sm")
-                    ui.select(list(range(2024,2031)), value=state.selected_year,
-                        on_change=lambda e: [setattr(state,'selected_year',e.value), refresh_main()]
-                    ).props("dense outlined").classes("w-20")
-                    ui.label("对比月数：").classes("text-sm")
-                    ui.select([3,6,12], value=6,
-                        on_change=lambda e: [setattr(state,'compare_months',e.value), refresh_main()]
-                    ).props("dense outlined").classes("w-16")
+            with ui.row().classes("items-center gap-2"):
+                ui.label("基准年：").classes("text-sm")
+                ui.select(list(range(2024,2031)), value=state.selected_year,
+                    on_change=lambda e: [setattr(state,'selected_year',e.value), refresh_main()]
+                ).props("dense outlined").classes("w-20")
+                ui.label("对比月数：").classes("text-sm")
+                ui.select([3,6,12], value=6,
+                    on_change=lambda e: [setattr(state,'compare_months',e.value), refresh_main()]
+                ).props("dense outlined").classes("w-16")
 
     # 生成对比期间列表
     periods = generate_periods(state.selected_year, state.selected_month, state.compare_months)
 
     # 利润对比
     with ui.card().classes("w-full"):
-        with ui.card_section().classes("py-2 px-3"):
-            ui.label("📈 利润对比").classes("text-base font-bold")
+        SectionHeader("利润对比", icon="trending_up")
 
         inc_data = ReportService.get_period_compare_income(lid, periods)
         if inc_data["items"] or any(v != 0 for v in inc_data["summary"]["total_revenue"]):
@@ -108,8 +107,7 @@ def render_compare():
 
     # 资产负债对比
     with ui.card().classes("w-full mt-3"):
-        with ui.card_section().classes("py-2 px-3"):
-            ui.label("📗 资产负债对比").classes("text-base font-bold")
+        SectionHeader("资产负债对比", icon="account_balance")
 
         bs_data = ReportService.get_period_compare_balance(lid, periods)
         if bs_data["periods"]:

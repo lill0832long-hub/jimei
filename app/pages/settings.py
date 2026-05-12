@@ -2,6 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
+from app.components.ui_components import SectionHeader, EmptyState
 from app.services.ledger_service import LedgerService
 from app.services.account_service import AccountService
 from app.services.auth_service import AuthService
