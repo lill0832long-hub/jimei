@@ -67,3 +67,4 @@ app_v3.py
 app_v3.py.bak
 database_v3.py
 .gstack/
+.claude/scheduled_tasks.lock
