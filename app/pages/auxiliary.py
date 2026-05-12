@@ -2,8 +2,8 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from app.services import LedgerService, AccountService
-from database_v3 import query_db
+from app.services import LedgerService, AccountService, VoucherService
+from database.ai import query_db  # TODO: migrate complex queries to repository
 
 # 辅助核算类型
 _AUX_TYPES = ["客户", "供应商", "产品线", "地区", "部门", "项目"]

@@ -3,7 +3,6 @@ from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
 from app.services import ReportService
-from database_v3 import init_cash_flow_categories
 
 
 def render_cash_flow():
@@ -145,7 +144,7 @@ def _render_cf_section(data: dict, inflow: bool):
 
 def _do_init_categories(ledger_id):
     try:
-        init_cash_flow_categories(ledger_id)
+        ReportService.init_cash_flow_categories(ledger_id)
         show_toast("✅ 现金流分类初始化成功", "success")
         refresh_main()
     except Exception as e:

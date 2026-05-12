@@ -5,7 +5,6 @@ from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount, navigate, refresh_main
 from app.utils.pdf import build_pdf
 from app.services import LedgerService, ReportService
-from database_v3 import query_db
 
 def _export_cash_flow_excel(method):
     """导出现金流量表为Excel"""
@@ -280,20 +279,8 @@ def render_cash_flow_statement():
             if not lid:
                 return
             # 查询该现金流类型下的明细凭证
-            rows = query_db("""
-                SELECT v.voucher_no, v.date, v.summary,
-                       a.code as acct_code, a.name as acct_name,
-                       e.debit, e.credit
-                FROM vouchers v
-                JOIN entries e ON e.voucher_id = v.id
-                JOIN accounts a ON a.id = e.account_id
-                JOIN entry_cash_flow ecf ON ecf.entry_id = e.id
-                JOIN cash_flow_categories cfc ON cfc.id = ecf.cf_category_id
-                WHERE v.ledger_id = ? AND cfc.code = ?
-                  AND strftime('%Y-%m', v.date) = ?
-                ORDER BY v.date DESC
-                LIMIT 50
-            """, (lid, cf_type, f"{state.selected_year}-{state.selected_month:02d}"))
+            rows = ReportService.get_cash_flow_detail(
+                lid, cf_type, state.selected_year, state.selected_month)
             if not rows:
                 show_toast(f"该现金流类型下无明细凭证", "info")
                 return

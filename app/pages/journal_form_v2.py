@@ -6,7 +6,7 @@ from nicegui import ui
 
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from app.services import AccountService, LedgerService, VoucherService
+from app.services import AccountService, LedgerService, VoucherService, CurrencyService
 
 
 def _generate_voucher_no(lid, voucher_type="记"):
@@ -145,10 +145,7 @@ def _render_voucher_form_dialog(detail=None):
     acct_opts_list = sorted([(a["code"], f"{a['code']} {a['name']}") for a in _acct_data])
     _acct_map = {a["code"]: a for a in _acct_data}
 
-    from database.connection import get_conn as _get_conn
-    _ccy_conn = _get_conn()
-    _ccys = _ccy_conn.execute("SELECT code FROM currencies WHERE is_active=1 ORDER BY code").fetchall()
-    _ccy_conn.close()
+    _ccys = CurrencyService.get_active_codes()
 
     init_entries = []
     if is_edit and detail:

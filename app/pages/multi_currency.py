@@ -2,15 +2,12 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
-from database_v3 import get_conn
-from app.services import LedgerService
+from app.services import LedgerService, CurrencyService
 
 
 def _get_base_currency(ledger_id: int) -> str:
-    conn = get_conn()
-    row = conn.execute("SELECT currency FROM ledgers WHERE id=?", (ledger_id,)).fetchone()
-    conn.close()
-    return row["currency"] if row else "CNY"
+    ledger = LedgerService.get_by_id(ledger_id)
+    return ledger.get("currency", "CNY") if ledger else "CNY"
 
 
 def render_multi_currency():
@@ -34,9 +31,7 @@ def render_multi_currency():
                     ui.label(f"本位币: {base_ccy}").classes("text-xs").style("color:var(--c-text-muted)")
                     ui.button("➕ 添加币种", color="primary", on_click=lambda: _show_add_currency_dialog()).props("dense")
 
-            conn = get_conn()
-            currencies = conn.execute("SELECT * FROM currencies ORDER BY sort_order, code").fetchall()
-            conn.close()
+            currencies = CurrencyService.get_all(active_only=False)
 
             if currencies:
                 cols = [
@@ -49,12 +44,12 @@ def render_multi_currency():
                 rows = []
                 for c in currencies:
                     rows.append({
-                        "id": c["id"],
-                        "code": c["code"],
-                        "name": c["name"],
-                        "symbol": c["symbol"] or c["code"],
-                        "is_base": "✅" if c["is_base"] else "",
-                        "active": "✅" if c["is_active"] else "❌",
+                        "id": c.id,
+                        "code": c.code,
+                        "name": c.name,
+                        "symbol": c.symbol or c.code,
+                        "is_base": "✅" if c.is_base else "",
+                        "active": "✅" if c.is_active else "❌",
                     })
                 ui.table(columns=cols, rows=rows, row_key="id",
                          pagination={"rowsPerPage": 10}).classes("w-full text-sm")
@@ -69,24 +64,22 @@ def render_multi_currency():
                     ui.label("📈 汇率管理").classes("text-sm font-semibold")
                     ui.button("➕ 录入汇率", color="blue", on_click=lambda: _show_add_rate_dialog(lid)).props("dense")
 
-            conn = get_conn()
-            rates = conn.execute(
-                "SELECT er.*, fc.code as from_code, tc.code as to_code "
-                "FROM exchange_rates er "
-                "JOIN currencies fc ON er.from_currency = fc.code "
-                "JOIN currencies tc ON er.to_currency = tc.code "
-                "ORDER BY er.date DESC, fc.code, tc.code "
-                "LIMIT 50"
-            ).fetchall()
-            conn.close()
+            rate_results = CurrencyService.get_all_rates_with_currency(limit=50)
 
-            if rates:
+            if rate_results:
                 cols = [
                     {"name":"pair","label":"币种对","field":"pair","align":"center","headerClasses":"table-header-cell text-uppercase","style":"width:100px"},
                     {"name":"rate","label":"汇率","field":"rate","align":"right","headerClasses":"table-header-cell text-uppercase","style":"width:120px"},
                     {"name":"date","label":"日期","field":"date","align":"center","headerClasses":"table-header-cell text-uppercase","style":"width:100px"},
                 ]
-                rows = [{**r, "pair": f"{r['from_code']}/{r['to_code']}", "rate": f"{r['rate']:.6f}"} for r in rates]
+                rows = []
+                for er, _fc in rate_results:
+                    rows.append({
+                        "id": er.id,
+                        "pair": f"{er.from_currency}/{er.to_currency}",
+                        "rate": f"{er.rate:.6f}",
+                        "date": er.date,
+                    })
                 ui.table(columns=cols, rows=rows, row_key="id",
                          pagination={"rowsPerPage": 10}).classes("w-full text-sm")
             else:
@@ -126,11 +119,7 @@ def _do_add_currency(d, code, name, symbol):
         show_toast("请填写币种代码和名称", "warning")
         return
     try:
-        conn = get_conn()
-        conn.execute("INSERT OR IGNORE INTO currencies (code, name, symbol) VALUES (?,?,?)",
-                     (code.upper(), name, symbol))
-        conn.commit()
-        conn.close()
+        CurrencyService.create_currency(code, name, symbol)
         show_toast(f"✅ 币种 {code.upper()} 添加成功", "success")
         d.close()
         refresh_main()
@@ -141,10 +130,7 @@ def _do_add_currency(d, code, name, symbol):
 def _show_add_rate_dialog(ledger_id: int):
     """录入汇率对话框"""
     d = ui.dialog()
-    conn = get_conn()
-    currencies = conn.execute("SELECT code FROM currencies WHERE is_active=1 ORDER BY code").fetchall()
-    conn.close()
-    ccy_options = [c["code"] for c in currencies]
+    ccy_options = CurrencyService.get_active_codes()
     base = _get_base_currency(ledger_id)
 
     with d, ui.card().classes("w-[400px]"):
@@ -166,13 +152,7 @@ def _do_add_rate(d, from_ccy, to_ccy, rate):
         show_toast("请填写完整汇率信息", "warning")
         return
     try:
-        conn = get_conn()
-        conn.execute(
-            "INSERT INTO exchange_rates (from_currency, to_currency, rate, date) VALUES (?,?,?,date('now'))",
-            (from_ccy, to_ccy, rate)
-        )
-        conn.commit()
-        conn.close()
+        CurrencyService.add_rate(from_ccy, to_ccy, rate)
         show_toast(f"✅ 汇率 {from_ccy}/{to_ccy} = {rate} 已保存", "success")
         d.close()
         refresh_main()

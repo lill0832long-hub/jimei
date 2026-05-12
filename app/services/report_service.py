@@ -91,34 +91,68 @@ class ReportService:
     # ── 现金流（暂保留旧实现） ──
     @staticmethod
     def get_cash_flow_statement(ledger_id, year, month):
-        from database_v3 import get_cash_flow_statement
+        # TODO: migrate to repository pattern
+        from database.cash_flow import get_cash_flow_statement
         return get_cash_flow_statement(ledger_id, year, month)
 
     @staticmethod
     def get_cash_flow_categories(ledger_id):
-        from database_v3 import get_cash_flow_categories
+        # TODO: migrate to repository pattern
+        from database.cash_flow import get_cash_flow_categories
         return get_cash_flow_categories(ledger_id)
 
     @staticmethod
     def add_cash_flow_category(ledger_id, name, flow_type):
-        from database_v3 import add_cash_flow_category
+        # TODO: migrate to repository pattern
+        from database.cash_flow import add_cash_flow_category
         return add_cash_flow_category(ledger_id, name, flow_type)
+
+    @staticmethod
+    def init_cash_flow_categories(ledger_id):
+        # TODO: migrate to repository pattern
+        from database.cash_flow import init_cash_flow_categories
+        return init_cash_flow_categories(ledger_id)
+
+    @staticmethod
+    def get_cash_flow_detail(ledger_id, cf_type, year, month):
+        # TODO: migrate to repository pattern
+        from database.connection import get_conn
+        conn = get_conn()
+        rows = conn.execute("""
+            SELECT v.voucher_no, v.date, v.summary,
+                   a.code as acct_code, a.name as acct_name,
+                   e.debit, e.credit
+            FROM vouchers v
+            JOIN entries e ON e.voucher_id = v.id
+            JOIN accounts a ON a.id = e.account_id
+            JOIN entry_cash_flow ecf ON ecf.entry_id = e.id
+            JOIN cash_flow_categories cfc ON cfc.id = ecf.cf_category_id
+            WHERE v.ledger_id = ? AND cfc.code = ?
+              AND strftime('%Y-%m', v.date) = ?
+            ORDER BY v.date DESC
+            LIMIT 50
+        """, (ledger_id, cf_type, f"{year}-{month:02d}")).fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
 
     # ── 期间对比（暂保留旧实现） ──
     @staticmethod
     def get_period_compare_income(ledger_id, year, month):
-        from database_v3 import get_period_compare_income
+        # TODO: migrate to repository pattern
+        from database.report import get_period_compare_income
         return get_period_compare_income(ledger_id, year, month)
 
     @staticmethod
     def get_period_compare_balance(ledger_id, year, month):
-        from database_v3 import get_period_compare_balance
+        # TODO: migrate to repository pattern
+        from database.report import get_period_compare_balance
         return get_period_compare_balance(ledger_id, year, month)
 
     # ── Dashboard 指标 ──
     @staticmethod
     def get_dashboard_kpi(ledger_id, year, month):
-        from database_v3 import get_dashboard_kpi
+        # TODO: migrate to repository pattern
+        from database.dashboard import get_dashboard_kpi
         return get_dashboard_kpi(ledger_id, year, month)
 
     @staticmethod
@@ -127,7 +161,8 @@ class ReportService:
 
     @staticmethod
     def get_expense_breakdown(ledger_id, year, month):
-        from database_v3 import get_expense_breakdown
+        # TODO: migrate to repository pattern
+        from database.dashboard import get_expense_breakdown
         return get_expense_breakdown(ledger_id, year, month)
 
     # ── 预算汇总（委托给 BudgetService） ──
@@ -158,61 +193,73 @@ class ReportService:
 
     @staticmethod
     def link_invoice_voucher(ledger_id, invoice_id, voucher_no):
-        from database_v3 import link_invoice_voucher
+        # TODO: migrate to repository pattern
+        from database.voucher import link_invoice_voucher
         return link_invoice_voucher(ledger_id, invoice_id, voucher_no)
 
     @staticmethod
     def get_invoice_vouchers(ledger_id, invoice_id):
-        from database_v3 import get_invoice_vouchers
+        # TODO: migrate to repository pattern
+        from database.voucher import get_invoice_vouchers
         return get_invoice_vouchers(ledger_id, invoice_id)
 
     @staticmethod
     def get_invoice_summary(ledger_id, year=None, month=None):
-        from database_v3 import get_invoice_summary
+        # TODO: migrate to repository pattern
+        from database.invoice import get_invoice_summary
         return get_invoice_summary(ledger_id)
 
     @staticmethod
     def ocr_recognize_invoice(file_path):
-        from database_v3 import ocr_recognize_invoice
+        # TODO: migrate to repository pattern
+        from database.invoice import ocr_recognize_invoice
         return ocr_recognize_invoice(file_path)
 
     # ── CSV/PDF 导出（暂保留旧实现） ──
     @staticmethod
     def export_balance_sheet_csv(ledger_id, year, month, filepath):
-        from database_v3 import export_balance_sheet_csv
+        # TODO: migrate to repository pattern
+        from database.report import export_balance_sheet_csv
         return export_balance_sheet_csv(ledger_id, year, month, filepath)
 
     @staticmethod
     def export_income_statement_csv(ledger_id, year, month, filepath):
-        from database_v3 import export_income_statement_csv
+        # TODO: migrate to repository pattern
+        from database.report import export_income_statement_csv
         return export_income_statement_csv(ledger_id, year, month, filepath)
 
     @staticmethod
     def export_account_balances_csv(ledger_id, year, month, filepath):
-        from database_v3 import export_account_balances_csv
+        # TODO: migrate to repository pattern
+        from database.report import export_account_balances_csv
         return export_account_balances_csv(ledger_id, year, month, filepath)
 
     @staticmethod
     def export_vouchers_csv(ledger_id, year, month, filepath):
-        from database_v3 import export_vouchers_csv
+        # TODO: migrate to repository pattern
+        from database.report import export_vouchers_csv
         return export_vouchers_csv(ledger_id, year, month, filepath)
 
     @staticmethod
     def export_balance_sheet_pdf(ledger_id, year, month, filepath):
-        from database_v3 import export_balance_sheet_pdf
+        # TODO: migrate to repository pattern
+        from database.report import export_balance_sheet_pdf
         return export_balance_sheet_pdf(ledger_id, year, month, filepath)
 
     @staticmethod
     def export_income_statement_pdf(ledger_id, year, month, filepath):
-        from database_v3 import export_income_statement_pdf
+        # TODO: migrate to repository pattern
+        from database.report import export_income_statement_pdf
         return export_income_statement_pdf(ledger_id, year, month, filepath)
 
     @staticmethod
     def export_account_balances_pdf(ledger_id, year, month, filepath):
-        from database_v3 import export_account_balances_pdf
+        # TODO: migrate to repository pattern
+        from database.report import export_account_balances_pdf
         return export_account_balances_pdf(ledger_id, year, month, filepath)
 
     @staticmethod
     def export_vouchers_pdf(ledger_id, year, month, filepath):
-        from database_v3 import export_vouchers_pdf
+        # TODO: migrate to repository pattern
+        from database.report import export_vouchers_pdf
         return export_vouchers_pdf(ledger_id, year, month, filepath)

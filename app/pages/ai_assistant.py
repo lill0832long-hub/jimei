@@ -2,7 +2,6 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast
-from database_v3 import query_db
 from app.services import LedgerService, ReportService, VoucherService
 
 # 外部 API（可选）
@@ -345,11 +344,9 @@ def _do_nl_query(query_text, result_label):
                 result_label.text = "暂无应付账款数据"
 
         elif any(kw in q for kw in ["凭证", "单据", "分录"]):
-            count = query_db("SELECT COUNT(*) as cnt FROM vouchers WHERE ledger_id=?", (lid,))
-            month_count = query_db("SELECT COUNT(*) as cnt FROM vouchers WHERE ledger_id=? AND strftime('%Y-%m',date)=?",
-                                  (lid, f"{state.selected_year}-{state.selected_month:02d}"))
-            total_v = count[0]["cnt"] if count else 0
-            month_v = month_count[0]["cnt"] if month_count else 0
+            # TODO: add VoucherRepository.count() for better performance
+            total_v = len(VoucherService.get_all(lid, limit=10000))
+            month_v = len(VoucherService.get_all(lid, year=state.selected_year, month=state.selected_month, limit=10000))
             result_label.text = (f"📋 凭证统计\n"
                                   f"━━━━━━━━━━━━━━━━━━\n"
                                   f"本月凭证：{month_v} 张\n"

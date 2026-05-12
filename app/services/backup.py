@@ -1,7 +1,7 @@
 """自动备份服务"""
 import os, threading, logging, json as _json
 from datetime import datetime
-from database_v3 import get_ledgers, backup_ledger_to_json
+from database.ledger import get_ledgers, backup_ledger_to_json
 
 _AUTO_BACKUP_ENABLED = True
 _AUTO_BACKUP_INTERVAL_HOURS = 24

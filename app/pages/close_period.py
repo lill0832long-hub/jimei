@@ -2,8 +2,7 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, format_amount
-from app.services import LedgerService, ReportService
-from database_v3 import query_db
+from app.services import LedgerService, ReportService, VoucherService
 
 def render_close_period():
     if not state.selected_ledger_id:
@@ -20,8 +19,8 @@ def render_close_period():
     # ── 结转前检查清单 ──
     checklist = []
     try:
-        unapproved = query_db("SELECT COUNT(*) as cnt FROM vouchers WHERE ledger_id=? AND status='draft'", (lid,))
-        unapproved_cnt = unapproved[0]["cnt"] if unapproved else 0
+        # TODO: add VoucherRepository.count() for better performance
+        unapproved_cnt = len(VoucherService.get_all(lid, status="draft", limit=10000))
         checklist.append(("凭证全部审核", unapproved_cnt == 0, f"{unapproved_cnt} 张凭证未审核" if unapproved_cnt > 0 else "所有凭证已审核"))
         has_profit = any(r["type"] in ("revenue_item","revenue_header","rev_total","expense_header","expense_item") for r in inc["rows"])
         checklist.append(("存在损益数据", has_profit, "暂无损益数据" if not has_profit else "损益数据正常"))

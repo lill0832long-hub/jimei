@@ -93,52 +93,69 @@ class VoucherService:
     # ── 凭证模板（暂保留旧实现，待后续迁移） ──
     @staticmethod
     def get_templates(ledger_id, include_inactive=False):
-        from database_v3 import get_voucher_templates
+        # TODO: migrate to repository pattern
+        from database.voucher import get_voucher_templates
         return get_voucher_templates(ledger_id, include_inactive)
 
     @staticmethod
     def create_template(ledger_id, name, description="", entries=None, category="general"):
-        from database_v3 import create_voucher_template
+        # TODO: migrate to repository pattern
+        from database.voucher import create_voucher_template
         return create_voucher_template(ledger_id, name, description, entries, category)
 
     @staticmethod
     def update_template(template_id, ledger_id=None, **kwargs):
-        from database_v3 import update_voucher_template
+        # TODO: migrate to repository pattern
+        from database.voucher import update_voucher_template
         return update_voucher_template(template_id, ledger_id, **kwargs)
 
     @staticmethod
     def delete_template(template_id, ledger_id=None):
-        from database_v3 import delete_voucher_template
+        # TODO: migrate to repository pattern
+        from database.voucher import delete_voucher_template
         return delete_voucher_template(template_id, ledger_id)
 
     @staticmethod
     def save_template(ledger_id, name, entries, description="", voucher_type="记"):
-        from database_v3 import save_voucher_template
+        # TODO: migrate to repository pattern
+        from database.voucher import save_voucher_template
         return save_voucher_template(ledger_id, name, entries, description, voucher_type)
 
     # ── 计划凭证（暂保留旧实现） ──
     @staticmethod
     def get_scheduled(ledger_id):
-        from database_v3 import get_scheduled_vouchers
+        # TODO: migrate to repository pattern
+        from database.voucher import get_scheduled_vouchers
         return get_scheduled_vouchers(ledger_id)
 
     @staticmethod
     def add_scheduled(ledger_id, **kwargs):
-        from database_v3 import add_scheduled_voucher
+        # TODO: migrate to repository pattern
+        from database.voucher import add_scheduled_voucher
         return add_scheduled_voucher(ledger_id, **kwargs)
 
     @staticmethod
     def run_scheduled(scheduled_id):
-        from database_v3 import run_scheduled_voucher
+        # TODO: migrate to repository pattern
+        from database.voucher import run_scheduled_voucher
         return run_scheduled_voucher(scheduled_id)
 
     # ── 辅助方法（暂保留旧实现） ──
     @staticmethod
     def import_from_excel(ledger_id, file_path):
-        from database_v3 import import_vouchers_from_excel
+        # TODO: migrate to repository pattern
+        from database.voucher import import_vouchers_from_excel
         return import_vouchers_from_excel(ledger_id, file_path)
 
     @staticmethod
     def generate_from_text(ledger_id, text):
-        from database_v3 import generate_voucher_from_text
+        # TODO: migrate to repository pattern
+        from database.voucher import generate_voucher_from_text
         return generate_voucher_from_text(ledger_id, text)
+
+    @staticmethod
+    def search_by_auxiliary(ledger_id, aux_filters):
+        """多维度辅助核算查询"""
+        # TODO: migrate to repository pattern
+        from database.auxiliary import multi_aux_search
+        return multi_aux_search(ledger_id, aux_filters)

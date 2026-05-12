@@ -4,7 +4,6 @@ from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
 from app.services import LedgerService, AccountService
-from database_v3 import query_db
 
 
 def _do_import_bank_statement(upload_event, bank_sel, result_label):
@@ -48,23 +47,18 @@ def _do_show_unmatched(bank_sel, result_label):
         return
     try:
         bank_id = bank_sel.value
-        rows = query_db("""
-            SELECT transaction_date, summary, debit, credit, reference_no
-            FROM bank_statements
-            WHERE bank_account_id = ? AND is_matched = 0
-            ORDER BY transaction_date
-        """, (bank_id,))
+        rows = AccountService.get_unmatched(state.selected_ledger_id, bank_id)
         if not rows:
             result_label.text = "✅ 无未达账项，所有流水已匹配"
             show_toast("无未达账项", "success")
             return
         lines = [f"⚠️ 未达账项：{len(rows)} 笔", "─" * 40]
         for r in rows:
-            dr = r.get("debit") or 0
-            cr = r.get("credit") or 0
+            dr = r.debit or 0
+            cr = r.credit or 0
             amt = dr if dr else cr
             side = "收" if dr else "付"
-            lines.append(f"  {r['transaction_date']}  [{side}] ¥{amt:,.2f}  {r['summary']}")
+            lines.append(f"  {r.transaction_date}  [{side}] ¥{amt:,.2f}  {r.summary}")
         result_label.text = "\n".join(lines)
     except Exception as e:
         show_toast(f"❌ 查询失败: {e}", "error")

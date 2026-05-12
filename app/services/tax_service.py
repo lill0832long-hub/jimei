@@ -38,10 +38,12 @@ class TaxService:
 
     @staticmethod
     def get_summary(ledger_id, year, month):
-        from database_v3 import get_tax_summary
+        # TODO: migrate to repository pattern
+        from database.tax import get_tax_summary
         return get_tax_summary(ledger_id, year, month)
 
     @staticmethod
     def get_detail(ledger_id, year, month):
-        from database_v3 import get_tax_detail
+        # TODO: migrate to repository pattern
+        from database.tax import get_tax_detail
         return get_tax_detail(ledger_id, year, month)

@@ -9,6 +9,7 @@ from .tax_repository import TaxRepository
 from .period_repository import PeriodRepository
 from .invoice_repository import InvoiceRepository
 from .report_repository import ReportRepository
+from .currency_repository import CurrencyRepository, ExchangeRateRepository
 
 __all__ = [
     "BaseRepository",
@@ -24,4 +25,6 @@ __all__ = [
     "PeriodRepository",
     "InvoiceRepository",
     "ReportRepository",
+    "CurrencyRepository",
+    "ExchangeRateRepository",
 ]
