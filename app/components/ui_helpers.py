@@ -3,10 +3,6 @@ from nicegui import ui
 from app.components.state import state
 from app.services import LedgerService, VoucherService, AccountService
 
-# 兼容别名：ui_helpers 中使用的函数名保持不变
-def query_db(sql, params=()):
-    from database_v3 import query_db as _query_db
-    return _query_db(sql, params)
 
 def get_ledgers():
     return LedgerService.get_all()

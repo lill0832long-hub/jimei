@@ -9,6 +9,17 @@ from .base import BaseRepository
 class VoucherRepository(BaseRepository):
     model = Voucher
 
+    async def count(self, ledger_id: int, **filters):
+        async with get_db() as session:
+            stmt = select(func.count(Voucher.id)).where(Voucher.ledger_id == ledger_id)
+            if filters.get("status"):
+                stmt = stmt.where(Voucher.status == filters["status"])
+            if filters.get("year") and filters.get("month"):
+                period_prefix = f"{filters['year']}-{filters['month']:02d}"
+                stmt = stmt.where(Voucher.date.like(f"{period_prefix}%"))
+            result = await session.execute(stmt)
+            return result.scalar() or 0
+
     async def get_by_no(self, ledger_id: int, voucher_no: str):
         async with get_db() as session:
             stmt = select(Voucher).where(

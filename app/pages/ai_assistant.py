@@ -344,9 +344,8 @@ def _do_nl_query(query_text, result_label):
                 result_label.text = "暂无应付账款数据"
 
         elif any(kw in q for kw in ["凭证", "单据", "分录"]):
-            # TODO: add VoucherRepository.count() for better performance
-            total_v = len(VoucherService.get_all(lid, limit=10000))
-            month_v = len(VoucherService.get_all(lid, year=state.selected_year, month=state.selected_month, limit=10000))
+            total_v = VoucherService.count(lid)
+            month_v = VoucherService.count(lid, year=state.selected_year, month=state.selected_month)
             result_label.text = (f"📋 凭证统计\n"
                                   f"━━━━━━━━━━━━━━━━━━\n"
                                   f"本月凭证：{month_v} 张\n"

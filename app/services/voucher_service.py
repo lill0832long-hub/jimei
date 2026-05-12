@@ -21,6 +21,10 @@ class VoucherService:
     """凭证管理"""
 
     @staticmethod
+    def count(ledger_id, **filters):
+        return _run(_voucher_repo.count(ledger_id, **filters))
+
+    @staticmethod
     def create(ledger_id, date_str, description, entries, status="posted", voucher_no=None, user_id=None, operator_name=None):
         return _run(_voucher_repo.create_with_entries(
             ledger_id=ledger_id, date=date_str, description=description,

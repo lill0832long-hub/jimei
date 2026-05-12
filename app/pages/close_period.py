@@ -19,8 +19,7 @@ def render_close_period():
     # ── 结转前检查清单 ──
     checklist = []
     try:
-        # TODO: add VoucherRepository.count() for better performance
-        unapproved_cnt = len(VoucherService.get_all(lid, status="draft", limit=10000))
+        unapproved_cnt = VoucherService.count(lid, status="draft")
         checklist.append(("凭证全部审核", unapproved_cnt == 0, f"{unapproved_cnt} 张凭证未审核" if unapproved_cnt > 0 else "所有凭证已审核"))
         has_profit = any(r["type"] in ("revenue_item","revenue_header","rev_total","expense_header","expense_item") for r in inc["rows"])
         checklist.append(("存在损益数据", has_profit, "暂无损益数据" if not has_profit else "损益数据正常"))

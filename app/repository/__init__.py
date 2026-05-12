@@ -10,6 +10,7 @@ from .period_repository import PeriodRepository
 from .invoice_repository import InvoiceRepository
 from .report_repository import ReportRepository
 from .currency_repository import CurrencyRepository, ExchangeRateRepository
+from .fixed_asset_repository import FixedAssetRepository
 
 __all__ = [
     "BaseRepository",
