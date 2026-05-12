@@ -27,7 +27,23 @@ app/backups/
 *_test*.py
 *_patch*.py
 *_additions*.py
-test_*.py
+
+# Cloudflare debug files
+cf_*
+temp_cf_*
+
+# Scraper scripts & artifacts
+scrape_*
+view_voucher.py
+voucher_page_*
+voucher_final*
+voucher_login*
+voucher_table_test*
+
+# Misc temp
+e319e8cc*.png
+split_db.py
+PLAN_*.md
 
 # Docs (keep in workspace, not in repo)
 *_报告.md
