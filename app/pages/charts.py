@@ -28,7 +28,7 @@ def render_charts():
     for py, pm in periods:
         inc = ReportService.get_income_statement(lid, py, pm)
         revenue_data.append(round(inc["total_revenue"], 2))
-        expense_data.append(round(sum(r["ytd"] for r in inc["rows"] if r["type"] in ("expense_header","expense_item","subtotal")), 2))
+        expense_data.append(round(sum((r.get("ytd") or 0) for r in inc["rows"] if r["type"] in ("expense_item","subtotal")), 2))
         profit_data.append(round(inc["net_profit"], 2))
         bs = ReportService.get_balance_sheet(lid, py, pm)
         asset_data.append(round(bs["total_assets"], 2))
@@ -120,7 +120,7 @@ def render_charts():
                 for m in range(1, 13):
                     inc = ReportService.get_income_statement(lid, state.selected_year, m)
                     rev = inc["total_revenue"]
-                    exp = sum(r["ytd"] for r in inc["rows"] if r["type"] in ("expense_header","expense_item","subtotal"))
+                    exp = sum((r.get("ytd") or 0) for r in inc["rows"] if r["type"] in ("expense_item","subtotal"))
                     months_data.append({"month": f"{m}月", "revenue": round(rev, 2), "expense": round(exp, 2), "net": round(rev - exp, 2)})
                 # 瀑布图：逐月累计
                 waterfall_vals = []

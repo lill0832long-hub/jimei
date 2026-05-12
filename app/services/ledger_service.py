@@ -21,6 +21,21 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+def _to_dict(obj):
+    """Convert a SQLAlchemy model instance to a dict, or None if obj is None."""
+    if obj is None:
+        return None
+    if isinstance(obj, (list, tuple)):
+        return [_to_dict(item) for item in obj]
+    # SQLAlchemy model instances have __table__
+    if hasattr(obj, "__table__"):
+        return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+    # Already a dict or other mapping
+    if isinstance(obj, dict):
+        return obj
+    return obj
+
+
 class LedgerService:
     """账套管理"""
 
@@ -33,11 +48,11 @@ class LedgerService:
 
     @staticmethod
     def get_all():
-        return _run(_ledger_repo.get_all())
+        return _to_dict(_run(_ledger_repo.get_all()))
 
     @staticmethod
     def get_by_id(ledger_id):
-        return _run(_ledger_repo.get_by_id(ledger_id))
+        return _to_dict(_run(_ledger_repo.get_by_id(ledger_id)))
 
     @staticmethod
     def update(ledger_id, **kwargs):

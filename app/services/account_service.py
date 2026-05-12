@@ -138,25 +138,38 @@ def _multi_aux_search(ledger_id, aux_filters, year=None, month=None):
     return multi_aux_search(ledger_id, aux_filters, year, month)
 
 
+def _to_dict(obj):
+    """Convert SQLAlchemy model instance(s) to dict(s)."""
+    if obj is None:
+        return None
+    if isinstance(obj, (list, tuple)):
+        return [_to_dict(item) for item in obj]
+    if hasattr(obj, "__table__"):
+        return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+    if isinstance(obj, dict):
+        return obj
+    return obj
+
+
 class AccountService:
     """科目与银行账号管理"""
 
     # ── 科目 ──
     @staticmethod
     def get_all(ledger_id=None, active_only=True):
-        return _run(_account_repo.get_all(active_only=active_only))
+        return _to_dict(_run(_account_repo.get_all(active_only=active_only)))
 
     @staticmethod
     def add(ledger_id, code, name, category, **kwargs):
-        return _run(_account_repo.create(code=code, name=name, category=category, **kwargs))
+        return _to_dict(_run(_account_repo.create(code=code, name=name, category=category, **kwargs)))
 
     @staticmethod
     def search(keyword, limit=10):
-        return _run(_account_repo.search(keyword, limit=limit))
+        return _to_dict(_run(_account_repo.search(keyword, limit=limit)))
 
     @staticmethod
     def get_defaults():
-        return _run(_account_repo.get_defaults())
+        return _to_dict(_run(_account_repo.get_defaults()))
 
     @staticmethod
     def import_from_template(ledger_id, template_name):
@@ -181,19 +194,19 @@ class AccountService:
     # ── 银行账号 ──
     @staticmethod
     def create_bank_account(ledger_id, **kwargs):
-        return _run(_bank_repo.create(ledger_id=ledger_id, **kwargs))
+        return _to_dict(_run(_bank_repo.create(ledger_id=ledger_id, **kwargs)))
 
     @staticmethod
     def get_bank_accounts(ledger_id):
-        return _run(_bank_repo.get_by_ledger(ledger_id))
+        return _to_dict(_run(_bank_repo.get_by_ledger(ledger_id)))
 
     @staticmethod
     def update_bank_account(account_id, **kwargs):
-        return _run(_bank_repo.update(account_id, **kwargs))
+        return _to_dict(_run(_bank_repo.update(account_id, **kwargs)))
 
     @staticmethod
     def delete_bank_account(account_id):
-        return _run(_bank_repo.delete(account_id))
+        return _to_dict(_run(_bank_repo.delete(account_id)))
 
     # ── 银行对账 ──
     @staticmethod
@@ -203,11 +216,11 @@ class AccountService:
 
     @staticmethod
     def get_bank_statements(ledger_id, account_id):
-        return _run(_bank_repo.get_statements(account_id))
+        return _to_dict(_run(_bank_repo.get_statements(account_id)))
 
     @staticmethod
     def get_unmatched(ledger_id, account_id):
-        return _run(_bank_repo.get_unmatched_statements(account_id))
+        return _to_dict(_run(_bank_repo.get_unmatched_statements(account_id)))
 
     @staticmethod
     def import_bank_statement(ledger_id, account_id, file_path):
@@ -237,19 +250,19 @@ class AccountService:
     # ── 辅助核算 ──
     @staticmethod
     def create_auxiliary(ledger_id, name, category):
-        return _run(_aux_repo.create(ledger_id=ledger_id, aux_type=category, code=name, name=name))
+        return _to_dict(_run(_aux_repo.create(ledger_id=ledger_id, aux_type=category, code=name, name=name)))
 
     @staticmethod
     def get_auxiliaries(ledger_id, category=None):
-        return _run(_aux_repo.get_by_ledger(ledger_id, aux_type=category))
+        return _to_dict(_run(_aux_repo.get_by_ledger(ledger_id, aux_type=category)))
 
     @staticmethod
     def update_auxiliary(aux_id, **kwargs):
-        return _run(_aux_repo.update(aux_id, **kwargs))
+        return _to_dict(_run(_aux_repo.update(aux_id, **kwargs)))
 
     @staticmethod
     def delete_auxiliary(aux_id):
-        return _run(_aux_repo.delete(aux_id))
+        return _to_dict(_run(_aux_repo.delete(aux_id)))
 
     @staticmethod
     def save_aux_mapping(ledger_id, aux_type, aux_id, voucher_no):

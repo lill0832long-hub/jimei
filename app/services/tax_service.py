@@ -17,20 +17,33 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+def _to_dict(obj):
+    """Convert SQLAlchemy model instance(s) to dict(s)."""
+    if obj is None:
+        return None
+    if isinstance(obj, (list, tuple)):
+        return [_to_dict(item) for item in obj]
+    if hasattr(obj, "__table__"):
+        return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+    if isinstance(obj, dict):
+        return obj
+    return obj
+
+
 class TaxService:
     """税务管理"""
 
     @staticmethod
     def get_config(ledger_id):
-        return _run(_tax_repo.get_config(ledger_id))
+        return _to_dict(_run(_tax_repo.get_config(ledger_id)))
 
     @staticmethod
     def set_config(ledger_id, taxpayer_type="general", default_tax_rate=0.13):
-        return _run(_tax_repo.set_config(ledger_id, taxpayer_type=taxpayer_type, default_tax_rate=default_tax_rate))
+        return _to_dict(_run(_tax_repo.set_config(ledger_id, taxpayer_type=taxpayer_type, default_tax_rate=default_tax_rate)))
 
     @staticmethod
     def get_rates(ledger_id):
-        return _run(_tax_repo.get_rates(ledger_id))
+        return _to_dict(_run(_tax_repo.get_rates(ledger_id)))
 
     @staticmethod
     def add_rate(ledger_id, rate, name, description="", is_default=0):

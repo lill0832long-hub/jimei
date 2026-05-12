@@ -17,6 +17,19 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+def _to_dict(obj):
+    """Convert SQLAlchemy model instance(s) to dict(s)."""
+    if obj is None:
+        return None
+    if isinstance(obj, (list, tuple)):
+        return [_to_dict(item) for item in obj]
+    if hasattr(obj, "__table__"):
+        return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+    if isinstance(obj, dict):
+        return obj
+    return obj
+
+
 class VoucherService:
     """凭证管理"""
 
@@ -80,15 +93,15 @@ class VoucherService:
 
     @staticmethod
     def get_all(ledger_id, year=None, month=None, status=None, limit=100):
-        return _run(_voucher_repo.get_all(ledger_id, year=year, month=month, status=status, limit=limit))
+        return _to_dict(_run(_voucher_repo.get_all(ledger_id, year=year, month=month, status=status, limit=limit)))
 
     @staticmethod
     def get_detail(ledger_id, voucher_no):
-        return _run(_voucher_repo.get_with_entries(ledger_id, voucher_no))
+        return _to_dict(_run(_voucher_repo.get_with_entries(ledger_id, voucher_no)))
 
     @staticmethod
     def search(ledger_id, **kwargs):
-        return _run(_voucher_repo.search(ledger_id, **kwargs))
+        return _to_dict(_run(_voucher_repo.search(ledger_id, **kwargs)))
 
     @staticmethod
     def search_history(ledger_id, **kwargs):

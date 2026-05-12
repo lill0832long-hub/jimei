@@ -20,72 +20,121 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+def _to_dict(obj):
+    """Convert SQLAlchemy model instance(s) to dict(s)."""
+    if obj is None:
+        return None
+    if isinstance(obj, (list, tuple)):
+        return [_to_dict(item) for item in obj]
+    if hasattr(obj, "__table__"):
+        return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+    if isinstance(obj, dict):
+        return obj
+    return obj
+
+
 class ReportService:
     """报表生成"""
 
     # ── 科目余额表 ──
     @staticmethod
     def get_account_balances(ledger_id, year, month):
-        return _run(_report_repo.get_account_balances(ledger_id, year, month))
+        return _to_dict(_run(_report_repo.get_account_balances(ledger_id, year, month)))
 
-    # ── 资产负债表（使用 repository 数据 + service 层计算） ──
+    # ── 资产负债表 ──
     @staticmethod
     def get_balance_sheet(ledger_id, year, month):
         balances = _run(_report_repo.get_account_balances(ledger_id, year, month))
-        # Aggregate into balance sheet categories
-        assets = {"current": [], "non_current": [], "total": 0}
-        liabilities = {"current": [], "non_current": [], "total": 0}
-        equity = {"items": [], "total": 0}
+        # Return flat lists for assets/liabilities/equity with row-level details
+        assets = []
+        liabilities = []
+        equity = []
+        total_assets = 0
+        total_liab = 0
+        total_equity = 0
 
         for b in balances:
             cat = b["category"]
             closing = b["closing_balance"]
+            row = {
+                "name": b["account_name"],
+                "code": b["account_code"],
+                "end": closing,
+                "open": b["opening_balance"],
+                "level": 1,
+            }
             if cat == "资产":
-                if b["account_code"][0] in ("1",):
-                    assets["current"].append(b)
-                else:
-                    assets["non_current"].append(b)
-                assets["total"] += closing
+                assets.append(row)
+                total_assets += closing
             elif cat == "负债":
-                liabilities["current"].append(b)
-                liabilities["total"] += closing
+                liabilities.append(row)
+                total_liab += closing
             elif cat == "权益":
-                equity["items"].append(b)
-                equity["total"] += closing
+                equity.append(row)
+                total_equity += closing
 
         return {
+            "date": f"{year}-{month:02d}",
             "assets": assets,
             "liabilities": liabilities,
             "equity": equity,
-            "total_liabilities_equity": liabilities["total"] + equity["total"],
+            "total_assets": total_assets,
+            "total_liab": total_liab,
+            "total_equity": total_equity,
+            "total_liabilities_equity": total_liab + total_equity,
         }
 
     # ── 利润表 ──
     @staticmethod
     def get_income_statement(ledger_id, year, month):
         balances = _run(_report_repo.get_account_balances(ledger_id, year, month))
-        revenue = []
-        expenses = []
+        rows = []
         total_revenue = 0
         total_expense = 0
 
+        # Revenue items
+        rows.append({"name": "一、营业收入", "code": "", "level": 0, "month": None, "ytd": None, "type": "header"})
         for b in balances:
-            cat = b["category"]
-            period_credit = b["period_credit"]
-            period_debit = b["period_debit"]
-            if cat == "收入":
-                revenue.append(b)
-                total_revenue += period_credit
-            elif cat == "费用":
-                expenses.append(b)
-                total_expense += period_debit
+            if b["category"] == "收入":
+                ytd = b["period_credit"]
+                rows.append({
+                    "name": b["account_name"],
+                    "code": b["account_code"],
+                    "level": 1,
+                    "month": ytd,
+                    "ytd": ytd,
+                    "type": "revenue_item",
+                })
+                total_revenue += ytd
+        rows.append({"name": "营业收入合计", "code": "", "level": 0, "month": total_revenue, "ytd": total_revenue, "type": "rev_total"})
+
+        # Expense items
+        rows.append({"name": "减：营业成本及费用", "code": "", "level": 0, "month": None, "ytd": None, "type": "expense_header"})
+        for b in balances:
+            if b["category"] == "费用":
+                ytd = b["period_debit"]
+                rows.append({
+                    "name": b["account_name"],
+                    "code": b["account_code"],
+                    "level": 1,
+                    "month": ytd,
+                    "ytd": ytd,
+                    "type": "expense_item",
+                })
+                total_expense += ytd
+        rows.append({"name": "费用合计", "code": "", "level": 0, "month": total_expense, "ytd": total_expense, "type": "subtotal"})
+
+        net = total_revenue - total_expense
+        rows.append({"name": "净利润", "code": "", "level": 0, "month": net, "ytd": net, "type": "total"})
 
         return {
-            "revenue": revenue,
-            "expenses": expenses,
+            "rows": rows,
+            "revenue": [b for b in balances if b["category"] == "收入"],
+            "expenses": [b for b in balances if b["category"] == "费用"],
             "total_revenue": total_revenue,
             "total_expense": total_expense,
-            "net_income": total_revenue - total_expense,
+            "net_income": net,
+            "net_profit": net,
         }
 
     # ── 现金流（暂保留旧实现） ──
@@ -157,7 +206,7 @@ class ReportService:
 
     @staticmethod
     def get_monthly_trend(ledger_id, months=6):
-        return _run(_report_repo.get_monthly_trend(ledger_id, months=months))
+        return _to_dict(_run(_report_repo.get_monthly_trend(ledger_id, months=months)))
 
     @staticmethod
     def get_expense_breakdown(ledger_id, year, month):
@@ -185,11 +234,11 @@ class ReportService:
     # ── 发票 ──
     @staticmethod
     def get_invoices(ledger_id, **kwargs):
-        return _run(_invoice_repo.get_by_ledger(ledger_id, **kwargs))
+        return _to_dict(_run(_invoice_repo.get_by_ledger(ledger_id, **kwargs)))
 
     @staticmethod
     def add_invoice(ledger_id, **kwargs):
-        return _run(_invoice_repo.create(ledger_id=ledger_id, **kwargs))
+        return _to_dict(_run(_invoice_repo.create(ledger_id=ledger_id, **kwargs)))
 
     @staticmethod
     def link_invoice_voucher(ledger_id, invoice_id, voucher_no):

@@ -9,8 +9,8 @@ from .base import BaseRepository
 class PeriodRepository(BaseRepository):
     """期间管理 — opening balances and period closing."""
 
-    async def get_period_status(self, ledger_id: int, year: int, month: int) -> str:
-        """Check if a period is closed."""
+    async def get_period_status(self, ledger_id: int, year: int, month: int) -> dict:
+        """Get period closing status as a dict with closed, voucher_no, closed_at keys."""
         period_str = f"{year:04d}-{month:02d}"
         async with get_db() as session:
             stmt = select(ClosingEntry).where(
@@ -21,7 +21,15 @@ class PeriodRepository(BaseRepository):
                 )
             )
             result = await session.execute(stmt)
-            return "closed" if result.first() else "open"
+            entry = result.first()
+            if entry:
+                row = entry[0]
+                return {
+                    "closed": True,
+                    "voucher_no": row.voucher_id or "",
+                    "closed_at": str(row.created_at) if row.created_at else "",
+                }
+            return {"closed": False, "voucher_no": "", "closed_at": ""}
 
     async def get_opening_balance(self, ledger_id: int, account_code: str, year: int, month: int):
         async with get_db() as session:
@@ -61,7 +69,7 @@ class PeriodRepository(BaseRepository):
             return ob
 
     async def close_period(self, ledger_id: int, year: int, month: int, voucher_id: int = None):
-        """Mark a period as closed."""
+        """Mark a period as closed. Returns the voucher_no string or None."""
         period_str = f"{year:04d}-{month:02d}"
         async with get_db() as session:
             ce = ClosingEntry(
@@ -70,7 +78,7 @@ class PeriodRepository(BaseRepository):
             )
             session.add(ce)
             await session.flush()
-            return ce
+            return voucher_id
 
     async def reverse_close_period(self, ledger_id: int, year: int, month: int):
         """Reverse a period close."""

@@ -54,6 +54,19 @@ def _run(coro):
     return asyncio.run(coro)
 
 
+def _to_dict(obj):
+    """Convert SQLAlchemy model instance(s) to dict(s)."""
+    if obj is None:
+        return None
+    if isinstance(obj, (list, tuple)):
+        return [_to_dict(item) for item in obj]
+    if hasattr(obj, "__table__"):
+        return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
+    if isinstance(obj, dict):
+        return obj
+    return obj
+
+
 class AuthService:
     """用户认证与权限管理"""
 
@@ -103,20 +116,20 @@ class AuthService:
 
     @staticmethod
     def get_all(ledger_id=None):
-        return _run(_auth_repo.get_all(ledger_id=ledger_id))
+        return _to_dict(_run(_auth_repo.get_all(ledger_id=ledger_id)))
 
     @staticmethod
     def update(user_id, **kwargs):
-        return _run(_auth_repo.update(user_id, **kwargs))
+        return _to_dict(_run(_auth_repo.update(user_id, **kwargs)))
 
     @staticmethod
     def delete(user_id):
-        return _run(_auth_repo.delete(user_id))
+        return _to_dict(_run(_auth_repo.delete(user_id)))
 
     @staticmethod
     def change_password(user_id, new_password):
         password_hash = AuthService.hash_password(new_password)
-        return _run(_auth_repo.update(user_id, password_hash=password_hash))
+        return _to_dict(_run(_auth_repo.update(user_id, password_hash=password_hash)))
 
     @staticmethod
     def check_permission(user, permission):
@@ -129,4 +142,4 @@ class AuthService:
 
     @staticmethod
     def get_audit_logs(ledger_id, limit=50, module=None, action=None, start_date=None, end_date=None):
-        return _run(_audit_repo.get_logs(ledger_id, limit=limit, module=module, action=action))
+        return _to_dict(_run(_audit_repo.get_logs(ledger_id, limit=limit, module=module, action=action)))
