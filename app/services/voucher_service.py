@@ -42,14 +42,13 @@ class VoucherService:
         return _run(_voucher_repo.create_with_entries(
             ledger_id=ledger_id, date=date_str, description=description,
             entries=entries, status=status, voucher_no=voucher_no,
-            user_id=user_id, operator_name=operator_name,
         ))
 
     @staticmethod
     def update(voucher_no, date_str=None, description=None, entries=None, user_id=None, operator_name=None):
         return _run(_voucher_repo.update(
             voucher_no, date=date_str, description=description,
-            entries=entries, user_id=user_id, operator_name=operator_name,
+            entries=entries,
         ))
 
     @staticmethod

@@ -54,7 +54,7 @@ class VoucherRepository(BaseRepository):
             result = await session.execute(stmt)
             return result.scalars().all()
 
-    async def create_with_entries(self, ledger_id: int, date: str, description: str, entries: list, status: str = "draft", voucher_no: str = None, **kwargs):
+    async def create_with_entries(self, ledger_id: int, date: str, description: str, entries: list, status: str = "draft", voucher_no: str = None):
         """Create a voucher with its journal entries in one transaction."""
         async with get_db() as session:
             # Generate voucher number if not provided
@@ -72,7 +72,6 @@ class VoucherRepository(BaseRepository):
                 total_debit=total_debit,
                 total_credit=total_credit,
                 status=status,
-                **kwargs,
             )
             session.add(voucher)
             await session.flush()
@@ -101,20 +100,22 @@ class VoucherRepository(BaseRepository):
         seq = count + 1
         return f"PZ{ledger_id:02d}{seq:06d}"
 
-    async def update(self, voucher_no: str, **kwargs):
+    async def update(self, voucher_no: str, date: str = None, description: str = None, entries: list = None):
         async with get_db() as session:
             stmt = select(Voucher).where(Voucher.voucher_no == voucher_no)
             result = await session.execute(stmt)
             voucher = result.scalar_one_or_none()
             if voucher:
-                entries_data = kwargs.pop("entries", None)
-                for k, v in kwargs.items():
-                    setattr(voucher, k, v)
-                if entries_data is not None:
+                if date is not None:
+                    voucher.date = date
+                if description is not None:
+                    voucher.description = description
+                if entries is not None:
                     # Delete existing entries and recreate
+                    await session.refresh(voucher, ["journal_entries"])
                     for old_entry in list(voucher.journal_entries):
                         await session.delete(old_entry)
-                    for entry_data in entries_data:
+                    for entry_data in entries:
                         entry = JournalEntry(
                             ledger_id=voucher.ledger_id,
                             voucher_id=voucher.id,
@@ -125,8 +126,8 @@ class VoucherRepository(BaseRepository):
                             summary=entry_data.get("summary", ""),
                         )
                         session.add(entry)
-                    voucher.total_debit = sum(float(e.get("debit", 0) or 0) for e in entries_data)
-                    voucher.total_credit = sum(float(e.get("credit", 0) or 0) for e in entries_data)
+                    voucher.total_debit = sum(float(e.get("debit", 0) or 0) for e in entries)
+                    voucher.total_credit = sum(float(e.get("credit", 0) or 0) for e in entries)
             return voucher
 
     async def delete(self, voucher_no: str) -> bool:
