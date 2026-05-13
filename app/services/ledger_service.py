@@ -41,9 +41,15 @@ class LedgerService:
 
     @staticmethod
     def create(name, company="默认公司", currency="CNY", fiscal_start=None, fiscal_end=None, settings=None):
+        kwargs = {}
+        if fiscal_start is not None:
+            kwargs["fiscal_year_start"] = fiscal_start
+        if fiscal_end is not None:
+            kwargs["fiscal_year_end"] = fiscal_end
+        if settings is not None:
+            kwargs["settings"] = settings
         return _run(_ledger_repo.create(
-            name=name, company=company, currency=currency,
-            fiscal_start=fiscal_start, fiscal_end=fiscal_end, settings=settings,
+            name=name, company=company, currency=currency, **kwargs,
         ))
 
     @staticmethod

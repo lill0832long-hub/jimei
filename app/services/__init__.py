@@ -7,6 +7,7 @@ from .account_service import AccountService
 from .budget_service import BudgetService
 from .tax_service import TaxService
 from .currency_service import CurrencyService
+from .fixed_asset_service import FixedAssetService
 from .backup import start_auto_backup
 
 __all__ = [
@@ -18,5 +19,6 @@ __all__ = [
     "BudgetService",
     "TaxService",
     "CurrencyService",
+    "FixedAssetService",
     "start_auto_backup",
 ]

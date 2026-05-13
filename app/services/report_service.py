@@ -187,15 +187,17 @@ class ReportService:
     # ── 期间对比（暂保留旧实现） ──
     @staticmethod
     def get_period_compare_income(ledger_id, year, month):
-        # TODO: migrate to repository pattern
-        from database.report import get_period_compare_income
-        return get_period_compare_income(ledger_id, year, month)
+        from app.utils.period import generate_periods
+        periods = generate_periods(year, month, 3)
+        from database.dashboard import get_period_compare_income
+        return get_period_compare_income(ledger_id, periods)
 
     @staticmethod
     def get_period_compare_balance(ledger_id, year, month):
-        # TODO: migrate to repository pattern
-        from database.report import get_period_compare_balance
-        return get_period_compare_balance(ledger_id, year, month)
+        from app.utils.period import generate_periods
+        periods = generate_periods(year, month, 3)
+        from database.dashboard import get_period_compare_balance
+        return get_period_compare_balance(ledger_id, periods)
 
     # ── Dashboard 指标 ──
     @staticmethod
