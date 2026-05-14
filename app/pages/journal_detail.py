@@ -1,7 +1,8 @@
 """凭证详情"""
 from nicegui import ui
 from app.components.state import state
-from app.components.ui_helpers import refresh_main
+from app.components.ui_helpers import refresh_main, show_toast
+from app.components.ui_components import StatusBadge
 from app.services import VoucherService, AccountService
 from app.pages.journal_actions import (
     do_submit_review, do_approve_voucher, do_post_voucher,
@@ -73,24 +74,55 @@ def render_voucher_detail(voucher_no):
                 ui.label(f"借：¥{detail.get('total_debit', 0):,.2f}").style("color:var(--c-danger)")
                 ui.label(f"贷：¥{detail.get('total_credit', 0):,.2f}").style("color:var(--c-primary)")
 
-        # ── 操作按钮（按权限显示）──
+        # ── 操作记录时间线 ──
+        try:
+            _wf_list = VoucherService.get_workflow_history(state.selected_ledger_id, voucher_no)
+        except Exception:
+            _wf_list = []
+        with ui.card_section().classes("py-2 px-3 border-t"):
+            ui.label("操作记录").classes("text-xs font-semibold mb-1").style("color:var(--c-text-secondary)")
+            if _wf_list:
+                for _wf in _wf_list:
+                    _action = _wf.get("action", "")
+                    _from = _wf.get("from_status", "")
+                    _to = _wf.get("to_status", "")
+                    _user = _wf.get("username", "系统")
+                    _time = _wf.get("created_at", "")
+                    _comment = _wf.get("comment", "")
+                    _action_labels = {
+                        "create": "创建", "submit": "提交审核", "approve": "审核通过",
+                        "reject": "驳回", "post": "过账", "reverse": "冲销", "delete": "删除",
+                    }
+                    _action_label = _action_labels.get(_action, _action)
+                    with ui.row().classes("items-center gap-2 text-xs").style("color:var(--c-text-muted)"):
+                        ui.label(f"[{_time}]" if _time else "").classes("text-xs").style("color:var(--c-text-muted);white-space:nowrap")
+                        ui.label(f"{_user}").classes("text-xs font-medium").style("color:var(--c-text-secondary)")
+                        ui.label(f"{_action_label}").classes("text-xs").style("color:var(--c-primary)")
+                        if _from and _to:
+                            ui.label(f"({_from} → {_to})").classes("text-xs").style("color:var(--c-text-muted)")
+                        if _comment:
+                            ui.label(f"备注: {_comment}").classes("text-xs").style("color:var(--c-text-muted)")
+            else:
+                ui.label("暂无操作记录").classes("text-xs").style("color:var(--c-text-muted)")
+
+        # ── 操作按钮（按状态显示）──
         with ui.card_section().classes("py-1 px-3"):
             with ui.row().classes("justify-end gap-1"):
                 if status == "draft":
                     if role in ("admin", "accountant"):
+                        ui.button("编辑", icon="edit", on_click=lambda: _show_edit_dialog(detail)).props("flat dense")
                         ui.button("提交审核", color="blue", on_click=lambda: do_submit_review(voucher_no)).props("dense text-sm")
                         ui.button("直接过账", color="green", on_click=lambda: do_post_voucher(voucher_no)).props("dense text-sm")
-                        ui.button("编辑", color="orange", on_click=lambda: _show_edit_dialog(detail)).props("dense text-sm")
-                        ui.button("删除", color="red", on_click=lambda: do_delete_voucher(voucher_no)).props("dense text-sm")
+                        ui.button("删除", icon="delete", color="red", on_click=lambda: do_delete_voucher(voucher_no)).props("flat dense")
                 elif status == "pending_review":
                     if role in ("admin", "reviewer"):
-                        ui.button("✅ 通过", color="green", on_click=lambda: do_approve_voucher(voucher_no)).props("dense text-sm")
-                        ui.button("❌ 驳回", color="red", on_click=lambda: show_reject_dialog(voucher_no)).props("dense text-sm")
+                        ui.button("审核通过", icon="check", color="green", on_click=lambda: do_approve_voucher(voucher_no)).props("flat dense")
+                        ui.button("驳回", icon="close", color="red", on_click=lambda: show_reject_dialog(voucher_no)).props("flat dense")
                     else:
                         ui.label("等待审核中...").classes("text-sm").style("color:var(--c-text-muted)")
                 elif status == "posted":
                     if role in ("admin", "poster"):
-                        ui.button("冲销", color="red", on_click=lambda: show_reverse_dialog(voucher_no)).props("dense text-sm")
+                        ui.button("冲销", icon="undo", color="orange", on_click=lambda: show_reverse_dialog(voucher_no)).props("flat dense")
                 elif status == "reversed":
                     ui.label("已冲销").classes("text-sm").style("color:var(--c-danger)")
 

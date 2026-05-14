@@ -5,10 +5,10 @@
       "cron": "0 2 * * *",
       "prompt": "提醒哥继续 Cloudflare ongli.ccwu.cc 域名激活任务。当前状态：Chrome CDP 已连接（端口 9222），Cloudflare 页面在 ongli.ccwu.cc 的 DNS 管理页面上。已完成的操作：点击了 \"Add record\" 按钮，成功将记录类型从 A 切换为 CNAME。卡住的问题：找不到 Name 和 Content 输入框（可能是动态渲染的 input 元素）。需要继续：1) 找到 Name 字段填入 \"ongli\"，2) 找到 Content 字段填入目标 pages.dev 地址，3) 点击 Save，4) 点击 \"Continue to activation\"。注意：需要先确认 Content 的目标地址是什么。",
       "createdAt": 1778430606225,
-      "lastFiredAt": 1778546132614,
+      "lastFiredAt": 1778721245040,
       "recurring": true,
       "createdBySessionId": "097953e1-5434-4924-80ec-10d415f1aff5",
-      "createdByPid": 29784
+      "createdByPid": 28156
     }
   ]
 }

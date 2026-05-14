@@ -165,7 +165,7 @@ def _do_add_rate(d, ledger_id, name, rate, desc):
         show_toast("请输入税率名称", "warning")
         return
     try:
-        TaxService.add_rate(ledger_id, float(rate or 0), name, desc)
+        TaxService.add_rate(ledger_id, float(rate if rate is not None else 0), name, desc)
         show_toast(f"✅ 税率 {name} 添加成功", "success")
         d.close()
         refresh_main()

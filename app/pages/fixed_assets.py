@@ -146,8 +146,10 @@ def render_fixed_assets():
             with ui.row().classes("justify-end gap-2 mt-4"):
                 ui.button("取消", on_click=dlg.close)
                 ui.button("✅ 添加", color="green", on_click=lambda: _do_add(
-                    dlg, code.value, name.value, float(original_value.value or 0),
-                    int(useful_life.value or 36), float(residual_rate.value or 0.05),
+                    dlg, code.value, name.value,
+                    float(original_value.value if original_value.value is not None else 0),
+                    int(useful_life.value if useful_life.value is not None else 36),
+                    float(residual_rate.value if residual_rate.value is not None else 0.05),
                     dept.value, location.value, method.value
                 ))
         dlg.open()

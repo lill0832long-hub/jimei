@@ -3,6 +3,8 @@ import os, threading, logging, json as _json
 from datetime import datetime
 from database.ledger import get_ledgers, backup_ledger_to_json
 
+logger = logging.getLogger(__name__)
+
 _AUTO_BACKUP_ENABLED = True
 _AUTO_BACKUP_INTERVAL_HOURS = 24
 _AUTO_BACKUP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "backups")

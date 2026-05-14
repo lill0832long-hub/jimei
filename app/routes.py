@@ -1,172 +1,311 @@
-"""API 路由注册"""
+﻿"""API 路由注册 — 安全加固版"""
+import os
+import time
+import logging
+import functools
+
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from app.services.fixed_asset_service import FixedAssetService
 from app.services.account_service import AccountService
 from app.services.ledger_service import LedgerService
+from app.services.voucher_service import VoucherService
+
+logger = logging.getLogger(__name__)
+DEBUG = os.getenv("DEBUG", "false").lower() == "true"
+
+
+# ── 统一错误处理装饰器 ──
+
+def api_error_handler(func):
+    """API 错误处理装饰器
+
+    生产环境：返回友好提示，不暴露内部信息
+    开发环境：返回详细错误信息（通过 DEBUG 环境变量控制）
+    """
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except ValueError as e:
+            logger.warning(f"Validation error in {func.__name__}: {e}")
+            msg = str(e) if DEBUG else "输入数据无效"
+            return JSONResponse({"success": False, "error": msg}, status_code=400)
+        except KeyError as e:
+            logger.warning(f"Missing field in {func.__name__}: {e}")
+            msg = f"缺少必填字段: {e}" if DEBUG else "缺少必填字段"
+            return JSONResponse({"success": False, "error": msg}, status_code=400)
+        except PermissionError as e:
+            logger.warning(f"Permission denied in {func.__name__}: {e}")
+            msg = str(e) if DEBUG else "权限不足"
+            return JSONResponse({"success": False, "error": msg}, status_code=403)
+        except FileNotFoundError as e:
+            logger.warning(f"Not found in {func.__name__}: {e}")
+            msg = str(e) if DEBUG else "请求的资源不存在"
+            return JSONResponse({"success": False, "error": msg}, status_code=404)
+        except Exception as e:
+            logger.error(f"Unexpected error in {func.__name__}: {e}", exc_info=True)
+            msg = str(e) if DEBUG else "服务器内部错误，请稍后重试"
+            return JSONResponse({"success": False, "error": msg}, status_code=500)
+    return wrapper
+
+
+# ── 输入验证辅助函数 ──
+
+def _validate_positive_number(value, field_name, allow_zero=False):
+    """验证数值为正数"""
+    try:
+        num = float(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{field_name} 必须是有效数字")
+    if not allow_zero and num <= 0:
+        raise ValueError(f"{field_name} 必须为正数")
+    if allow_zero and num < 0:
+        raise ValueError(f"{field_name} 不能为负数")
+    return num
+
+
+def _validate_positive_integer(value, field_name):
+    """验证正整数"""
+    try:
+        num = int(value)
+    except (TypeError, ValueError):
+        raise ValueError(f"{field_name} 必须是整数")
+    if num <= 0:
+        raise ValueError(f"{field_name} 必须为正整数")
+    return num
+
+
+def _validate_range(value, min_val, max_val, field_name):
+    """验证数值在指定范围内"""
+    num = _validate_positive_number(value, field_name, allow_zero=True)
+    if num < min_val or num > max_val:
+        raise ValueError(f"{field_name} 必须在 {min_val} 到 {max_val} 之间")
+    return num
+
+
+def _validate_not_empty(value, field_name):
+    """验证非空字符串"""
+    if not value or not str(value).strip():
+        raise ValueError(f"{field_name} 不能为空")
+    return str(value).strip()
+
+
+def _validate_account_no(account_no):
+    """验证银行账号格式"""
+    _validate_not_empty(account_no, "account_no")
+    cleaned = str(account_no).replace(" ", "").replace("-", "")
+    if not cleaned.isdigit():
+        raise ValueError("账号只能包含数字、空格和连字符")
+    if len(cleaned) < 8:
+        raise ValueError("账号长度不能少于 8 位")
+    return cleaned
+
+
+VALID_AUX_TYPES = {"customer", "supplier", "department", "employee", "project", "other"}
+
+
+def _validate_aux_type(aux_type):
+    """验证辅助核算类型"""
+    _validate_not_empty(aux_type, "aux_type")
+    if aux_type not in VALID_AUX_TYPES:
+        raise ValueError(f"aux_type 无效，必须为以下之一: {', '.join(sorted(VALID_AUX_TYPES))}")
+    return aux_type
 
 
 def register_routes(app):
     """注册所有 GET + POST API 路由"""
 
-    # ── GET 路由 ──
+    # ── 请求日志中间件 ──
+    @app.middleware("http")
+    async def log_requests(request: Request, call_next):
+        """记录 API 请求日志（仅 /api/ 路径）"""
+        start = time.time()
+        response = await call_next(request)
+        duration = time.time() - start
+
+        if request.url.path.startswith("/api/"):
+            logger.info(
+                f"{request.method} {request.url.path} "
+                f"status={response.status_code} "
+                f"duration={duration:.3f}s"
+            )
+
+        return response
+
+    # ═══════════════════════════
+    #  GET 路由
+    # ═══════════════════════════
+
     @app.get("/api/v3/fa/list")
+    @api_error_handler
     async def api_v3_fa_list(ledger_id: int, status: str = None):
-        try:
-            assets = FixedAssetService.get_all(ledger_id, status=status)
-            return {"success": True, "data": assets, "count": len(assets)}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        assets = FixedAssetService.get_all(ledger_id, status=status)
+        return {"success": True, "data": assets, "count": len(assets)}
 
     @app.get("/api/v3/fa/{asset_id}")
+    @api_error_handler
     async def api_v3_fa_detail(asset_id: int):
-        try:
-            a = FixedAssetService.get_by_id(asset_id)
-            return {"success": True, "data": a} if a else {"success": False, "error": "不存在"}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        a = FixedAssetService.get_by_id(asset_id)
+        if not a:
+            raise FileNotFoundError("固定资产不存在")
+        return {"success": True, "data": a}
 
     @app.get("/api/v3/bank/list")
+    @api_error_handler
     async def api_v3_bank_list(ledger_id: int):
-        try:
-            return {"success": True, "data": AccountService.get_bank_accounts(ledger_id)}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        return {"success": True, "data": AccountService.get_bank_accounts(ledger_id)}
 
     @app.get("/api/v3/bank/{bank_id}/reconciliation")
+    @api_error_handler
     async def api_v3_bank_reconciliation(bank_id: int, period: str = None):
-        try:
-            return {"success": True, "data": AccountService.get_bank_reconciliation(bank_id, period)}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        return {"success": True, "data": AccountService.get_bank_reconciliation(bank_id, period)}
 
     @app.get("/api/v3/aux/list")
+    @api_error_handler
     async def api_v3_aux_list(ledger_id: int, aux_type: str = None):
-        try:
-            return {"success": True, "data": AccountService.get_auxiliaries(ledger_id, category=aux_type)}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        return {"success": True, "data": AccountService.get_auxiliaries(ledger_id, category=aux_type)}
 
     @app.get("/api/v3/period/status")
+    @api_error_handler
     async def api_v3_period_status(ledger_id: int, year: int, month: int):
-        try:
-            period = LedgerService.get_period_status(ledger_id, year, month)
-            return {"success": True, "data": {"status": period, "period": f"{year}-{month:02d}"}}
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        period = LedgerService.get_period_status(ledger_id, year, month)
+        return {"success": True, "data": {"status": period, "period": f"{year}-{month:02d}"}}
 
-    # ── POST 路由 ──
+    # ═══════════════════════════
+    #  POST 路由
+    # ═══════════════════════════
+
+    @app.post("/api/v3/fa/create")
+    @api_error_handler
     async def _fa_create(request: Request):
         p = request.query_params
-        try:
-            ov = int(round(float(p.get("original_value", 0)) * 100))
-            asset = FixedAssetService.create(
-                int(p["ledger_id"]), p["asset_code"], p["asset_name"], ov,
-                int(p["useful_life_months"]),
-                category_id=int(p["category_id"]) if "category_id" in p else None,
-                purchase_date=p.get("purchase_date"),
-                residual_rate=float(p.get("residual_rate", 0.05)),
-                department=p.get("department"), employee=p.get("employee"),
-                location=p.get("location"),
-                depreciation_method=p.get("depreciation_method", "straight_line"),
-            )
-            return JSONResponse({"success": True, "id": asset.id})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+        # 输入验证
+        ledger_id = _validate_positive_integer(p.get("ledger_id"), "ledger_id")
+        asset_code = _validate_not_empty(p.get("asset_code"), "asset_code")
+        asset_name = _validate_not_empty(p.get("asset_name"), "asset_name")
+        original_value = _validate_positive_number(p.get("original_value", 0), "original_value")
+        useful_life_months = _validate_positive_integer(p.get("useful_life_months"), "useful_life_months")
+        residual_rate = _validate_range(p.get("residual_rate", 0.05), 0, 1, "residual_rate")
 
+        ov = int(round(original_value * 100))
+        asset = FixedAssetService.create(
+            ledger_id, asset_code, asset_name, ov,
+            useful_life_months,
+            category_id=int(p["category_id"]) if "category_id" in p else None,
+            purchase_date=p.get("purchase_date"),
+            residual_rate=residual_rate,
+            department=p.get("department"), employee=p.get("employee"),
+            location=p.get("location"),
+            depreciation_method=p.get("depreciation_method", "straight_line"),
+        )
+        return JSONResponse({"success": True, "id": asset.id})
+
+    @app.post("/api/v3/fa/{asset_id}/depreciate")
+    @api_error_handler
     async def _fa_depreciate(request: Request):
         p = request.path_params
         q = request.query_params
-        try:
-            amt = FixedAssetService.calculate_depreciation(int(p["asset_id"]), int(q["year"]), int(q["month"]))
-            return JSONResponse({"success": True, "amount": amt, "amount_yuan": round(amt/100, 2)})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+        asset_id = _validate_positive_integer(p.get("asset_id"), "asset_id")
+        year = _validate_positive_integer(q.get("year"), "year")
+        month = _validate_positive_integer(q.get("month"), "month")
+        if month < 1 or month > 12:
+            raise ValueError("month 必须在 1 到 12 之间")
+        amt = FixedAssetService.calculate_depreciation(asset_id, year, month)
+        return JSONResponse({"success": True, "amount": amt, "amount_yuan": round(amt / 100, 2)})
 
+    @app.post("/api/v3/fa/batch-depreciate")
+    @api_error_handler
     async def _fa_batch_dep(request: Request):
         q = request.query_params
-        try:
-            results = FixedAssetService.batch_calculate_depreciation(int(q["ledger_id"]), int(q["year"]), int(q["month"]))
-            total = sum(r[1] for r in results)
-            return JSONResponse({"success": True,
-                "results": [{"asset_id": r[0], "amount": r[1]} for r in results],
-                "total": total, "total_yuan": round(total/100, 2)})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+        ledger_id = _validate_positive_integer(q.get("ledger_id"), "ledger_id")
+        year = _validate_positive_integer(q.get("year"), "year")
+        month = _validate_positive_integer(q.get("month"), "month")
+        if month < 1 or month > 12:
+            raise ValueError("month 必须在 1 到 12 之间")
+        results = FixedAssetService.batch_calculate_depreciation(ledger_id, year, month)
+        total = sum(r[1] for r in results)
+        return JSONResponse({
+            "success": True,
+            "results": [{"asset_id": r[0], "amount": r[1]} for r in results],
+            "total": total, "total_yuan": round(total / 100, 2),
+        })
 
+    @app.post("/api/v3/fa/{asset_id}/dispose")
+    @api_error_handler
     async def _fa_dispose(request: Request):
         p = request.path_params
         q = request.query_params
-        try:
-            result = FixedAssetService.dispose(
-                int(p["asset_id"]), q["dispose_type"],
-                int(round(float(q.get("proceeds", 0)) * 100))
-            )
-            if result:
-                return JSONResponse({"success": True, "data": result})
-            return JSONResponse({"success": False, "error": "资产不存在"}, status_code=404)
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+        asset_id = _validate_positive_integer(p.get("asset_id"), "asset_id")
+        dispose_type = _validate_not_empty(q.get("dispose_type"), "dispose_type")
+        if dispose_type not in ("sale", "scrap", "donation", "other"):
+            raise ValueError("dispose_type 无效，必须为 sale/scrap/donation/other")
+        proceeds = _validate_positive_number(q.get("proceeds", 0), "proceeds", allow_zero=True)
+        result = FixedAssetService.dispose(asset_id, dispose_type, int(round(proceeds * 100)))
+        if not result:
+            raise FileNotFoundError("资产不存在")
+        return JSONResponse({"success": True, "data": result})
 
+    @app.post("/api/v3/bank/create")
+    @api_error_handler
     async def _bank_create(request: Request):
         q = request.query_params
-        try:
-            ob = int(round(float(q.get("opening_balance", 0)) * 100))
-            result = AccountService.create_bank_account(
-                int(q["ledger_id"]),
-                account_no=q["account_no"],
-                bank_name=q["bank_name"],
-                account_name=q.get("account_name"),
-                currency_code=q.get("currency_code", "CNY"),
-                opening_balance=ob,
-                subject_code=q.get("subject_code"),
-            )
-            return JSONResponse({"success": True, "id": result.id if hasattr(result, 'id') else result})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+        ledger_id = _validate_positive_integer(q.get("ledger_id"), "ledger_id")
+        account_no = _validate_account_no(q.get("account_no"))
+        bank_name = _validate_not_empty(q.get("bank_name"), "bank_name")
+        opening_balance = _validate_positive_number(
+            q.get("opening_balance", 0), "opening_balance", allow_zero=True
+        )
+        ob = int(round(opening_balance * 100))
+        result = AccountService.create_bank_account(
+            ledger_id,
+            account_no=account_no,
+            bank_name=bank_name,
+            account_name=q.get("account_name"),
+            currency_code=q.get("currency_code", "CNY"),
+            opening_balance=ob,
+            subject_code=q.get("subject_code"),
+        )
+        rid = result.get("id") if isinstance(result, dict) else getattr(result, "id", result)
+        return JSONResponse({"success": True, "id": rid})
 
+    @app.post("/api/v3/bank/{bank_id}/reconcile")
+    @api_error_handler
     async def _bank_reconcile(request: Request):
         p = request.path_params
-        try:
-            matched = AccountService.auto_match(int(p["bank_id"]))
-            return JSONResponse({"success": True, "matched": matched})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+        bank_id = _validate_positive_integer(p.get("bank_id"), "bank_id")
+        matched = AccountService.auto_match(bank_id)
+        return JSONResponse({"success": True, "matched": matched})
 
+    @app.post("/api/v3/aux/create")
+    @api_error_handler
     async def _aux_create(request: Request):
         q = request.query_params
-        try:
-            result = AccountService.create_auxiliary(
-                int(q["ledger_id"]), q["name"], q["aux_type"]
-            )
-            return JSONResponse({"success": True, "id": result.id if hasattr(result, 'id') else result})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+        ledger_id = _validate_positive_integer(q.get("ledger_id"), "ledger_id")
+        name = _validate_not_empty(q.get("name"), "name")
+        aux_type = _validate_aux_type(q.get("aux_type"))
+        result = AccountService.create_auxiliary(ledger_id, name, aux_type)
+        rid = result.get("id") if isinstance(result, dict) else getattr(result, "id", result)
+        return JSONResponse({"success": True, "id": rid})
 
+    @app.post("/api/v3/period/close")
+    @api_error_handler
     async def _period_close(request: Request):
         q = request.query_params
-        try:
-            vn = LedgerService.close_period(int(q["ledger_id"]), int(q["year"]), int(q["month"]))
-            if vn:
-                return JSONResponse({"success": True, "voucher_no": vn, "message": f"结转成功，凭证号：{vn}"})
-            return JSONResponse({"success": True, "message": "无需结转"})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=400)
+        ledger_id = _validate_positive_integer(q.get("ledger_id"), "ledger_id")
+        year = _validate_positive_integer(q.get("year"), "year")
+        month = _validate_positive_integer(q.get("month"), "month")
+        vn = LedgerService.close_period(ledger_id, year, month)
+        if vn:
+            return JSONResponse({"success": True, "voucher_no": vn, "message": f"结转成功，凭证号：{vn}"})
+        return JSONResponse({"success": True, "message": "无需结转"})
 
+    @app.post("/api/v3/period/reverse")
+    @api_error_handler
     async def _period_reverse(request: Request):
         q = request.query_params
-        try:
-            result = LedgerService.reverse_close_period(int(q["ledger_id"]), int(q["year"]), int(q["month"]))
-            return JSONResponse({"success": True, "data": result})
-        except Exception as e:
-            return JSONResponse({"success": False, "error": str(e)}, status_code=400)
-
-    app.add_api_route("/api/v3/fa/create", _fa_create, methods=["POST"])
-    app.add_api_route("/api/v3/fa/{asset_id}/depreciate", _fa_depreciate, methods=["POST"])
-    app.add_api_route("/api/v3/fa/batch-depreciate", _fa_batch_dep, methods=["POST"])
-    app.add_api_route("/api/v3/fa/{asset_id}/dispose", _fa_dispose, methods=["POST"])
-    app.add_api_route("/api/v3/bank/create", _bank_create, methods=["POST"])
-    app.add_api_route("/api/v3/bank/{bank_id}/reconcile", _bank_reconcile, methods=["POST"])
-    app.add_api_route("/api/v3/aux/create", _aux_create, methods=["POST"])
-    app.add_api_route("/api/v3/period/close", _period_close, methods=["POST"])
-    app.add_api_route("/api/v3/period/reverse", _period_reverse, methods=["POST"])
+        ledger_id = _validate_positive_integer(q.get("ledger_id"), "ledger_id")
+        year = _validate_positive_integer(q.get("year"), "year")
+        month = _validate_positive_integer(q.get("month"), "month")
+        result = LedgerService.reverse_close_period(ledger_id, year, month)
+        return JSONResponse({"success": True, "data": result})

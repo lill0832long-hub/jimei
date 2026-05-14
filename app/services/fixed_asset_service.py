@@ -1,20 +1,8 @@
 """固定资产服务层 — 使用 Repository 模式"""
-import asyncio
+from app.services._utils import run_async
 from app.repository.fixed_asset_repository import FixedAssetRepository
 
 _fa_repo = FixedAssetRepository()
-
-
-def _run(coro):
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-    if loop and loop.is_running():
-        import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            return pool.submit(asyncio.run, coro).result()
-    return asyncio.run(coro)
 
 
 class FixedAssetService:
@@ -22,16 +10,16 @@ class FixedAssetService:
 
     @staticmethod
     def get_all(ledger_id, status=None):
-        return _run(_fa_repo.get_by_ledger(ledger_id, status=status))
+        return run_async(_fa_repo.get_by_ledger(ledger_id, status=status))
 
     @staticmethod
     def get_by_id(asset_id):
-        return _run(_fa_repo.get_by_id(asset_id))
+        return run_async(_fa_repo.get_by_id(asset_id))
 
     @staticmethod
     def create(ledger_id, asset_code, asset_name, original_value,
                useful_life_months, **kwargs):
-        return _run(_fa_repo.create(
+        return run_async(_fa_repo.create(
             ledger_id=ledger_id, asset_code=asset_code,
             asset_name=asset_name, original_value=original_value,
             useful_life_months=useful_life_months, **kwargs,
@@ -39,7 +27,7 @@ class FixedAssetService:
 
     @staticmethod
     def dispose(asset_id, dispose_type, proceeds=0):
-        return _run(_fa_repo.dispose(asset_id, dispose_type, proceeds=proceeds))
+        return run_async(_fa_repo.dispose(asset_id, dispose_type, proceeds=proceeds))
 
     # ── 折旧计算（业务逻辑，保留在服务层） ──
 

@@ -261,3 +261,24 @@ def TimelineItem(title, subtitle, time, icon="circle", color="var(--c-primary)",
             ui.label(title).classes("text-sm font-medium").style("color:var(--c-text-primary)")
             ui.label(subtitle).classes("text-xs").style("color:var(--c-text-secondary)")
             ui.label(time).classes("text-xs").style("color:var(--c-text-muted)")
+
+
+# LoadingSpinner
+def LoadingSpinner(message="加载中..."):
+    """标准加载状态"""
+    with ui.column().classes("items-center justify-center py-8 gap-2"):
+        ui.spinner(size="md")
+        ui.label(message).classes("text-sm").style("color:var(--c-text-muted)")
+
+
+# ConfirmDialog
+def ConfirmDialog(title, message, on_confirm, on_cancel=None):
+    """标准确认对话框"""
+    with ui.dialog() as dialog, ui.card():
+        ui.label(title).classes("text-lg font-semibold mb-2")
+        ui.label(message).classes("text-sm mb-4").style("color:var(--c-text-secondary)")
+        with ui.row().classes("w-full justify-end gap-2"):
+            ui.button("取消", on_click=lambda: (dialog.close(), on_cancel() if on_cancel else None)).props("flat")
+            ui.button("确认", color="primary", on_click=lambda: (dialog.close(), on_confirm())).props("unelevated")
+    dialog.open()
+    return dialog

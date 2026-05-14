@@ -1,5 +1,5 @@
 """报表服务层 — 使用 Repository 模式"""
-import asyncio
+from app.services._utils import run_async, to_dict
 from app.repository.report_repository import ReportRepository
 from app.repository.invoice_repository import InvoiceRepository
 from .budget_service import BudgetService
@@ -8,43 +8,18 @@ _report_repo = ReportRepository()
 _invoice_repo = InvoiceRepository()
 
 
-def _run(coro):
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-    if loop and loop.is_running():
-        import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            return pool.submit(asyncio.run, coro).result()
-    return asyncio.run(coro)
-
-
-def _to_dict(obj):
-    """Convert SQLAlchemy model instance(s) to dict(s)."""
-    if obj is None:
-        return None
-    if isinstance(obj, (list, tuple)):
-        return [_to_dict(item) for item in obj]
-    if hasattr(obj, "__table__"):
-        return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
-    if isinstance(obj, dict):
-        return obj
-    return obj
-
-
 class ReportService:
     """报表生成"""
 
     # ── 科目余额表 ──
     @staticmethod
     def get_account_balances(ledger_id, year, month):
-        return _to_dict(_run(_report_repo.get_account_balances(ledger_id, year, month)))
+        return to_dict(run_async(_report_repo.get_account_balances(ledger_id, year, month)))
 
     # ── 资产负债表 ──
     @staticmethod
     def get_balance_sheet(ledger_id, year, month):
-        balances = _run(_report_repo.get_account_balances(ledger_id, year, month))
+        balances = run_async(_report_repo.get_account_balances(ledger_id, year, month))
         # Return flat lists for assets/liabilities/equity with row-level details
         assets = []
         liabilities = []
@@ -87,7 +62,7 @@ class ReportService:
     # ── 利润表 ──
     @staticmethod
     def get_income_statement(ledger_id, year, month):
-        balances = _run(_report_repo.get_account_balances(ledger_id, year, month))
+        balances = run_async(_report_repo.get_account_balances(ledger_id, year, month))
         rows = []
         total_revenue = 0
         total_expense = 0
@@ -208,7 +183,7 @@ class ReportService:
 
     @staticmethod
     def get_monthly_trend(ledger_id, months=6):
-        return _to_dict(_run(_report_repo.get_monthly_trend(ledger_id, months=months)))
+        return to_dict(run_async(_report_repo.get_monthly_trend(ledger_id, months=months)))
 
     @staticmethod
     def get_expense_breakdown(ledger_id, year, month):
@@ -236,11 +211,11 @@ class ReportService:
     # ── 发票 ──
     @staticmethod
     def get_invoices(ledger_id, **kwargs):
-        return _to_dict(_run(_invoice_repo.get_by_ledger(ledger_id, **kwargs)))
+        return to_dict(run_async(_invoice_repo.get_by_ledger(ledger_id, **kwargs)))
 
     @staticmethod
     def add_invoice(ledger_id, **kwargs):
-        return _to_dict(_run(_invoice_repo.create(ledger_id=ledger_id, **kwargs)))
+        return to_dict(run_async(_invoice_repo.create(ledger_id=ledger_id, **kwargs)))
 
     @staticmethod
     def link_invoice_voucher(ledger_id, invoice_id, voucher_no):

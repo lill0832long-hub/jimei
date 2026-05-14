@@ -124,7 +124,7 @@ def _show_add_budget_dialog(ledger_id: int, year: int, month: int):
                 ui.button("✅ 保存", color="primary", on_click=lambda: _do_save_budget(
                     d, ledger_id, year, month,
                     account_options.get(acct_select.value) if acct_select.value else None,
-                    float(amount_input.value or 0),
+                    float(amount_input.value if amount_input.value is not None else 0),
                     desc_input.value or ""
                 ))
     d.open()

@@ -199,3 +199,12 @@ class VoucherRepository(BaseRepository):
             stmt = select(JournalEntry).where(JournalEntry.voucher_id == voucher_id)
             result = await session.execute(stmt)
             return result.scalars().all()
+
+    async def get_workflow_history(self, voucher_id: int):
+        """获取凭证的操作历史记录"""
+        async with get_db() as session:
+            stmt = select(VoucherWorkflow).where(
+                VoucherWorkflow.voucher_id == voucher_id
+            ).order_by(VoucherWorkflow.created_at.asc())
+            result = await session.execute(stmt)
+            return result.scalars().all()

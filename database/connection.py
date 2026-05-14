@@ -1,20 +1,35 @@
-"""
+﻿"""
 AI 财务系统 — 数据库模块 v2
 拆分后: database/connection.py — 核心连接与初始化
 """
 
 import sqlite3
 import os
+import logging
+import threading
 import functools
 from contextlib import contextmanager
 from datetime import datetime, date
 from enum import Enum
 
+logger = logging.getLogger(__name__)
+
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "finance_v2.db")
 
+# ── 连接池配置 ──
+_DB_TIMEOUT = 30  # 连接超时（秒）
+_pool_lock = threading.Lock()
+_connection_pool = []
+_pool_max_size = 5
 
-def get_conn():
-    conn = sqlite3.connect(DB_PATH)
+
+def _create_connection():
+    """创建一个新的数据库连接"""
+    conn = sqlite3.connect(
+        DB_PATH,
+        timeout=_DB_TIMEOUT,
+        check_same_thread=False,
+    )
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA foreign_keys=ON")
@@ -22,6 +37,54 @@ def get_conn():
     conn.execute("PRAGMA cache_size=-64000")
     conn.execute("PRAGMA temp_store=MEMORY")
     return conn
+
+
+def get_conn():
+    """从连接池获取数据库连接，池空时创建新连接"""
+    with _pool_lock:
+        if _connection_pool:
+            conn = _connection_pool.pop()
+            # 健康检查：验证连接是否可用
+            try:
+                conn.execute("SELECT 1")
+                return conn
+            except Exception:
+                logger.warning("Pooled connection unhealthy, creating new one")
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+    # 池为空或连接不可用，创建新连接
+    return _create_connection()
+
+
+def release_conn(conn):
+    """将连接归还到连接池，池满时关闭"""
+    if conn is None:
+        return
+    with _pool_lock:
+        if len(_connection_pool) < _pool_max_size:
+            _connection_pool.append(conn)
+        else:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+def check_db_health():
+    """数据库健康检查 — 返回 True 表示正常"""
+    try:
+        conn = get_conn()
+        try:
+            conn.execute("SELECT 1")
+            return True
+        finally:
+            release_conn(conn)
+    except Exception as e:
+        logger.error(f"Database health check failed: {e}")
+        return False
+
 
 @contextmanager
 def transaction(conn):
@@ -32,6 +95,7 @@ def transaction(conn):
     except Exception:
         conn.rollback()
         raise
+
 
 def clear_query_cache():
     """清除所有查询缓存 — 在写操作后调用（当前无缓存函数，留作扩展用）"""

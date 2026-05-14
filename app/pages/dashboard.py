@@ -1,11 +1,11 @@
 """仪表盘"""
-import os, sys, shutil, sqlite3
+import os, sys, shutil
 from datetime import datetime
 from nicegui import ui
 from app.components.state import state
-from app.components.ui_helpers import show_toast, format_amount, navigate
-from app.components.ui_components import KpiCard, EmptyState, SectionHeader, StatusBadge
-from app.services import LedgerService, ReportService, VoucherService
+from app.components.ui_helpers import show_toast, format_amount, navigate, refresh_main
+from app.components.ui_components import KpiCard, EmptyState, SectionHeader, StatusBadge, MetricRow
+from app.services import LedgerService, ReportService, VoucherService, AuthService
 
 # 外部 API（已关闭）
 _EXTERNAL_APIS_OK = False
@@ -47,19 +47,23 @@ def _get_system_health():
     disk_total_gb = round(disk.total / (1024**3), 2)
     disk_usage_pct = round((disk.used / disk.total) * 100, 1)
 
-    # 数据库统计（使用独立连接避免 WAL 锁冲突）
+    # 数据库统计（通过服务层获取）
     try:
-        import sqlite3 as _sqlite3
-        _db_path = os.path.join(os.path.dirname(__file__), "../finance_v2.db")
-        _conn = _sqlite3.connect(_db_path, timeout=10)
-        _conn.execute("PRAGMA query_only=ON")
-        _conn.execute("PRAGMA journal_mode=WAL")
-        voucher_count = _conn.execute("SELECT COUNT(*) FROM vouchers").fetchone()[0]
-        entry_count = _conn.execute("SELECT COUNT(*) FROM journal_entries").fetchone()[0]
-        user_count = _conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
-        ledger_count = _conn.execute("SELECT COUNT(*) FROM ledgers").fetchone()[0]
-        _conn.close()
-    except Exception as _e:
+        _all_ledgers = LedgerService.get_all()
+        ledger_count = len(_all_ledgers) if _all_ledgers else 0
+        voucher_count = 0
+        if _all_ledgers:
+            for _lg in _all_ledgers:
+                _lg_id = _lg.get("id") if isinstance(_lg, dict) else getattr(_lg, "id", None)
+                if _lg_id:
+                    try:
+                        voucher_count += VoucherService.count(_lg_id) or 0
+                    except Exception:
+                        pass
+        _all_users = AuthService.get_all()
+        user_count = len(_all_users) if _all_users else 0
+        entry_count = -1  # 无系统级分录统计服务
+    except Exception:
         voucher_count = entry_count = user_count = ledger_count = -1
 
     # 备份状态
@@ -109,9 +113,13 @@ def render_dashboard():
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
     if not lid:
-        with ui.card().classes("w-full"):
-            with ui.card_section().classes("py-12 text-center"):
-                ui.label("请先创建账套").classes("text-grey-4")
+        EmptyState(
+            icon="account_balance",
+            message="暂无账套",
+            hint="请先创建账套以开始使用财务系统",
+            action=lambda: navigate("settings"),
+            action_label="前往设置"
+        )
         return
     cache_key = (lid, state.selected_year, state.selected_month)
     if state._dashboard_cache is not None and state._dashboard_cache_key == cache_key:
@@ -122,6 +130,10 @@ def render_dashboard():
         recent_vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month, limit=8)
         state._dashboard_cache = (bs, inc, recent_vouchers)
         state._dashboard_cache_key = cache_key
+
+    # 刷新按钮
+    with ui.row().classes("w-full justify-end mb-2"):
+        ui.button(icon="refresh", on_click=_refresh_dashboard).props("flat dense round").tooltip("刷新仪表盘")
 
     # ── 新用户引导面板 ──
     if state.show_onboarding:
@@ -161,6 +173,35 @@ def render_dashboard():
     except Exception:
         kpi = {}
 
+    # 动态计算上月对比趋势
+    def _calc_trend(cur_val, prev_val):
+        """计算环比趋势百分比，无法计算时返回 None"""
+        try:
+            cur = float(cur_val or 0)
+            prev = float(prev_val or 0)
+            if prev == 0:
+                return None
+            pct = (cur - prev) / abs(prev) * 100
+            arrow = "↑" if pct >= 0 else "↓"
+            return f"{arrow} {abs(pct):.1f}%"
+        except (TypeError, ValueError, ZeroDivisionError):
+            return None
+
+    # 获取上月数据用于趋势计算
+    prev_month = state.selected_month - 1
+    prev_year = state.selected_year
+    if prev_month < 1:
+        prev_month = 12
+        prev_year -= 1
+    try:
+        inc_prev = ReportService.get_income_statement(lid, prev_year, prev_month)
+    except Exception:
+        inc_prev = {}
+    try:
+        bs_prev = ReportService.get_balance_sheet(lid, prev_year, prev_month)
+    except Exception:
+        bs_prev = {}
+
     # 时间段选择器
     with ui.row().classes("w-full items-center gap-2 mb-2"):
         ui.icon("calendar_today").classes("text-sm").style("color:var(--c-text-muted)")
@@ -172,20 +213,20 @@ def render_dashboard():
 
     # 第一行 KPI：资产负债权益 + 收入利润
     with ui.row().classes("w-full gap-3"):
-        KpiCard("资产总计",   f"¥{bs.get('total_assets', 0):,.0f}",   "account_balance", "blue",   trend="↑ 2.3%", on_click=lambda: navigate("balance_sheet"))
-        KpiCard("负债总计",   f"¥{bs.get('total_liab', 0):,.0f}",     "credit_card",    "red",    trend="↓ 1.1%", on_click=lambda: navigate("balance_sheet"))
-        KpiCard("所有者权益", f"¥{bs.get('total_equity', 0):,.0f}",   "savings",        "green",  trend="↑ 3.8%", on_click=lambda: navigate("balance_sheet"))
-        KpiCard("本月收入",   f"¥{inc.get('total_revenue',0):,.0f}",  "trending_up",    "purple", trend="↑ 12.5%", on_click=lambda: navigate("income_statement"))
-        KpiCard("本月利润",   f"¥{inc.get('net_profit',0):,.0f}",     "attach_money",   "orange", trend="↑ 8.2%",  on_click=lambda: navigate("income_statement"))
+        KpiCard("资产总计",   format_amount(bs.get('total_assets', 0)),   "account_balance", "blue",   trend=_calc_trend(bs.get('total_assets', 0), bs_prev.get('total_assets', 0)), on_click=lambda: navigate("balance_sheet"))
+        KpiCard("负债总计",   format_amount(bs.get('total_liab', 0)),     "credit_card",    "red",    trend=_calc_trend(bs.get('total_liab', 0), bs_prev.get('total_liab', 0)), on_click=lambda: navigate("balance_sheet"))
+        KpiCard("所有者权益", format_amount(bs.get('total_equity', 0)),   "savings",        "green",  trend=_calc_trend(bs.get('total_equity', 0), bs_prev.get('total_equity', 0)), on_click=lambda: navigate("balance_sheet"))
+        KpiCard("本月收入",   format_amount(inc.get('total_revenue', 0)), "trending_up",    "purple", trend=_calc_trend(inc.get('total_revenue', 0), inc_prev.get('total_revenue', 0)), on_click=lambda: navigate("income_statement"))
+        KpiCard("本月利润",   format_amount(inc.get('net_profit', 0)),    "attach_money",   "orange", trend=_calc_trend(inc.get('net_profit', 0), inc_prev.get('net_profit', 0)), on_click=lambda: navigate("income_statement"))
 
     # 第二行 KPI：应收/应付/银行存款/费用/现金流
     with ui.row().classes("w-full gap-3 mt-3"):
-        KpiCard("应收账款",   f"¥{kpi.get('ar_balance', 0):,.0f}",  "receipt",                  "indigo", on_click=lambda: navigate("account_ledger"))
-        KpiCard("应付账款",   f"¥{kpi.get('ap_balance', 0):,.0f}",  "payment",                  "orange", on_click=lambda: navigate("account_ledger"))
-        KpiCard("银行存款",   f"¥{kpi.get('bank_balance', 0):,.0f}","account_balance_wallet",   "cyan",   on_click=lambda: navigate("cashier"))
-        KpiCard("本月费用",   f"¥{kpi.get('month_expense', 0):,.0f}","money_off",                "red",    on_click=lambda: navigate("income_statement"))
-        KpiCard("现金净流量", f"¥{kpi.get('net_cash_flow', 0):,.0f}","swap_horiz",               "teal",
-                trend=kpi.get('net_cash_flow', 0) >= 0 and "↑" or "↓", on_click=lambda: navigate("cash_flow_statement"))
+        KpiCard("应收账款",   format_amount(kpi.get('ar_balance', 0)),    "receipt",                  "indigo", on_click=lambda: navigate("account_ledger"))
+        KpiCard("应付账款",   format_amount(kpi.get('ap_balance', 0)),    "payment",                  "orange", on_click=lambda: navigate("account_ledger"))
+        KpiCard("银行存款",   format_amount(kpi.get('bank_balance', 0)), "account_balance_wallet",   "cyan",   on_click=lambda: navigate("cashier"))
+        KpiCard("本月费用",   format_amount(kpi.get('month_expense', 0)),"money_off",                "red",    on_click=lambda: navigate("income_statement"))
+        KpiCard("现金净流量", format_amount(kpi.get('net_cash_flow', 0)),"swap_horiz",               "teal",
+                trend=_calc_trend(kpi.get('net_cash_flow', 0), None), on_click=lambda: navigate("cash_flow_statement"))
 
 
     # ── 第二行：最近凭证 + 快捷操作 ──
@@ -203,14 +244,14 @@ def render_dashboard():
                 ]
                 sm = {"draft":"草稿","posted":"已过账","reversed":"已冲销","pending_review":"待审核"}
                 sc = {"draft":"orange","posted":"green","reversed":"red","pending_review":"blue"}
-                rows = [{**v,"status_label":sm.get(v["status"],v["status"]),"status_color":sc.get(v["status"],"grey")} for v in recent_vouchers]
+                rows = [{**v,"status_label":sm.get(v["status"],v["status"]),"status_color":sc.get(v["status"],"grey"),"total_formatted":format_amount(v.get("total_debit"))} for v in recent_vouchers]
                 tbl = ui.table(columns=cols, rows=rows, row_key="voucher_no", pagination={"rowsPerPage":8}).classes("w-full")
                 tbl.add_slot("body-cell-voucher_no", r"""<q-td key="voucher_no" :props="props"><q-btn flat dense no-caps color="primary" :label="props.row.voucher_no" @click="$parent.$emit('view', props.row.voucher_no)" /></q-td>""")
                 tbl.add_slot("body-cell-status", r"""<q-td key="status" :props="props"><q-badge :color="props.row.status_color" :label="props.row.status_label" size="sm" /></q-td>""")
-                tbl.add_slot("body-cell-total", r"""<q-td key="total" :props="props" class="tabular-nums text-sm font-medium">¥{{ props.row.total_debit !== null ? Number(props.row.total_debit).toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:0}) : '—' }}</q-td>""")
+                tbl.add_slot("body-cell-total", r"""<q-td key="total" :props="props" class="tabular-nums text-sm font-medium">{{ props.row.total_formatted }}</q-td>""")
                 tbl.on("view", lambda e: navigate("journal"))
             else:
-                EmptyState(message="暂无凭证", hint="点击右上角「查看全部」查看历史凭证", action=lambda: navigate("journal"), action_label="前往凭证列表")
+                EmptyState(message="暂无凭证", hint="点击创建第一张凭证", action=lambda: navigate("journal"), action_label="新增凭证")
 
         # 右侧：快捷操作（占 1/3 宽度）
         with ui.card().classes("w-72"):
@@ -299,13 +340,14 @@ def render_dashboard():
         with ui.row().classes("w-full gap-3 mt-3"):
             # 数据库状态
             with ui.card().classes("flex-1"):
-                SectionHeader("系统状态", icon="storage",
-                    action_label="● " + ("正常" if _overall == "healthy" else "警告"))
+                SectionHeader("系统状态 · " + ("正常" if _overall == "healthy" else "警告"), icon="storage")
                 with ui.card_section().classes("py-2 px-3"):
                     with ui.column().classes("gap-1.5"):
                         MetricRow("数据库", "✅ 正常" if _db_ok else "❌ 异常",
                                   value_color="var(--c-success)" if _db_ok else "var(--c-danger)")
-                        MetricRow("凭证/分录", f"{_db.get('vouchers',0)} / {_db.get('entries',0)}")
+                        _vc = _db.get('vouchers', 0) if _db.get('vouchers', -1) >= 0 else "—"
+                        _ec = _db.get('entries', 0) if _db.get('entries', -1) >= 0 else "—"
+                        MetricRow("凭证/分录", f"{_vc} / {_ec}")
                         MetricRow("数据库大小", f"{_db.get('size_mb',0):.1f} MB")
 
             # 备份状态
@@ -336,41 +378,10 @@ def render_dashboard():
                             )
     except Exception:
         pass
-def _kpi_card(title: str, value: str, icon: str, color: str, trend: str = None, navigate_to: str = None):
-    """KPI 卡片 — 大数字 + 等宽 + 趋势标签 + 点击跳转"""
-    colors = {
-        "blue":   ("var(--c-primary)",   "var(--c-primary-light)"),
-        "red":    ("var(--c-danger)",    "var(--c-danger-light)"),
-        "green":  ("var(--c-success)",   "var(--c-success-light)"),
-        "purple": ("#7b1fa2", "#f3e5f5"),
-        "orange": ("var(--c-warning)",  "var(--c-warning-light)"),
-        "indico": ("#3949ab", "#e8eaf6"),
-        "cyan":   ("#00838d", "#e0f7fa"),
-        "teal":   ("#00695c", "#e0f2f1"),
-    }
-    hex_c, bg_c = colors.get(color, colors["blue"])
-    tc, tb = (("var(--c-success)","var(--c-success-light)") if trend and trend.startswith("↑") else
-              ("var(--c-danger)", "var(--c-danger-light)") if trend and trend.startswith("↓") else
-              ("var(--c-text-muted)","var(--c-border-light)"))
-    card = ui.card().classes("kpi-card flex-1")
-    if navigate_to:
-        card.style("cursor: pointer;")
-        card.on("click", lambda: navigate(navigate_to))
-    with card:
-        with ui.card_section().classes("py-3 px-4"):
-            with ui.row().classes("items-center gap-3"):
-                with ui.element("div").style(
-                    f"width:40px; height:40px; border-radius:10px; background:{bg_c}; "
-                    f"display:flex; align-items:center; justify-content:center; flex-shrink:0;"
-                ):
-                    ui.icon(icon).classes("kpi-icon").style(f"color: {hex_c}")
-                with ui.column().classes("gap-0.5 flex-1 min-w-0"):
-                    ui.label(title).classes("text-xs text-grey-5 font-medium truncate")
-                    ui.label(value).classes("tabular-nums").style(
-                        "font-size:26px; font-weight:700; color:var(--c-text-primary); line-height:1.2;"
-                    )
-                    if trend:
-                        ui.label(trend).classes("text-xs font-semibold").style(
-                            f"color:{tc}; background:{tb}; padding:2px 8px; "
-                            f"border-radius:4px; display:inline-block; width:fit-content;"
-                        )
+
+def _refresh_dashboard():
+    """清除缓存并重新渲染仪表盘"""
+    state._dashboard_cache = None
+    state._dashboard_cache_key = None
+    refresh_main()
+    show_toast("仪表盘已刷新", "success")

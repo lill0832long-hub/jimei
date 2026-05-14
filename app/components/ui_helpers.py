@@ -46,15 +46,19 @@ def get_table_classes():
 def get_table_header_classes():
     return "table-header-cell"
 
-def show_toast(message, msg_type="info"):
+def show_toast(message, msg_type="info", duration=4000, icon=None, close_button=False):
     colors = {
         "success": ("positive", "✓"),
         "error": ("negative", "✗"),
         "warning": ("warning", "⚠"),
         "info": ("info", "ℹ"),
     }
-    color, icon = colors.get(msg_type, ("info", "ℹ"))
-    ui.notify(f"{icon} {message}", color=color, position="top", timeout=4000)
+    default_color, default_icon = colors.get(msg_type, ("info", "ℹ"))
+    display_icon = icon if icon is not None else default_icon
+    kwargs = dict(color=default_color, position="top", timeout=duration)
+    if close_button:
+        kwargs["close_button"] = close_button if isinstance(close_button, str) else "close"
+    ui.notify(f"{display_icon} {message}", **kwargs)
 
 def show_field_error(input_elem, message):
     try:

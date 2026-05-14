@@ -126,7 +126,9 @@ def _show_add_invoice_dialog(ledger_id: int):
                 ui.button("✅ 保存", color="primary", on_click=lambda: _do_add_invoice(
                     d, ledger_id, inv_type.value, inv_no.value,
                     inv_date.value, seller.value, seller_tax.value,
-                    float(amount.value or 0), float(tax_amount.value or 0), float(total.value or 0),
+                    float(amount.value if amount.value is not None else 0),
+                    float(tax_amount.value if tax_amount.value is not None else 0),
+                    float(total.value if total.value is not None else 0),
                     remark.value or ""
                 ))
     d.open()

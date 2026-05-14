@@ -323,13 +323,23 @@ def _render_voucher_form_dialog(detail=None):
                         save_draft = ui.checkbox("存为草稿", value=False).classes("text-xs")
                     ui.button("取消", on_click=d.close).props("flat")
                     if is_edit:
+                        edit_save_btn = ui.button("💾 保存修改", color="primary", on_click=None).props("unelevated")
                         async def _on_edit_click():
-                            await _do_edit_v3(d, detail.get("voucher_no", ""), date_input.value, desc_input.value, _acct_map)
-                        ui.button("💾 保存修改", color="primary", on_click=_on_edit_click).props("unelevated")
+                            edit_save_btn.props("loading")
+                            try:
+                                await _do_edit_v3(d, detail.get("voucher_no", ""), date_input.value, desc_input.value, _acct_map)
+                            finally:
+                                edit_save_btn.props(remove="loading")
+                        edit_save_btn.on_click(_on_edit_click)
                     else:
+                        new_save_btn = ui.button("💾 保存凭证", color="primary", on_click=None).props("unelevated")
                         async def _on_save_click():
-                            await _do_save_v3(d, date_input=date_input, desc_input=desc_input, save_draft=save_draft, acct_map=_acct_map)
-                        ui.button("💾 保存凭证", color="primary", on_click=_on_save_click).props("unelevated")
+                            new_save_btn.props("loading")
+                            try:
+                                await _do_save_v3(d, date_input=date_input, desc_input=desc_input, save_draft=save_draft, acct_map=_acct_map)
+                            finally:
+                                new_save_btn.props(remove="loading")
+                        new_save_btn.on_click(_on_save_click)
 
         # ── 底部签章 ──
         with ui.card_section().classes("py-2 px-5 border-t border-grey-100 bg-grey-50 rounded-b-lg"):
@@ -380,6 +390,10 @@ async def _collect_entries(acct_map):
     if not entries:
         show_toast("请至少填写一条分录", "warning")
         raise ValueError("空分录")
+
+    if len(entries) < 2:
+        show_toast("凭证至少需要两行分录", "warning")
+        raise ValueError("分录行数不足")
 
     diff = abs(total_debit - total_credit)
     if diff > 0.01:

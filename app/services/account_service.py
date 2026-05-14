@@ -1,5 +1,5 @@
 """科目服务层 — 使用 Repository 模式"""
-import asyncio
+from app.services._utils import run_async, to_dict
 import logging
 from app.repository.account_repository import AccountRepository, BankAccountRepository, AuxiliaryRepository
 
@@ -8,18 +8,6 @@ logger = logging.getLogger(__name__)
 _account_repo = AccountRepository()
 _bank_repo = BankAccountRepository()
 _aux_repo = AuxiliaryRepository()
-
-
-def _run(coro):
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:
-        loop = None
-    if loop and loop.is_running():
-        import concurrent.futures
-        with concurrent.futures.ThreadPoolExecutor() as pool:
-            return pool.submit(asyncio.run, coro).result()
-    return asyncio.run(coro)
 
 
 # ── Private helpers for methods not yet migrated to repository pattern ──
@@ -138,148 +126,187 @@ def _multi_aux_search(ledger_id, aux_filters, year=None, month=None):
     return multi_aux_search(ledger_id, aux_filters, year, month)
 
 
-def _to_dict(obj):
-    """Convert SQLAlchemy model instance(s) to dict(s)."""
-    if obj is None:
-        return None
-    if isinstance(obj, (list, tuple)):
-        return [_to_dict(item) for item in obj]
-    if hasattr(obj, "__table__"):
-        return {c.name: getattr(obj, c.name) for c in obj.__table__.columns}
-    if isinstance(obj, dict):
-        return obj
-    return obj
-
-
 class AccountService:
     """科目与银行账号管理"""
 
     # ── 科目 ──
     @staticmethod
     def get_all(ledger_id=None, active_only=True):
-        return _to_dict(_run(_account_repo.get_all(active_only=active_only)))
+        return to_dict(run_async(_account_repo.get_all(active_only=active_only)))
 
     @staticmethod
     def add(ledger_id, code, name, category, **kwargs):
-        return _to_dict(_run(_account_repo.create(code=code, name=name, category=category, **kwargs)))
+        """创建科目 — 验证编码唯一性"""
+        if not code or not str(code).strip():
+            raise ValueError("科目编码不能为空")
+        if not name or not str(name).strip():
+            raise ValueError("科目名称不能为空")
+
+        # 检查编码唯一性
+        existing = to_dict(run_async(_account_repo.search(str(code).strip(), limit=1)))
+        if existing:
+            # search 可能返回模糊匹配，精确比较编码
+            matched = [a for a in existing if a.get("code") == str(code).strip()]
+            if matched:
+                raise ValueError(f"科目编码 '{code}' 已存在")
+
+        logger.info(f"Creating account code={code}, name={name}, category={category}")
+        return to_dict(run_async(_account_repo.create(code=code, name=name, category=category, **kwargs)))
+
+    @staticmethod
+    def update_account(account_id, **kwargs):
+        """更新科目 — 验证父科目存在"""
+        parent_code = kwargs.get("parent_code")
+        if parent_code is not None and str(parent_code).strip():
+            parent_code = str(parent_code).strip()
+            # 验证父科目存在
+            parent = to_dict(run_async(_account_repo.search(parent_code, limit=5)))
+            if parent:
+                parent_matched = [a for a in parent if a.get("code") == parent_code]
+            else:
+                parent_matched = []
+            if not parent_matched:
+                raise ValueError(f"父科目编码 '{parent_code}' 不存在")
+
+            # 不能将自己设为自己的父科目
+            account = to_dict(run_async(_account_repo.get_by_id(account_id))) if hasattr(_account_repo, "get_by_id") else None
+            if account and account.get("code") == parent_code:
+                raise ValueError("不能将科目自身设为父科目")
+
+        logger.info(f"Updating account {account_id}")
+        return to_dict(run_async(_account_repo.update(account_id, **kwargs)))
+
+    @staticmethod
+    def delete_account(account_id):
+        """删除科目 — 检查是否有关联凭证"""
+        # 检查该科目是否在凭证明细中被引用
+        account = to_dict(run_async(_account_repo.get_by_id(account_id))) if hasattr(_account_repo, "get_by_id") else None
+        if account:
+            account_code = account.get("code")
+            if account_code:
+                from database.connection import get_conn
+                conn = get_conn()
+                try:
+                    cursor = conn.execute(
+                        "SELECT COUNT(*) FROM journal_entries WHERE account_code = ?",
+                        (account_code,)
+                    )
+                    count = cursor.fetchone()[0]
+                    if count > 0:
+                        raise PermissionError(
+                            f"科目 '{account_code}' 已被 {count} 条凭证明细引用，无法删除"
+                        )
+                finally:
+                    conn.close()
+
+        logger.info(f"Deleting account {account_id}")
+        return to_dict(run_async(_account_repo.delete(account_id)))
 
     @staticmethod
     def search(keyword, limit=10):
-        return _to_dict(_run(_account_repo.search(keyword, limit=limit)))
+        return to_dict(run_async(_account_repo.search(keyword, limit=limit)))
 
     @staticmethod
     def get_defaults():
-        return _to_dict(_run(_account_repo.get_defaults()))
+        return to_dict(run_async(_account_repo.get_defaults()))
 
     @staticmethod
     def import_from_template(ledger_id, template_name):
-        # TODO: migrate to repository pattern — bulk insert from system template
         return _import_accounts_from_template(ledger_id, template_name)
 
     @staticmethod
     def get_suggestions(ledger_id, account_code):
-        # TODO: migrate to repository pattern — complex SQL with historical voucher data
         return _get_account_suggestions(ledger_id, account_code)
 
     @staticmethod
     def get_avg_amount(ledger_id, account_code):
-        # TODO: migrate to repository pattern — complex aggregation query
         return _get_avg_amount_for_account(ledger_id, account_code)
 
     @staticmethod
     def get_ledger(ledger_id, account_code, year=None, month=None):
-        # TODO: migrate to repository pattern — complex multi-table ledger query
         return _get_account_ledger(ledger_id, account_code, year, month)
 
     # ── 银行账号 ──
     @staticmethod
     def create_bank_account(ledger_id, **kwargs):
-        return _to_dict(_run(_bank_repo.create(ledger_id=ledger_id, **kwargs)))
+        return to_dict(run_async(_bank_repo.create(ledger_id=ledger_id, **kwargs)))
 
     @staticmethod
     def get_bank_accounts(ledger_id):
-        return _to_dict(_run(_bank_repo.get_by_ledger(ledger_id)))
+        return to_dict(run_async(_bank_repo.get_by_ledger(ledger_id)))
 
     @staticmethod
     def update_bank_account(account_id, **kwargs):
-        return _to_dict(_run(_bank_repo.update(account_id, **kwargs)))
+        return to_dict(run_async(_bank_repo.update(account_id, **kwargs)))
 
     @staticmethod
     def delete_bank_account(account_id):
-        return _to_dict(_run(_bank_repo.delete(account_id)))
+        return to_dict(run_async(_bank_repo.delete(account_id)))
 
     # ── 银行对账 ──
     @staticmethod
     def get_bank_reconciliation(ledger_id, account_id, year, month):
-        # TODO: migrate to repository pattern — complex reconciliation query
         return _get_bank_reconciliation(account_id, f"{year}-{month}")
 
     @staticmethod
     def get_bank_statements(ledger_id, account_id):
-        return _to_dict(_run(_bank_repo.get_statements(account_id)))
+        return to_dict(run_async(_bank_repo.get_statements(account_id)))
 
     @staticmethod
     def get_unmatched(ledger_id, account_id):
-        return _to_dict(_run(_bank_repo.get_unmatched_statements(account_id)))
+        return to_dict(run_async(_bank_repo.get_unmatched_statements(account_id)))
 
     @staticmethod
     def import_bank_statement(ledger_id, account_id, file_path):
-        # TODO: migrate to repository pattern — file parsing + bulk insert
         return _import_bank_statement(account_id, file_path)
 
     @staticmethod
     def auto_match(ledger_id, account_id):
-        # TODO: migrate to repository pattern — complex matching algorithm
         return _auto_match_bank_statement(account_id)
 
     @staticmethod
     def match_statement(ledger_id, statement_id, voucher_no):
-        # TODO: migrate to repository pattern — needs voucher_no -> journal_id lookup
         return _match_bank_statement(statement_id, voucher_no)
 
     @staticmethod
     def unmatch_statement(ledger_id, statement_id):
-        # TODO: migrate to repository pattern — BankAccountRepository has unmigrate_statement
         return _unmatch_bank_statement(statement_id)
 
     @staticmethod
     def parse_bank_csv(file_path):
-        # TODO: migrate to repository pattern — pure file parsing, no DB needed
         return _parse_bank_csv(file_path)
 
     # ── 辅助核算 ──
     @staticmethod
     def create_auxiliary(ledger_id, name, category):
-        return _to_dict(_run(_aux_repo.create(ledger_id=ledger_id, aux_type=category, code=name, name=name)))
+        if not name or not str(name).strip():
+            raise ValueError("辅助核算名称不能为空")
+        return to_dict(run_async(_aux_repo.create(ledger_id=ledger_id, aux_type=category, code=name, name=name)))
 
     @staticmethod
     def get_auxiliaries(ledger_id, category=None):
-        return _to_dict(_run(_aux_repo.get_by_ledger(ledger_id, aux_type=category)))
+        return to_dict(run_async(_aux_repo.get_by_ledger(ledger_id, aux_type=category)))
 
     @staticmethod
     def update_auxiliary(aux_id, **kwargs):
-        return _to_dict(_run(_aux_repo.update(aux_id, **kwargs)))
+        return to_dict(run_async(_aux_repo.update(aux_id, **kwargs)))
 
     @staticmethod
     def delete_auxiliary(aux_id):
-        return _to_dict(_run(_aux_repo.delete(aux_id)))
+        return to_dict(run_async(_aux_repo.delete(aux_id)))
 
     @staticmethod
     def save_aux_mapping(ledger_id, aux_type, aux_id, voucher_no):
-        # TODO: migrate to repository pattern — voucher_no vs entry_id mismatch with AuxiliaryRepository
         return _save_aux_mapping(voucher_no, aux_type, aux_id)
 
     @staticmethod
     def get_aux_mapping(ledger_id, voucher_no):
-        # TODO: migrate to repository pattern — voucher_no vs entry_id mismatch with AuxiliaryRepository
         return _get_aux_mapping(voucher_no)
 
     @staticmethod
     def get_aux_balance(ledger_id, aux_type, aux_id, year, month):
-        # TODO: migrate to repository pattern — complex aggregation query
         return _get_aux_balance(ledger_id, aux_type, year, month)
 
     @staticmethod
     def multi_aux_search(ledger_id, **kwargs):
-        # TODO: migrate to repository pattern — complex multi-dimensional query
         return _multi_aux_search(ledger_id, kwargs.get("aux_filters"), kwargs.get("year"), kwargs.get("month"))

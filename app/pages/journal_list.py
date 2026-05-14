@@ -1,7 +1,7 @@
 """凭证列表"""
 from nicegui import ui
 from app.components.state import state
-from app.components.ui_helpers import refresh_main
+from app.components.ui_helpers import refresh_main, format_amount
 from app.components.ui_components import SectionHeader, EmptyState
 from app.services import LedgerService, VoucherService
 from app.pages.journal_form_v2 import show_new_voucher_dialog, show_edit_voucher_dialog
@@ -30,7 +30,19 @@ def render_journal():
                                   action=show_new_voucher_dialog if can_create else None,
                                   action_icon="新增凭证")
 
-                # 状态筛选 chip 栏
+                # 按状态筛选获取凭证
+                filter_status = state.voucher_status_filter if state.voucher_status_filter != "all" else None
+                vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month,
+                                       status=filter_status, limit=50)
+
+                # 状态筛选 chip 栏（带数量统计）
+                # 获取全部凭证用于计数
+                all_vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month, limit=500)
+                status_counts = {"all": len(all_vouchers)}
+                for v in all_vouchers:
+                    s = v.get("status", "draft")
+                    status_counts[s] = status_counts.get(s, 0) + 1
+
                 with ui.card_section().classes("py-1.5 px-3 border-t border-grey-1"):
                     with ui.row().classes("items-center gap-1.5"):
                         ALL_STATUS = [
@@ -40,7 +52,9 @@ def render_journal():
                         ]
                         for skey, slabel in ALL_STATUS:
                             is_active = state.voucher_status_filter == skey
-                            ui.chip(slabel, on_click=lambda k=skey: (
+                            count = status_counts.get(skey, 0)
+                            chip_label = f"{slabel} ({count})"
+                            ui.chip(chip_label, on_click=lambda k=skey: (
                                 setattr(state, 'voucher_status_filter', k),
                                 refresh_main()
                             )).props("outline dense").style(
@@ -49,10 +63,6 @@ def render_journal():
                                 f"border-color:{'var(--c-primary)' if is_active else 'var(--c-border)'}"
                             )
 
-                # 按状态筛选获取凭证
-                filter_status = state.voucher_status_filter if state.voucher_status_filter != "all" else None
-                vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month,
-                                       status=filter_status, limit=50)
                 if not vouchers:
                     EmptyState(message="本月暂无凭证", hint="点击右上角「新增凭证」创建第一张凭证",
                               action=show_new_voucher_dialog if can_create else None,
@@ -61,9 +71,10 @@ def render_journal():
                 status_labels = {"draft": "草稿", "posted": "已过账", "reversed": "已冲销", "pending_review": "待审核"}
                 status_colors = {"draft": "orange", "posted": "green", "reversed": "red", "pending_review": "blue"}
                 rows = [{**v,
-                    "status_label": status_labels.get(v["status"], v["status"]) or "未知",
-                    "status_color": status_colors.get(v["status"], "grey"),
-                    "total": f'¥{(v["total_debit"] or 0):,.2f}',
+                    "status": v.get("status", "draft"),
+                    "status_label": status_labels.get(v.get("status", "draft"), "未知"),
+                    "status_color": status_colors.get(v.get("status", "draft"), "grey"),
+                    "total": format_amount(v.get("total_debit", 0)),
                 } for v in vouchers]
 
                 cols = [

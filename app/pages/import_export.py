@@ -25,6 +25,7 @@ def render_import():
                 with ui.card_section().classes("py-1 px-3"):
                     ui.label("Excel 格式：日期 | 摘要 | 科目代码 | 科目名称 | 借方 | 贷方").classes("text-sm").style("color:var(--c-text-muted)")
                     ui.label("同一凭证的行保持相同日期+摘要，程序自动合并").classes("text-sm").style("color:var(--c-text-muted)")
+                    ui.label("支持格式：.xlsx, .xls, .csv").classes("text-xs").style("color:var(--c-text-muted)")
 
                     upload = ui.upload(
                         on_upload=lambda e: do_import(e),
@@ -363,7 +364,16 @@ def render_export():
                             ui.label(title).classes("text-sm font-semibold")
                             ui.label(desc).classes("text-xs mt-0.5").style("color:var(--c-text-muted)")
                         with ui.card_section().classes("py-1.5 px-3"):
-                            ui.button("导出 CSV", color=color, on_click=lambda t=etype: do_export(t)).props("dense").classes("w-full")
+                            def _make_export_handler(t, btn_ref):
+                                def _handler():
+                                    btn_ref.props("loading")
+                                    try:
+                                        _do_export_by_type(t)
+                                    finally:
+                                        btn_ref.props(remove="loading")
+                                return _handler
+                            btn = ui.button("导出 CSV", color=color, on_click=None).props("dense").classes("w-full")
+                            btn.on_click(_make_export_handler(etype, btn))
 
         export_files = sorted(os.listdir(export_dir), reverse=True)[:10] if os.path.exists(export_dir) else []
         if export_files:
@@ -383,34 +393,39 @@ def render_export():
             with ui.card_section().classes("py-6 px-4"):
                 ui.label("暂无导出文件").classes("text-sm text-center").style("color:var(--c-text-muted)")
 def do_export(export_type):
-    lid = state.selected_ledger_id
+    """导出入口（兼容旧调用）"""
+    try:
+        _do_export_by_type(export_type)
+    except Exception as e:
+        show_toast(f"❌ 导出失败: {e}", "error")
+
+def _do_export_by_type(export_type):
+    """执行导出（无 loading 状态，供 loading 包装器调用）"""
     export_dir = os.path.join(os.path.dirname(__file__), "exports")
     os.makedirs(export_dir, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    try:
-        if export_type == "vouchers":
-            fname = f"凭证列表_{state.selected_year}{state.selected_month:02d}_{ts}.csv"
-            fpath = os.path.join(export_dir, fname)
-            count = ReportService.export_vouchers_csv(lid, state.selected_year, state.selected_month, fpath)
-            show_toast(f"✅ 已导出 {count} 条凭证 → {fname}", "success")
-        elif export_type == "balances":
-            fname = f"科目余额表_{state.selected_year}{state.selected_month:02d}_{ts}.csv"
-            fpath = os.path.join(export_dir, fname)
-            count = ReportService.export_account_balances_csv(lid, state.selected_year, state.selected_month, fpath)
-            show_toast(f"✅ 已导出 {count} 个科目 → {fname}", "success")
-        elif export_type == "bs":
-            fname = f"资产负债表_{state.selected_year}{state.selected_month:02d}_{ts}.csv"
-            fpath = os.path.join(export_dir, fname)
-            ReportService.export_balance_sheet_csv(lid, state.selected_year, state.selected_month, fpath)
-            show_toast(f"✅ 资产负债表已导出 → {fname}", "success")
-        elif export_type == "is":
-            fname = f"利润表_{state.selected_year}{state.selected_month:02d}_{ts}.csv"
-            fpath = os.path.join(export_dir, fname)
-            ReportService.export_income_statement_csv(lid, state.selected_year, state.selected_month, fpath)
-            show_toast(f"✅ 利润表已导出 → {fname}", "success")
-        refresh_main()
-    except Exception as e:
-        show_toast(f"❌ 导出失败: {e}", "error")
+    lid = state.selected_ledger_id
+    if export_type == "vouchers":
+        fname = f"凭证列表_{state.selected_year}{state.selected_month:02d}_{ts}.csv"
+        fpath = os.path.join(export_dir, fname)
+        count = ReportService.export_vouchers_csv(lid, state.selected_year, state.selected_month, fpath)
+        show_toast(f"✅ 已导出 {count} 条凭证 → {fname}", "success")
+    elif export_type == "balances":
+        fname = f"科目余额表_{state.selected_year}{state.selected_month:02d}_{ts}.csv"
+        fpath = os.path.join(export_dir, fname)
+        count = ReportService.export_account_balances_csv(lid, state.selected_year, state.selected_month, fpath)
+        show_toast(f"✅ 已导出 {count} 个科目 → {fname}", "success")
+    elif export_type == "balance_sheet":
+        fname = f"资产负债表_{state.selected_year}{state.selected_month:02d}_{ts}.csv"
+        fpath = os.path.join(export_dir, fname)
+        ReportService.export_balance_sheet_csv(lid, state.selected_year, state.selected_month, fpath)
+        show_toast(f"✅ 资产负债表已导出 → {fname}", "success")
+    elif export_type == "income_statement":
+        fname = f"利润表_{state.selected_year}{state.selected_month:02d}_{ts}.csv"
+        fpath = os.path.join(export_dir, fname)
+        ReportService.export_income_statement_csv(lid, state.selected_year, state.selected_month, fpath)
+        show_toast(f"✅ 利润表已导出 → {fname}", "success")
+    refresh_main()
 
 
 # ===== 7. AI 助手 =====
