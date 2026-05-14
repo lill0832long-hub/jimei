@@ -347,6 +347,7 @@ _bottom_items = [
     ("audit_log", "审计日志", "fact_check"),
     ("export", "数据导出", "cloud_download"),
     ("settings", "系统设置", "settings"),
+    ("about", "关于", "info"),
 ]
 
 

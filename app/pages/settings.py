@@ -7,6 +7,10 @@ from app.services.ledger_service import LedgerService
 from app.services.account_service import AccountService
 from app.services.auth_service import AuthService
 
+# 版本信息（与 app.py 保持一致）
+VERSION = "3.0.0"
+VERSION_NAME = "V3"
+
 def render_settings():
     ledgers = LedgerService.get_all()
     if not state.selected_ledger_id and ledgers:
@@ -225,3 +229,34 @@ def do_add_account(code, name, category):
         refresh_main()
     except Exception as e:
         show_toast(f"❌ {e}", "error")
+
+
+def render_about():
+    """关于页面 — 版本信息与开发日志"""
+    with ui.card().classes("w-full"):
+        with ui.card_section().classes("py-2.5 px-4 border-b border-grey-2"):
+            ui.label("ℹ️ 关于").classes("text-base font-bold")
+
+        with ui.card_section().classes("py-3 px-4"):
+            with ui.row().classes("items-center gap-3"):
+                ui.icon("account_balance", size="xl").style("color:var(--c-primary)")
+                with ui.column().classes("gap-0"):
+                    ui.label("AI 财务系统").classes("text-lg font-bold")
+                    ui.label(f"{VERSION_NAME} v{VERSION}").classes("text-sm font-mono").style("color:var(--c-text-muted)")
+
+            ui.separator().classes("my-3")
+
+            with ui.column().classes("gap-1"):
+                ui.label("📋 开发日志").classes("text-sm font-semibold")
+                ui.label("Week 1: SQLAlchemy ORM 模型层（32 表）").classes("text-xs").style("color:var(--c-text-muted)")
+                ui.label("Week 2: Repository + Service 层迁移").classes("text-xs").style("color:var(--c-text-muted)")
+                ui.label("Week 3: 消除 database_v3 直接依赖").classes("text-xs").style("color:var(--c-text-muted)")
+                ui.label("Week 4: 固定资产 CRUD").classes("text-xs").style("color:var(--c-text-muted)")
+                ui.label("Week 5: UI 精美修改 + CSS 动画").classes("text-xs").style("color:var(--c-text-muted)")
+                ui.label("V3.0.0: 版本号系统建立 + 服务层 Bug 修复").classes("text-xs").style("color:var(--c-text-muted)")
+
+            ui.separator().classes("my-3")
+
+            with ui.column().classes("gap-1"):
+                ui.label("🔧 技术栈").classes("text-sm font-semibold")
+                ui.label("Python / NiceGUI / FastAPI / SQLAlchemy / SQLite").classes("text-xs").style("color:var(--c-text-muted)")

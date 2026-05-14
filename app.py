@@ -1,7 +1,11 @@
 """
-AI 财务系统 v3 — 模块化主入口
+AI 财务系统 — 模块化主入口
 """
 import sys, os
+
+# ── 版本信息 ──
+VERSION = "3.0.0"
+VERSION_NAME = "V3"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
@@ -22,6 +26,11 @@ except Exception as e:
     print(f"templates init: {e}")
 
 from nicegui import ui, app
+
+# ── 注册静态文件路由 ──
+import os as _os
+_STATIC_DIR = _os.path.join(_os.path.dirname(__file__), "app", "static")
+app.add_static_files("/static", _STATIC_DIR)
 
 # ── 注册 API 路由 ──
 from app.routes import register_routes
@@ -44,7 +53,7 @@ from app.pages.import_export import render_import, render_export
 from app.pages.fixed_assets import render_fixed_assets
 from app.pages.cashier import render_cashier
 from app.pages.auxiliary import render_auxiliary
-from app.pages.settings import render_settings
+from app.pages.settings import render_settings, render_about
 from app.pages.tax import render_tax
 from app.pages.cash_flow import render_cash_flow
 from app.pages.budget import render_budget
@@ -88,6 +97,7 @@ register_page("voucher_template", render_voucher_template)
 register_page("account_ledger", render_account_ledger)
 register_page("bank_reconciliation", render_bank_reconciliation)
 register_page("cash_flow_statement", render_cash_flow_statement)
+register_page("about", render_about)
 register_page("audit_log", render_audit_log)
 register_page("settings", render_settings)
 
@@ -109,6 +119,23 @@ def render_page():
 
 @ui.page("/")
 def index():
+    # 注入全局 CSS & JS（内联到 head，确保每次页面加载都生效）
+    import os as _os
+    _static_dir = _os.path.join(_os.path.dirname(__file__), "app", "static")
+    _css_path = _os.path.join(_static_dir, "style.css")
+    _js_path = _os.path.join(_static_dir, "script.js")
+    if _os.path.exists(_css_path):
+        with open(_css_path, encoding="utf-8") as _f:
+            ui.add_head_html(f"<style>{_f.read()}</style>")
+    if _os.path.exists(_js_path):
+        with open(_js_path, encoding="utf-8") as _f:
+            ui.add_head_html(f"<script>{_f.read()}</script>")
+    ui.add_head_html(
+        '<link rel="preconnect" href="https://fonts.googleapis.com">'
+        '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+        '<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">'
+    )
+
     if state.current_user is None:
         render_login()
     else:
@@ -119,31 +146,13 @@ def index():
                 render_page()
 
 
-# ── 注入全局 CSS & JS ──
-import os
-_CSS_PATH = os.path.join(os.path.dirname(__file__), "app", "static", "style.css")
-_JS_PATH  = os.path.join(os.path.dirname(__file__), "app", "static", "script.js")
-if os.path.exists(_CSS_PATH):
-    with open(_CSS_PATH, encoding="utf-8") as _css_f:
-        ui.add_head_html(f"<style>{_css_f.read()}</style>", shared=True)
-if os.path.exists(_JS_PATH):
-    with open(_JS_PATH, encoding="utf-8") as _js_f:
-        ui.add_head_html(f"<script>{_js_f.read()}</script>", shared=True)
-
 # ── 手机端抽屉式侧边栏 + 遮罩层 ──
-
-# Google Fonts
-ui.add_head_html('''
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
-''', shared=True)
 
 
 # ── 启动 ──
 if __name__ == "__main__":
     ui.run(
-        title="AI 财务系统 v3",
+        title=f"AI 财务系统 {VERSION_NAME} v{VERSION}",
         port=8090,
         host="0.0.0.0",
         reload=False,
