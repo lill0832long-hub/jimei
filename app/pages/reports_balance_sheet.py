@@ -118,9 +118,6 @@ def _render_report_data(container, compare_mom):
     if not bs_prev:
         bs_prev = {"assets": [], "liabilities": [], "equity": [], "total_assets": 0, "total_liab": 0, "total_equity": 0}
 
-    HC = "table-header-cell text-uppercase"
-    num_style = "width:120px"
-
     with container:
         # ── KPI 概览 ──
         ta = bs.get("total_assets", 0) if isinstance(bs, dict) else 0
@@ -133,126 +130,73 @@ def _render_report_data(container, compare_mom):
             KpiCard("所有者权益", format_amount(te), "shield", "blue")
             KpiCard("平衡差额", format_amount(net), "balance", "green" if abs(net) < 0.01 else "red")
 
-        # ── 双栏表格 ──
+        # ── HTML 表格渲染 ──
+        def _build_bs_table(title, items, icon, color):
+            rows_html = ""
+            for item in items:
+                name = item.get("name", "")
+                end_val = item.get("end", 0)
+                open_val = item.get("open", 0)
+                level = item.get("level", 1)
+                is_parent = level == 0
+                indent = "" if is_parent else "padding-left:24px;"
+                weight = "font-weight:600;" if is_parent else ""
+
+                rows_html += f'''<tr class="tb-row">
+                    <td class="tb-td" style="{indent}{weight}">{name}</td>
+                    <td class="tb-td tb-td-num">{format_amount(end_val)}</td>
+                    <td class="tb-td tb-td-num">{format_amount(open_val)}</td>
+                </tr>'''
+
+            # 小计行
+            total_end = sum(float(i.get("end", 0) if i.get("end") is not None else 0) for i in items)
+            total_open = sum(float(i.get("open", 0) if i.get("open") is not None else 0) for i in items)
+            rows_html += f'''<tr class="tb-row tb-row-subtotal">
+                <td class="tb-td" style="text-align:center;font-weight:700">{title}合计</td>
+                <td class="tb-td tb-td-num" style="font-weight:700">{format_amount(total_end)}</td>
+                <td class="tb-td tb-td-num" style="font-weight:700">{format_amount(total_open)}</td>
+            </tr>'''
+
+            return f'''<table class="tb-table">
+            <thead>
+                <tr>
+                    <th class="tb-th" style="text-align:left">{title}</th>
+                    <th class="tb-th tb-th-num">期末余额</th>
+                    <th class="tb-th tb-th-num">年初余额</th>
+                </tr>
+            </thead>
+            <tbody>{rows_html}</tbody>
+            </table>'''
+
+        date_str = bs.get("date", "") if isinstance(bs, dict) else ""
+
+        # 资产
         with ui.card().classes("w-full"):
-            with ui.card_section().classes("py-2.5 px-4 border-b border-grey-2"):
-                date_str = bs.get("date", "") if isinstance(bs, dict) else ""
-                ui.label(f"📗 资产负债表 — {date_str}").classes("text-base font-bold")
+            with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
+                with ui.row().classes("items-center gap-2"):
+                    ui.icon("account_balance").style("color:var(--c-success)")
+                    ui.label("资产").classes("text-sm font-semibold")
+                    ui.label(f"— {date_str}").classes("text-xs").style("color:var(--c-text-muted)")
+            with ui.card_section().classes("p-0"):
+                ui.html(_build_bs_table("资产", bs.get("assets", []), "account_balance", "blue"), sanitize=False)
 
-            with ui.row().classes("w-full gap-0"):
-                # 左栏：资产
-                with ui.column().classes("w-1/2 pr-4"):
-                    with ui.card_section().classes("py-2 px-3 bg-green-50"):
-                        ui.label("资 产").classes("text-sm font-bold text-center uppercase tracking-widest") \
-                            .style("color:var(--c-success)")
-                    prev_assets = {r["name"]: r.get("end", 0) for r in bs_prev.get("assets", [])}
-                    rows_a = []
-                    for r in bs.get("assets", []):
-                        prev_val = prev_assets.get(r.get("name", ""), 0)
-                        end_val = r.get("end", 0)
-                        open_val = r.get("open", 0)
-                        change_pct = ((end_val - prev_val) / abs(prev_val) * 100) if prev_val else None
-                        rows_a.append({
-                            "name": r.get("name", ""), "code": r.get("code", "") or "",
-                            "end": format_amount(end_val),
-                            "open": format_amount(open_val),
-                            "prev": format_amount(prev_val) if prev_val else "—",
-                            "change": f"{change_pct:+.1f}%" if change_pct is not None else "—",
-                            "change_raw": change_pct,
-                            "level": r.get("level", 0),
-                            "type": r.get("type", ""),
-                        })
-                    cols_a = [
-                        {"name":"name","label":"项 目","field":"name","align":"left","headerClasses":HC,"classes":"text-sm","style":"min-width:120px"},
-                        {"name":"code","label":"行次","field":"code","align":"center","headerClasses":HC,"classes":"text-xs font-mono","style":"width:48px"},
-                        {"name":"end","label":"期末数","field":"end","align":"right","headerClasses":HC,"classes":"tabular-nums text-sm","style":num_style},
-                        {"name":"open","label":"年初数","field":"open","align":"right","headerClasses":HC,"classes":"tabular-nums text-sm","style":num_style},
-                        {"name":"prev","label":f"对比({label_prev})","field":"prev","align":"right","headerClasses":HC,"classes":"tabular-nums text-sm","style":num_style},
-                        {"name":"change","label":"变化率","field":"change","align":"right","headerClasses":HC,"classes":"tabular-nums text-xs","style":"width:72px"},
-                    ]
-                    tbl_a = ui.table(columns=cols_a, rows=rows_a, row_key="name", pagination=False).classes("w-full")
-                    tbl_a.add_slot("body-cell-name", r"""
-                        <q-td :props="props"
-                               :style="props.row.level===0 ? 'background:var(--c-success-light);font-weight:700;' : (props.row.level===2 ? 'padding-left:20px;' : '')">
-                            <span :class="props.row.level===0 ? 'font-bold text-positive' : 'text-sm text-secondary'">
-                                {{ props.row.name }}
-                            </span>
-                        </q-td>
-                    """)
-                    for col in ["end","open","prev"]:
-                        tbl_a.add_slot(f"body-cell-{col}", r"""
-                            <q-td :props="props" class="tabular-nums text-sm"
-                                   :style="props.row.level===0 ? 'background:var(--c-success-light);font-weight:700;' : ''">
-                                <span :class="props.row.level===0 ? 'font-bold text-positive' : 'text-positive'">
-                                    {{ props.row[""" + col + r"""] }}
-                                </span>
-                            </q-td>
-                        """)
-                    tbl_a.add_slot("body-cell-change", r"""
-                        <q-td :props="props" class="tabular-nums text-xs"
-                               :style="props.row.level===0 ? 'background:var(--c-success-light);font-weight:700;' : ''">
-                            <span :class="props.row.change_raw !== null ? (props.row.change_raw > 0 ? 'num-positive' : (props.row.change_raw < 0 ? 'num-negative' : 'text-muted')) : 'text-muted'">
-                                {{ props.row.change }}
-                            </span>
-                        </q-td>
-                    """)
+        # 负债
+        with ui.card().classes("w-full mt-2"):
+            with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
+                with ui.row().classes("items-center gap-2"):
+                    ui.icon("credit_card").style("color:var(--c-danger)")
+                    ui.label("负债").classes("text-sm font-semibold")
+            with ui.card_section().classes("p-0"):
+                ui.html(_build_bs_table("负债", bs.get("liabilities", []), "credit_card", "red"), sanitize=False)
 
-                # 右栏：负债+权益
-                with ui.column().classes("w-1/2 pl-4"):
-                    with ui.card_section().classes("py-2 px-3 bg-blue-50"):
-                        ui.label("负债和所有者权益").classes("text-sm font-bold text-center uppercase tracking-widest") \
-                            .style("color:var(--c-primary)")
-                    prev_le = {r["name"]: r.get("end", 0) for r in bs_prev.get("liabilities", []) + bs_prev.get("equity", [])}
-                    rows_l = []
-                    for r in bs.get("liabilities", []) + bs.get("equity", []):
-                        prev_val = prev_le.get(r.get("name", ""), 0)
-                        end_val = r.get("end", 0)
-                        open_val = r.get("open", 0)
-                        change_pct = ((end_val - prev_val) / abs(prev_val) * 100) if prev_val else None
-                        rows_l.append({
-                            "name": r.get("name", ""), "code": r.get("code", "") or "",
-                            "end": format_amount(end_val),
-                            "open": format_amount(open_val),
-                            "prev": format_amount(prev_val) if prev_val else "—",
-                            "change": f"{change_pct:+.1f}%" if change_pct is not None else "—",
-                            "change_raw": change_pct,
-                            "level": r.get("level", 0),
-                            "type": r.get("type", ""),
-                        })
-                    cols_l = [
-                        {"name":"name","label":"项 目","field":"name","align":"left","headerClasses":HC,"classes":"text-sm","style":"min-width:120px"},
-                        {"name":"code","label":"行次","field":"code","align":"center","headerClasses":HC,"classes":"text-xs font-mono","style":"width:48px"},
-                        {"name":"end","label":"期末数","field":"end","align":"right","headerClasses":HC,"classes":"tabular-nums text-sm","style":num_style},
-                        {"name":"open","label":"年初数","field":"open","align":"right","headerClasses":HC,"classes":"tabular-nums text-sm","style":num_style},
-                        {"name":"prev","label":f"对比({label_prev})","field":"prev","align":"right","headerClasses":HC,"classes":"tabular-nums text-sm","style":num_style},
-                        {"name":"change","label":"变化率","field":"change","align":"right","headerClasses":HC,"classes":"tabular-nums text-xs","style":"width:72px"},
-                    ]
-                    tbl_l = ui.table(columns=cols_l, rows=rows_l, row_key="name", pagination=False).classes("w-full")
-                    tbl_l.add_slot("body-cell-name", r"""
-                        <q-td :props="props"
-                               :style="props.row.level===0 ? 'background:var(--c-primary-light);font-weight:700;' : (props.row.level===2 ? 'padding-left:20px;' : '')">
-                            <span :class="props.row.level===0 ? 'font-bold text-primary' : 'text-sm text-secondary'">
-                                {{ props.row.name }}
-                            </span>
-                        </q-td>
-                    """)
-                    for col in ["end","open","prev"]:
-                        tbl_l.add_slot(f"body-cell-{col}", r"""
-                            <q-td :props="props" class="tabular-nums text-sm"
-                                   :style="props.row.level===0 ? 'background:var(--c-primary-light);font-weight:700;' : ''">
-                                <span :class="props.row.level===0 ? 'font-bold text-primary' : 'text-primary'">
-                                    {{ props.row[""" + col + r"""] }}
-                                </span>
-                            </q-td>
-                        """)
-                    tbl_l.add_slot("body-cell-change", r"""
-                        <q-td :props="props" class="tabular-nums text-xs"
-                               :style="props.row.level===0 ? 'background:var(--c-primary-light);font-weight:700;' : ''">
-                            <span :class="props.row.change_raw !== null ? (props.row.change_raw > 0 ? 'num-positive' : (props.row.change_raw < 0 ? 'num-negative' : 'text-muted')) : 'text-muted'">
-                                {{ props.row.change }}
-                            </span>
-                        </q-td>
-                    """)
+        # 所有者权益
+        with ui.card().classes("w-full mt-2"):
+            with ui.card_section().classes("py-2 px-3 border-b").style("border-color:var(--c-border-light)"):
+                with ui.row().classes("items-center gap-2"):
+                    ui.icon("savings").style("color:var(--c-primary)")
+                    ui.label("所有者权益").classes("text-sm font-semibold")
+            with ui.card_section().classes("p-0"):
+                ui.html(_build_bs_table("所有者权益", bs.get("equity", []), "savings", "green"), sanitize=False)
 
         # ── 平衡校验 ──
         with ui.card().classes("w-full"):
@@ -266,3 +210,8 @@ def _render_report_data(container, compare_mom):
                         ui.label("✅ 平衡").classes("font-bold ml-2").style("color:var(--c-success)")
                     else:
                         ui.label(f"❌ 差额 {format_amount(diff)}").classes("font-bold tabular-nums ml-2").style("color:var(--c-danger)")
+
+        # ── 追溯按钮 ──
+        with ui.row().classes("w-full gap-2 mt-2 justify-end"):
+            ui.button("查看科目余额表", icon="grid_on",
+                      on_click=lambda: navigate("trial_balance")).props("flat dense")

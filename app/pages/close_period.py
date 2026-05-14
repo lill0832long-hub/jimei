@@ -117,7 +117,23 @@ def _do_reverse_close(dialog):
         show_toast(f"反结转失败：{str(e)}", "error")
 
 def do_close_period(d):
+    """执行期末结转 — 先校验借贷平衡"""
     lid = state.selected_ledger_id
+    # 校验：科目余额表借贷是否平衡
+    try:
+        balances = ReportService.get_account_balances(lid, state.selected_year, state.selected_month)
+        if balances:
+            total_debit = sum(float(b.get("period_debit", 0) if b.get("period_debit") is not None else 0) for b in balances)
+            total_credit = sum(float(b.get("period_credit", 0) if b.get("period_credit") is not None else 0) for b in balances)
+            diff = abs(total_debit - total_credit)
+            if diff >= 0.01:
+                show_toast(f"借贷不平衡，差额 {format_amount(diff)}，请先修正凭证", "error")
+                return
+    except Exception as e:
+        show_toast(f"余额校验异常: {e}", "error")
+        return
+
+    # 校验通过，执行结转
     try:
         vn = LedgerService.close_period(lid, state.selected_year, state.selected_month)
         if vn:

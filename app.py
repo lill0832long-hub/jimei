@@ -45,6 +45,7 @@ from app.config import register_page
 from app.pages.dashboard import render_dashboard
 from app.pages.journal import render_journal, render_voucher_detail, render_voucher_detail_page
 from app.pages.reports import render_accounts, render_balance_sheet, render_income_statement
+from app.pages.trial_balance import render_trial_balance
 from app.pages.close_period import render_close_period
 from app.pages.charts import render_charts
 from app.pages.compare import render_compare
@@ -76,6 +77,7 @@ register_page("journal", render_journal)
 register_page("voucher_detail", render_voucher_detail_page)
 register_page("accounts", render_accounts)
 register_page("balance_sheet", render_balance_sheet)
+register_page("trial_balance", render_trial_balance)
 register_page("income_statement", render_income_statement)
 register_page("close_period", render_close_period)
 register_page("charts", render_charts)

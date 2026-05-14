@@ -7,7 +7,7 @@ DB_PATH = os.path.join(BASE_DIR, "finance.db")
 # ── 页面列表 ──
 PAGES = [
     "dashboard", "journal", "voucher_detail", "accounts",
-    "balance_sheet", "income_statement", "close_period",
+    "balance_sheet", "trial_balance", "income_statement", "close_period",
     "charts", "compare", "ai_assistant",
     "import", "export", "settings",
     "fixed_assets", "cashier", "auxiliary",

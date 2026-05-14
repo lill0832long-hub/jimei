@@ -2,7 +2,6 @@
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import refresh_main, format_amount
-from app.components.ui_components import SectionHeader
 from app.services import LedgerService, ReportService
 from app.pages.reports_export import _export_income_statement
 
@@ -48,14 +47,6 @@ def render_income_statement():
         with ui.card_section().classes("py-1.5 px-4 border-b").style("border-color:var(--c-border);background:var(--c-bg-hover)"):
             ui.label(f"📈 利润表 — {inc['date']}").classes("text-sm font-semibold").style("color:var(--c-text-secondary)")
 
-        cols = [
-            {"name":"name","label":"项 目","field":"name","align":"left","headerClasses":"table-header-cell text-uppercase"},
-            {"name":"code","label":"行次","field":"code","align":"center","headerClasses":"table-header-cell text-uppercase"},
-            {"name":"ytd","label":"本年累计","field":"ytd","align":"right","classes":"tabular-nums text-sm","headerClasses":"table-header-cell text-uppercase"},
-            {"name":"month","label":"本月金额","field":"month","align":"right","classes":"tabular-nums text-sm","headerClasses":"table-header-cell text-uppercase"},
-            {"name":"yoy","label":"去年同期","field":"yoy","align":"right","classes":"tabular-nums text-sm","headerClasses":"table-header-cell text-uppercase"},
-            {"name":"yoy_pct","label":"同比%","field":"yoy_pct","align":"right","classes":"tabular-nums text-xs","headerClasses":"table-header-cell text-uppercase","style":"width:72px"},
-        ]
         yoy_map = {r["name"]: r.get("ytd") for r in inc_yoy.get("rows", [])}
         rows = []
         for r in inc.get("rows", []):
@@ -79,51 +70,47 @@ def render_income_statement():
                 "profit_color": profit_color,
             })
 
-        tbl = ui.table(columns=cols, rows=rows, row_key="name", pagination=False).classes("w-full")
+        # ── HTML 表格渲染 ──
+        rows_html = ""
+        for r in rows:
+            row_type = r.get("type", "")
+            is_net = row_type == "total" or r["name"] == "净利润"
+            is_item = row_type.endswith("_item")
+            row_class = "tb-row-subtotal" if is_net else ("tb-row" if is_item else "")
+            profit_color = r.get("profit_color", "")
+            name_style = f"font-weight:700;{profit_color}" if is_net else ("padding-left:24px;" if is_item else "font-weight:600;")
+            ytd_val = r.get("ytd_raw")
+            ytd_display = format_amount(ytd_val) if ytd_val is not None else "—"
+            month_val = r.get("month")
+            month_display = format_amount(month_val) if month_val is not None else "—"
+            yoy_display = r.get("yoy", "—")
+            yoy_pct = r.get("yoy_pct", "—")
 
-        tbl.add_slot("body-cell-name", r"""
-            <q-td key="name" :props="props">
-                <span :class="{
-                    'font-bold': ['header','rev_total','expense_header','revenue_header','subtotal','total'].includes(props.row.type),
-                    'pl-4': props.row.level === 1,
-                    'pl-8': props.row.level === 2,
-                }" :style="['subtotal','total','rev_total'].includes(props.row.type) ? 'background:var(--c-bg-hover);' : ''">
-                    {{ props.row.name }}
-                </span>
-            </q-td>
-        """)
-        tbl.add_slot("body-cell-ytd", r"""
-            <q-td key="ytd" :props="props" class="tabular-nums"
-                  :style="(props.row.type === 'total' && props.row.ytd_raw < 0 ? 'color:var(--c-danger);' : '') + (['subtotal','total','rev_total'].includes(props.row.type) ? 'background:var(--c-bg-hover);font-weight:700;' : '')">
-                <span :class="{'font-bold': ['header','rev_total','expense_header','revenue_header','subtotal','total'].includes(props.row.type)}">
-                    {{ props.row.ytd }}
-                </span>
-            </q-td>
-        """)
-        tbl.add_slot("body-cell-month", r"""
-            <q-td key="month" :props="props" class="tabular-nums"
-                  :style="['subtotal','total','rev_total'].includes(props.row.type) ? 'background:var(--c-bg-hover);' : ''">
-                <span :class="{'font-bold': ['header','rev_total','expense_header','revenue_header','subtotal','total'].includes(props.row.type)}">
-                    {{ props.row.month }}
-                </span>
-            </q-td>
-        """)
-        tbl.add_slot("body-cell-yoy", r"""
-            <q-td key="yoy" :props="props" class="tabular-nums"
-                  :style="['subtotal','total','rev_total'].includes(props.row.type) ? 'background:var(--c-bg-hover);' : ''">
-                {{ props.row.yoy }}
-            </q-td>
-        """)
-        tbl.add_slot("body-cell-yoy_pct", r"""
-            <q-td key="yoy_pct" :props="props" class="tabular-nums"
-                  :style="['subtotal','total','rev_total'].includes(props.row.type) ? 'background:var(--c-bg-hover);' : ''">
-                <span :class="props.row.yoy_pct.startsWith('-') ? 'num-negative' : (props.row.yoy_pct.startsWith('+') ? 'num-positive' : 'text-muted')">
-                    {{ props.row.yoy_pct }}
-                </span>
-            </q-td>
-        """)
-        tbl.add_slot("body-cell-code", r"""
-            <q-td key="code" :props="props" class="text-muted text-xs font-mono tabular-nums">
-                {{ props.row.code }}
-            </q-td>
-        """)
+            rows_html += f'''<tr class="tb-row {row_class}">
+                <td class="tb-td" style="{name_style}">{r["name"]}</td>
+                <td class="tb-td tb-td-num">{ytd_display}</td>
+                <td class="tb-td tb-td-num">{month_display}</td>
+                <td class="tb-td tb-td-num">{yoy_display}</td>
+                <td class="tb-td tb-td-num">{yoy_pct}</td>
+            </tr>'''
+
+        table_html = f'''<table class="tb-table" id="tb_income">
+        <thead>
+            <tr>
+                <th class="tb-th" style="text-align:left">项目</th>
+                <th class="tb-th tb-th-num">本年累计</th>
+                <th class="tb-th tb-th-num">本月金额</th>
+                <th class="tb-th tb-th-num">去年同期</th>
+                <th class="tb-th tb-th-num">同比</th>
+            </tr>
+        </thead>
+        <tbody>{rows_html}</tbody>
+        </table>'''
+
+        with ui.card_section().classes("p-0"):
+            ui.html(table_html, sanitize=False)
+
+    # ── 追溯按钮 ──
+    with ui.row().classes("w-full gap-2 mt-2 justify-end"):
+        ui.button("查看科目余额表", icon="grid_on",
+                  on_click=lambda: navigate("trial_balance")).props("flat dense")

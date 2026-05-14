@@ -303,4 +303,7 @@ def render_cash_flow_statement():
 
         tbl.on("drill", _on_drill)
 
-
+    # ── 追溯按钮 ──
+    with ui.row().classes("w-full gap-2 mt-3 justify-end"):
+        ui.button("查看科目余额表", icon="grid_on",
+                  on_click=lambda: navigate("trial_balance")).props("flat dense")

@@ -318,6 +318,7 @@ _nav_groups = [
         "label": "报表中心",
         "icon": "assessment",
         "items": [
+            ("trial_balance", "科目余额表", "grid_on"),
             ("balance_sheet", "资产负债表", "account_balance"),
             ("income_statement", "利润表", "trending_up"),
             ("cash_flow", "现金流量表", "waterfall_chart"),
