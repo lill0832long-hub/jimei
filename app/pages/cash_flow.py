@@ -20,13 +20,17 @@ def render_cash_flow():
     year, month = state.selected_year, state.selected_month
 
     # 获取现金流量数据（直接法）
-    cf = ReportService.get_cash_flow_statement(lid, year, month, method="direct") or {}
+    try:
+        cf = ReportService.get_cash_flow_statement(lid, year, month) or {}
+    except Exception:
+        cf = {}
 
-    if not cf.get("operating"):
+    if not cf or not cf.get("operating"):
         with ui.card().classes("w-full"):
             with ui.card_section().classes("py-12 text-center"):
-                ui.icon("waterfall_chart").style("font-size: 48px; color: var(--gray-300)")
-                ui.label("暂无现金流量数据").classes("text-lg font-semibold text-grey-4 mt-4")
+                ui.icon("waterfall_chart").style("font-size: 48px; color: var(--c-text-muted)")
+                ui.label("暂无现金流量数据").classes("text-lg font-semibold mt-4").style("color:var(--c-text-muted)")
+                ui.label("请先在凭证中标记现金流分类").classes("text-sm mt-2").style("color:var(--c-text-muted)")
         return
 
     with ui.row().classes("w-full gap-3"):

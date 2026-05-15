@@ -1,4 +1,4 @@
-"""凭证表单 v4 — 传统 Excel 记账凭证风格（NiceGUI 组件 + 原生 HTML 表格）"""
+"""凭证表单 v5 — 传统记账凭证格式，打印友好"""
 import html as html_mod
 import json
 
@@ -10,10 +10,10 @@ from app.services import AccountService, LedgerService, VoucherService, Currency
 
 
 def _generate_voucher_no(lid, voucher_type="记"):
-    from datetime import datetime as _dt
-    prefix = f"{voucher_type}-{_dt.now().strftime('%Y%m')}-"
+    import datetime as _dt
+    prefix = f"{voucher_type}-{_dt.datetime.now().strftime('%Y%m')}-"
     try:
-        existing = VoucherService.get_all(lid, _dt.now().year, _dt.now().month, limit=200)
+        existing = VoucherService.get_all(lid, _dt.datetime.now().year, _dt.datetime.now().month, limit=200)
         max_seq = 0
         for v in existing:
             vn = v.get("voucher_no", "")
@@ -44,12 +44,13 @@ def show_edit_voucher_dialog(detail):
     _render_voucher_form_dialog(detail=detail)
 
 
-# ─── 原生 HTML 表格方案（Excel 风格，打印友好） ───
-
+# ─── 打印 & 交互 JS ───
 _VC_JS = '''
 <script>
-if (!window.v4calcTotals) {
-    window.v4calcTotals = function() {
+if (!window.v5init) {
+    window.v5init = true;
+
+    window.v5calcTotals = function() {
         var rows = document.querySelectorAll('#vcBody tr');
         var tDr = 0, tCr = 0;
         rows.forEach(function(row, idx) {
@@ -75,52 +76,58 @@ if (!window.v4calcTotals) {
             }
         }
     };
-    window.v4delRow = function(btn) {
+
+    window.v5delRow = function(btn) {
         var row = btn.closest('tr');
         var tbody = row.closest('tbody');
         if (tbody && tbody.querySelectorAll('tr').length > 1) {
             row.remove();
-            v4calcTotals();
+            v5calcTotals();
         }
     };
-    window.v4addRow = function(acctOpts) {
+
+    window.v5addRow = function(acctOpts) {
         var tbody = document.getElementById('vcBody');
         if (!tbody) return;
         var idx = tbody.querySelectorAll('tr').length;
         var tr = document.createElement('tr');
-        tr.innerHTML = '<td class="vctd vctd-seq">' + (idx+1) + '</td>'
+        tr.innerHTML =
+            '<td class="vctd vctd-seq">' + (idx+1) + '</td>'
             + '<td class="vctd vctd-summary"><input type="text" class="vctd-inp" name="r' + idx + '_summ" value="" placeholder="摘要" /></td>'
             + '<td class="vctd vctd-acct"><select class="vctd-sel" name="r' + idx + '_acct">' + acctOpts + '</select></td>'
             + '<td class="vctd vctd-debit"><input type="number" class="vctd-inp vctd-num" name="r' + idx + '_dr" value="" placeholder="0.00" step="0.01" min="0" /></td>'
             + '<td class="vctd vctd-credit"><input type="number" class="vctd-inp vctd-num" name="r' + idx + '_cr" value="" placeholder="0.00" step="0.01" min="0" /></td>'
-            + '<td class="vctd vctd-del"><button type="button" class="vctd-del-btn" onclick="v4delRow(this)">✕</button></td>';
+            + '<td class="vctd vctd-del"><button type="button" class="vctd-del-btn" onclick="v5delRow(this)">✕</button></td>';
         tbody.appendChild(tr);
         tr.querySelectorAll('.vctd-num').forEach(function(inp) {
-            inp.addEventListener('input', v4calcTotals);
+            inp.addEventListener('input', v5calcTotals);
         });
-        v4calcTotals();
+        v5calcTotals();
     };
-    window.v4rebuildTable = function(acctOpts, entries) {
+
+    window.v5rebuildTable = function(acctOpts, entries) {
         var tbody = document.getElementById('vcBody');
         if (!tbody) return;
         tbody.innerHTML = '';
         entries.forEach(function(e, idx) {
             var sel = acctOpts.replace('value="' + e.acct_code + '"', 'value="' + e.acct_code + '" selected');
             var tr = document.createElement('tr');
-            tr.innerHTML = '<td class="vctd vctd-seq">' + (idx+1) + '</td>'
+            tr.innerHTML =
+                '<td class="vctd vctd-seq">' + (idx+1) + '</td>'
                 + '<td class="vctd vctd-summary"><input type="text" class="vctd-inp" name="r' + idx + '_summ" value="' + (e.summary || '') + '" placeholder="摘要" /></td>'
                 + '<td class="vctd vctd-acct"><select class="vctd-sel" name="r' + idx + '_acct">' + sel + '</select></td>'
                 + '<td class="vctd vctd-debit"><input type="number" class="vctd-inp vctd-num" name="r' + idx + '_dr" value="' + (e.debit || '') + '" placeholder="0.00" step="0.01" min="0" /></td>'
                 + '<td class="vctd vctd-credit"><input type="number" class="vctd-inp vctd-num" name="r' + idx + '_cr" value="' + (e.credit || '') + '" placeholder="0.00" step="0.01" min="0" /></td>'
-                + '<td class="vctd vctd-del"><button type="button" class="vctd-del-btn" onclick="v4delRow(this)">✕</button></td>';
+                + '<td class="vctd vctd-del"><button type="button" class="vctd-del-btn" onclick="v5delRow(this)">✕</button></td>';
             tbody.appendChild(tr);
             tr.querySelectorAll('.vctd-num').forEach(function(inp) {
-                inp.addEventListener('input', v4calcTotals);
+                inp.addEventListener('input', v5calcTotals);
             });
         });
-        v4calcTotals();
+        v5calcTotals();
     };
-    window.v4collectEntries = function() {
+
+    window.v5collectEntries = function() {
         var rows = document.querySelectorAll('#vcBody tr');
         var entries = [];
         rows.forEach(function(row) {
@@ -138,7 +145,7 @@ if (!window.v4calcTotals) {
 
 
 def _render_voucher_form_dialog(detail=None):
-    """凭证表单 v4 — 传统 Excel 记账凭证风格"""
+    """凭证表单 v5 — 传统记账凭证格式，打印友好"""
     ui.add_body_html(_VC_JS, shared=True)
     d = ui.dialog()
     is_edit = detail is not None
@@ -146,8 +153,6 @@ def _render_voucher_form_dialog(detail=None):
     _acct_data = AccountService.get_all()
     acct_opts_list = sorted([(a["code"], f"{a['code']} {a['name']}") for a in _acct_data])
     _acct_map = {a["code"]: a for a in _acct_data}
-
-    _ccys = CurrencyService.get_active_codes()
 
     # 初始化分录数据
     init_entries = []
@@ -181,21 +186,20 @@ def _render_voucher_form_dialog(detail=None):
         for i, e in enumerate(entries):
             acct_sel = _acct_options_html(e.get("acct_code", ""))
             summ_val = html_mod.escape(e.get("summary", ""), quote=True)
-            debit_val = html_mod.escape(e.get("debit", ""), quote=True)
-            credit_val = html_mod.escape(e.get("credit", ""), quote=True)
+            debit_val = html_mod.escape(str(e.get("debit", "")), quote=True)
+            credit_val = html_mod.escape(str(e.get("credit", "")), quote=True)
             rows += f'''<tr>
                 <td class="vctd vctd-seq">{i + 1}</td>
                 <td class="vctd vctd-summary"><input type="text" class="vctd-inp" name="r{i}_summ" value="{summ_val}" placeholder="摘要" /></td>
                 <td class="vctd vctd-acct"><select class="vctd-sel" name="r{i}_acct">{acct_sel}</select></td>
                 <td class="vctd vctd-debit"><input type="number" class="vctd-inp vctd-num" name="r{i}_dr" value="{debit_val}" placeholder="0.00" step="0.01" min="0" /></td>
                 <td class="vctd vctd-credit"><input type="number" class="vctd-inp vctd-num" name="r{i}_cr" value="{credit_val}" placeholder="0.00" step="0.01" min="0" /></td>
-                <td class="vctd vctd-del"><button type="button" class="vctd-del-btn" onclick="v4delRow(this)">&times;</button></td>
+                <td class="vctd vctd-del"><button type="button" class="vctd-del-btn" onclick="v5delRow(this)">&times;</button></td>
             </tr>'''
         return rows
 
     def _build_table_html(entries):
         rows = _build_rows_html(entries)
-        # 计算初始合计
         tDr = sum(float(e.get("debit", 0) or 0) for e in entries)
         tCr = sum(float(e.get("credit", 0) or 0) for e in entries)
         return f'''<table class="vctable" id="vcTable">
@@ -233,26 +237,26 @@ def _render_voucher_form_dialog(detail=None):
     default_desc = detail.get("description", "") if is_edit else ""
     vn = detail.get("voucher_no", "") if is_edit else _generate_voucher_no(state.selected_ledger_id)
 
-    with d, ui.card().classes("w-[980px] max-w-[96vw] rounded-lg shadow-xl"):
+    with d, ui.card().classes("vcdialog"):
         # ── 标题栏 ──
-        with ui.card_section().classes("py-3 px-5 bg-indigo-600 text-white rounded-t-lg"):
+        with ui.card_section().classes("vcheader"):
             with ui.row().classes("w-full items-center justify-between"):
-                label = f"✏️ 编辑凭证" if is_edit else "📝 新增记账凭证"
-                ui.label(label).classes("text-lg font-bold tracking-wide")
+                label = "✏️ 编辑凭证" if is_edit else "📝 记账凭证"
+                ui.label(label).classes("vcheader-title")
                 with ui.column().classes("items-end gap-0"):
-                    ui.label(f"凭证号：{vn}").classes("text-sm font-mono opacity-90")
+                    ui.label(f"凭证号：{vn}").classes("vcheader-vn")
                     if is_edit:
-                        ui.label(f"日期：{default_date}").classes("text-xs opacity-75")
+                        ui.label(f"日期：{default_date}").classes("vcheader-date")
 
         # ── 凭证头信息 ──
-        with ui.card_section().classes("py-3 px-5 bg-indigo-50 border-b border-indigo-100"):
+        with ui.card_section().classes("vcheader-fields"):
             with ui.row().classes("w-full gap-4 items-center"):
                 vtype_sel = ui.select(vtype_opts, value=default_vtype, label="凭证字").props("outlined dense").classes("w-24")
                 date_input = ui.input("日期", value=default_date).props("type=date outlined dense").classes("w-40")
                 attach_input = ui.number("附件数", value=(detail.get("attach_count", 0) if is_edit else 0), precision=0).props("outlined dense").classes("w-20")
 
         # ── 摘要 ──
-        with ui.card_section().classes("py-2 px-5 border-b border-grey-100"):
+        with ui.card_section().classes("vcsection-desc"):
             desc_input = ui.input("凭证摘要", value=default_desc, placeholder="请输入凭证摘要...").props("outlined dense").classes("w-full")
 
         # ── 凭证模板 ──
@@ -262,10 +266,10 @@ def _render_voucher_form_dialog(detail=None):
             except Exception:
                 _templates = []
             if _templates:
-                with ui.card_section().classes("py-2 px-5 bg-amber-50 border-b border-amber-100"):
+                with ui.card_section().classes("vcsection-tpl"):
                     with ui.row().classes("items-center gap-2 flex-wrap"):
                         ui.icon("description", size="sm").classes("text-amber-600")
-                        ui.label("凭证模板").classes("text-xs font-semibold").classes("text-amber-700")
+                        ui.label("凭证模板").classes("text-xs font-semibold text-amber-700")
                         template_opts = {t["id"]: t["name"] for t in _templates}
                         template_select = ui.select(options=template_opts, value=None, label="选择模板").props("outlined dense clearable").classes("w-48")
 
@@ -294,7 +298,7 @@ def _render_voucher_form_dialog(detail=None):
                                     new_entries.append({"acct_code": "", "summary": "", "debit": "", "credit": ""})
                                 acct_opts_json = json.dumps(_acct_options_html())
                                 entries_json = json.dumps(new_entries)
-                                ui.run_javascript(f"v4rebuildTable({acct_opts_json}, {entries_json});")
+                                ui.run_javascript(f"v5rebuildTable({acct_opts_json}, {entries_json});")
                                 show_toast(f"已应用模板：{tpl['name']}", "success")
                             except Exception as e:
                                 show_toast(f"应用模板失败: {e}", "error")
@@ -302,26 +306,27 @@ def _render_voucher_form_dialog(detail=None):
                         ui.button("应用", on_click=_on_tpl_apply).props("dense color=warning").classes("px-3 text-xs")
 
         # ── 分录明细表格 ──
-        with ui.card_section().classes("p-0"):
+        with ui.card_section().classes("vcsection-table"):
             table_html = _build_table_html(init_entries)
             ui.html(table_html, sanitize=False)
             ui.run_javascript("""
                 document.querySelectorAll('#vcBody .vctd-num').forEach(function(inp) {
-                    inp.addEventListener('input', v4calcTotals);
+                    inp.addEventListener('input', v5calcTotals);
                 });
-                v4calcTotals();
+                v5calcTotals();
             """)
 
         # ── 操作按钮 ──
-        with ui.card_section().classes("py-3 px-5 border-t border-grey-100"):
+        with ui.card_section().classes("vcsection-actions"):
             with ui.row().classes("w-full justify-between items-center"):
                 with ui.row().classes("gap-2"):
                     acct_opts_json = json.dumps(_acct_options_html())
-                    ui.button("➕ 添加行", on_click=lambda: ui.run_javascript(f"v4addRow({acct_opts_json});")).props("dense flat color=primary").classes("text-sm")
-                with ui.row().classes("gap-3 items-center"):
+                    ui.button("➕ 添加行", on_click=lambda: ui.run_javascript(f"v5addRow({acct_opts_json});")).props("dense flat color=primary").classes("text-sm")
+                with ui.row().classes("gap-2 items-center"):
+                    ui.button("🖨️ 打印", on_click=lambda: ui.run_javascript("window.print();")).props("dense").classes("text-sm")
+                    ui.button("取消", on_click=d.close).props("flat")
                     if not is_edit:
                         save_draft = ui.checkbox("存为草稿", value=False).classes("text-xs")
-                    ui.button("取消", on_click=d.close).props("flat")
                     if is_edit:
                         edit_save_btn = ui.button("💾 保存修改", color="primary", on_click=None).props("unelevated")
                         async def _on_edit_click():
@@ -342,19 +347,19 @@ def _render_voucher_form_dialog(detail=None):
                         new_save_btn.on_click(_on_save_click)
 
         # ── 底部签章 ──
-        with ui.card_section().classes("py-2 px-5 border-t border-grey-100 bg-grey-50 rounded-b-lg"):
-            with ui.row().classes("w-full justify-between gap-4 text-xs text-grey-500"):
+        with ui.card_section().classes("vcsection-footer"):
+            with ui.row().classes("w-full justify-between gap-4"):
                 maker = state.current_user.get('username', '') if state.current_user else ''
-                ui.label(f"制单：{maker}")
-                ui.label("审核：__________")
-                ui.label("记账：__________")
+                ui.label(f"制单人：{maker}").classes("vcfooter-field")
+                ui.label("审核人：__________").classes("vcfooter-field")
+                ui.label("记账人：__________").classes("vcfooter-field")
 
     d.open()
 
 
 async def _collect_entries(acct_map):
     """从 JS 收集分录数据并验证。"""
-    raw = await ui.run_javascript("return v4collectEntries();")
+    raw = await ui.run_javascript("return v5collectEntries();")
     try:
         entries_raw = json.loads(raw) if isinstance(raw, str) else json.loads(str(raw))
     except Exception as e:

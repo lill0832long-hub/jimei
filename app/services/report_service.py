@@ -114,10 +114,10 @@ class ReportService:
 
     # ── 现金流（暂保留旧实现） ──
     @staticmethod
-    def get_cash_flow_statement(ledger_id, year, month):
+    def get_cash_flow_statement(ledger_id, year, month, method="direct"):
         # TODO: migrate to repository pattern
         from database.cash_flow import get_cash_flow_statement
-        return get_cash_flow_statement(ledger_id, year, month)
+        return get_cash_flow_statement(ledger_id, year, month, method=method)
 
     @staticmethod
     def get_cash_flow_categories(ledger_id):
