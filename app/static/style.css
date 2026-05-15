@@ -829,221 +829,220 @@ body[data-theme="dark"] .skeleton {
 
 
 
-/* ===== 凭证表单 v5 — 传统记账凭证，打印友好 ===== */
+/* ===== 凭证表单 v5 — 传统记账凭证，白底黑线，打印友好 ===== */
 .vcdialog {
     width: 980px !important;
     max-width: 96vw !important;
+    background: #fff !important;
+    border: 2px solid #1a1a1a !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+.vcdialog .q-card {
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: #fff !important;
 }
 
-/* 标题栏 */
+/* 标题栏 — 白底黑字 */
 .vcheader {
-    padding: 14px 20px !important;
-    background: linear-gradient(135deg, #1e3a5f 0%, #2563EB 100%) !important;
-    color: #fff !important;
-    border-radius: 12px 12px 0 0 !important;
+    padding: 16px 24px 10px !important;
+    background: #fff !important;
+    color: #1a1a1a !important;
+    border-bottom: 1px solid #1a1a1a !important;
+    border-radius: 0 !important;
+    text-align: center !important;
 }
-.vcheader-title {
-    font-size: 18px !important;
+.vcheader .vcheader-title {
+    font-size: 22px !important;
     font-weight: 700 !important;
-    letter-spacing: 2px;
-    color: #fff !important;
+    letter-spacing: 8px !important;
+    color: #1a1a1a !important;
 }
-.vcheader-vn {
-    font-size: 13px !important;
-    font-family: "Consolas", monospace;
-    opacity: 0.9;
-    color: #fff !important;
-}
-.vcheader-date {
-    font-size: 11px !important;
-    opacity: 0.75;
-    color: #fff !important;
+.vcheader .text-xs,
+.vcheader .vcheader-vn,
+.vcheader .vcheader-date {
+    font-size: 12px !important;
+    color: #1a1a1a !important;
+    opacity: 1 !important;
 }
 
-/* 凭证头字段 */
-.vcheader-fields {
-    padding: 10px 20px !important;
-    background: #EEF2FF !important;
-    border-bottom: 1px solid #C7D2FE !important;
-}
-
-/* 摘要区 */
-.vcsection-desc {
-    padding: 8px 20px !important;
-    border-bottom: 1px solid #E5E7EB !important;
+/* 摘要+附件行 */
+.vcsection-meta {
+    padding: 8px 24px !important;
+    background: #fff !important;
+    border-bottom: 1px solid #1a1a1a !important;
 }
 
 /* 模板区 */
 .vcsection-tpl {
-    padding: 8px 20px !important;
-    background: #FFFBEB !important;
-    border-bottom: 1px solid #FDE68A !important;
+    padding: 6px 24px !important;
+    background: #fafafa !important;
+    border-bottom: 1px solid #1a1a1a !important;
 }
 
 /* 表格区 */
 .vcsection-table {
     padding: 0 !important;
-}
-
-/* 操作按钮区 */
-.vcsection-actions {
-    padding: 12px 20px !important;
-    border-top: 1px solid #E5E7EB !important;
+    background: #fff !important;
 }
 
 /* 底部签章 */
 .vcsection-footer {
-    padding: 10px 20px !important;
-    border-top: 1px solid #E5E7EB !important;
-    background: #F9FAFB !important;
-    border-radius: 0 0 12px 12px !important;
-}
-.vcfooter-field {
-    font-size: 12px !important;
-    color: #9CA3AF !important;
-    flex: 1;
-    text-align: center;
+    padding: 10px 24px !important;
+    border-top: 1px solid #1a1a1a !important;
+    background: #fff !important;
+    border-radius: 0 !important;
 }
 
-/* 凭证表格本体 */
+/* 保存按钮区 */
+.vcsection-save {
+    padding: 12px 24px !important;
+    border-top: 1px solid #1a1a1a !important;
+    background: #fff !important;
+}
+
+/* 凭证表格本体 — 纯黑线 */
 .vctable {
-    width: 100%;
-    border-collapse: collapse;
-    border: 2px solid #1F2937;
-    font-size: 13px;
-    table-layout: fixed;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    border: 2px solid #1a1a1a !important;
+    font-size: 13px !important;
+    table-layout: fixed !important;
+    background: #fff !important;
 }
 .vctable thead tr {
-    background: #F3F4F6;
+    background: #fff !important;
 }
 .vcth {
-    border: 1px solid #1F2937;
-    padding: 8px 10px;
-    text-align: center;
-    font-weight: 700;
-    color: #1F2937;
-    font-size: 13px;
-    white-space: nowrap;
-    letter-spacing: 2px;
+    border: 1px solid #1a1a1a !important;
+    padding: 8px 10px !important;
+    text-align: center !important;
+    font-weight: 700 !important;
+    color: #1a1a1a !important;
+    font-size: 13px !important;
+    white-space: nowrap !important;
+    letter-spacing: 2px !important;
+    background: #fff !important;
 }
-.vcth-seq     { width: 42px; }
-.vcth-summary { width: auto; }
-.vcth-acct    { width: 220px; }
-.vcth-debit   { width: 140px; }
-.vcth-credit  { width: 140px; }
-.vcth-del     { width: 32px; }
+.vcth-seq     { width: 42px !important; }
+.vcth-summary { width: auto !important; }
+.vcth-acct    { width: 220px !important; }
+.vcth-debit   { width: 140px !important; }
+.vcth-credit  { width: 140px !important; }
+.vcth-del     { width: 32px !important; }
 
 .vctd {
-    border: 1px solid #6B7280;
-    padding: 0;
-    vertical-align: middle;
-    height: 38px;
+    border: 1px solid #1a1a1a !important;
+    padding: 0 !important;
+    vertical-align: middle !important;
+    height: 38px !important;
+    background: #fff !important;
 }
 .vctd-seq {
-    text-align: center;
-    color: #9CA3AF;
-    font-size: 12px;
-    padding: 4px 0;
-    background: #F9FAFB;
-    border-right: 1px solid #1F2937;
+    text-align: center !important;
+    color: #1a1a1a !important;
+    font-size: 12px !important;
+    padding: 4px 0 !important;
+    background: #fff !important;
 }
 .vctd-summary {}
 .vctd-acct   {}
-.vctd-debit  { text-align: right; }
-.vctd-credit { text-align: right; }
-.vctd-del    { text-align: center; }
+.vctd-debit  { text-align: right !important; }
+.vctd-credit { text-align: right !important; }
+.vctd-del    { text-align: center !important; }
 
 .vctd-inp {
-    width: 100%;
-    border: none;
-    outline: none;
-    padding: 8px 10px;
-    font-size: 13px;
-    background: transparent;
-    box-sizing: border-box;
+    width: 100% !important;
+    border: none !important;
+    outline: none !important;
+    padding: 8px 10px !important;
+    font-size: 13px !important;
+    background: transparent !important;
+    box-sizing: border-box !important;
+    color: #1a1a1a !important;
 }
 .vctd-inp:focus {
-    background: #FFFBEB;
-    box-shadow: inset 0 0 0 2px #2563EB;
+    background: #fffbeb !important;
+    box-shadow: inset 0 0 0 2px #1a1a1a !important;
 }
 .vctd-num {
-    text-align: right;
-    font-family: "Consolas", "Courier New", monospace;
+    text-align: right !important;
+    font-family: "Consolas", "Courier New", monospace !important;
 }
 .vctd-sel {
-    width: 100%;
-    border: none;
-    outline: none;
-    padding: 8px 6px;
-    font-size: 13px;
-    background: transparent;
-    box-sizing: border-box;
-    cursor: pointer;
+    width: 100% !important;
+    border: none !important;
+    outline: none !important;
+    padding: 8px 6px !important;
+    font-size: 13px !important;
+    background: transparent !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+    color: #1a1a1a !important;
 }
 .vctd-sel:focus {
-    background: #FFFBEB;
-    box-shadow: inset 0 0 0 2px #2563EB;
+    background: #fffbeb !important;
+    box-shadow: inset 0 0 0 2px #1a1a1a !important;
 }
 .vctd-del-btn {
-    background: none;
-    border: none;
-    color: #9CA3AF;
-    cursor: pointer;
-    font-size: 16px;
-    padding: 2px 6px;
-    border-radius: 3px;
-    transition: all 0.15s;
+    background: none !important;
+    border: none !important;
+    color: #999 !important;
+    cursor: pointer !important;
+    font-size: 16px !important;
+    padding: 2px 6px !important;
+    border-radius: 0 !important;
 }
 .vctd-del-btn:hover {
-    color: #DC2626;
-    background: #FEF2F2;
+    color: #1a1a1a !important;
+    background: #f0f0f0 !important;
 }
 
 /* 合计行 */
 .vctfoot-total td {
-    border: 1px solid #1F2937;
-    border-top: 2px solid #1F2937;
-    padding: 10px 10px;
-    font-weight: 700;
-    background: #F3F4F6;
-    font-size: 14px;
+    border: 1px solid #1a1a1a !important;
+    border-top: 2px solid #1a1a1a !important;
+    padding: 10px 10px !important;
+    font-weight: 700 !important;
+    background: #fff !important;
+    font-size: 14px !important;
+    color: #1a1a1a !important;
 }
 .vctfoot-label {
-    text-align: center;
-    color: #1F2937;
-    letter-spacing: 4px;
+    text-align: center !important;
+    color: #1a1a1a !important;
+    letter-spacing: 4px !important;
 }
 .vc-total-debit,
 .vc-total-credit {
-    font-family: "Consolas", "Courier New", monospace;
-    font-size: 14px;
-    color: #1E3A5F;
+    font-family: "Consolas", "Courier New", monospace !important;
+    font-size: 14px !important;
+    color: #1a1a1a !important;
 }
 
 /* 平衡校验行 */
-.vctfoot-balance td,
-.vctfoot-balance-cell {
-    padding: 8px 12px;
-    text-align: center;
-    font-size: 13px;
-    font-weight: 600;
-    border: 1px solid #1F2937;
-    border-top: none;
-    background: #F9FAFB;
+.vctfoot-balance {
+    padding: 8px 12px !important;
+    text-align: center !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    border: 1px solid #1a1a1a !important;
+    border-top: none !important;
+    background: #fff !important;
 }
-.vc-balance-ok   { color: #16A34A; }
-.vc-balance-bad  { color: #DC2626; }
+.vc-balance-ok   { color: #16a34a !important; }
+.vc-balance-bad  { color: #dc2626 !important; }
 
 /* 打印优化 — 凭证表单 */
 @media print {
-    /* 只打印凭证表单内容 */
     body {
         background: #fff !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
     .vctd-del, .vcth-del,
-    .vcsection-actions,
+    .vcsection-save,
     .q-dialog__backdrop {
         display: none !important;
     }
@@ -1051,28 +1050,18 @@ body[data-theme="dark"] .skeleton {
         width: 100% !important;
         max-width: 100% !important;
         box-shadow: none !important;
-        border: none !important;
-    }
-    .vcheader {
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-        background: #1e3a5f !important;
-        color: #fff !important;
+        border: 2px solid #000 !important;
     }
     .vctable {
         border: 2px solid #000 !important;
     }
-    .vcth, .vctd {
+    .vcth, .vctd, .vctfoot-total td {
         border-color: #000 !important;
-    }
-    .vctfoot-total td {
-        border-top: 2px solid #000 !important;
     }
     .vctd-inp, .vctd-sel {
         border: none !important;
         background: transparent !important;
     }
-    /* 打印时隐藏不需要的元素 */
     .header-bar,
     .sidebar-nav,
     .bottom-nav,
@@ -1085,9 +1074,6 @@ body[data-theme="dark"] .skeleton {
         padding: 0 !important;
         overflow: visible !important;
         margin: 0 !important;
-    }
-    .q-card {
-        box-shadow: none !important;
     }
 }
 
@@ -1131,20 +1117,6 @@ body[data-theme="dark"] .skeleton {
 .tb-row:hover { background: var(--c-bg-hover); }
 .tb-row-subtotal { background: var(--c-bg-hover); }
 .tb-row-subtotal:hover { background: var(--c-border-light); }
-
-/* 打印优化 */
-@media print {
-    .vctd-del, .vcth-del { display: none !important; }
-    .vctable { border: 2px solid #000 !important; }
-    .vcth, .vctd { border-color: #000 !important; }
-    .vctfoot-total td { border-top: 2px solid #000 !important; }
-}
-
-/* 响应式 */
-@media (max-width: 768px) {
-    .vcth-acct { width: 140px; }
-    .vcth-debit, .vcth-credit { width: 90px; }
-}
 
 /* ================================================================
    SectionHeader — 分组标题栏
