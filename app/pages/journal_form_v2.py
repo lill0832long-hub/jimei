@@ -244,22 +244,22 @@ def _render_voucher_form_dialog(detail=None):
             # 第二行：凭证字 + 凭证号 + 日期
             with ui.row().classes("w-full items-center justify-between"):
                 # 凭证字
-                with ui.row().items-center().classes("gap-2"):
+                with ui.row().classes("items-center gap-2"):
                     ui.label("凭证字：").style("font-size:13px;color:#333")
                     vtype_sel = ui.select(vtype_opts, value=default_vtype).props("outlined dense").classes("vctype-sel")
                 # 凭证号
                 ui.label(f"No. {vn}").style("font-size:14px;font-weight:700;font-family:Consolas,monospace;color:#1a1a1a")
                 # 日期
-                with ui.row().items-center().classes("gap-2"):
+                with ui.row().classes("items-center gap-2"):
                     ui.label("日期：").style("font-size:13px;color:#333")
                     date_input = ui.input(value=default_date).props("type=date outlined dense").classes("vcdate-inp")
 
         # ── 摘要 + 附件 ──
         with ui.card_section().classes("vcsection-meta").style("padding:8px 16px;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center"):
-            with ui.row().items-center().classes("gap-2"):
+            with ui.row().classes("items-center gap-2"):
                 ui.label("摘要：").style("font-size:13px;font-weight:600;color:#1a1a1a")
                 desc_input = ui.input(value=default_desc, placeholder="请输入凭证摘要...").props("outlined dense").classes("vcsummary-inp")
-            with ui.row().items-center().classes("gap-2"):
+            with ui.row().classes("items-center gap-2"):
                 ui.label("附件：").style("font-size:13px;color:#333")
                 attach_input = ui.number(value=attach_count, precision=0).props("outlined dense").classes("vcattach-inp")
                 ui.label("张").style("font-size:13px;color:#333")

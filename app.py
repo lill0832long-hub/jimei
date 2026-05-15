@@ -44,7 +44,9 @@ start_auto_backup()
 from app.config import register_page
 from app.pages.dashboard import render_dashboard
 from app.pages.journal import render_journal, render_voucher_detail, render_voucher_detail_page
-from app.pages.reports import render_accounts, render_balance_sheet, render_income_statement
+from app.pages.reports import render_accounts
+from app.pages.reports_balance_sheet import render_balance_sheet
+from app.pages.reports_income_statement import render_income_statement
 from app.pages.trial_balance import render_trial_balance
 from app.pages.close_period import render_close_period
 from app.pages.charts import render_charts
