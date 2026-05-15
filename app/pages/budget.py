@@ -17,7 +17,7 @@ def render_budget():
         return
 
     year, month = state.selected_year, state.selected_month
-    summary = BudgetService.get_summary(lid, year, month)
+    summary = BudgetService.get_summary(lid, year, month) or {}
 
     # ── 顶部：预算汇总卡片 ──
     with ui.row().classes("w-full gap-3"):
@@ -25,19 +25,19 @@ def render_budget():
             with ui.card_section().classes("py-3 px-4"):
                 with ui.column().classes("items-center gap-1"):
                     ui.label("预算总额").classes("text-xs").style("color:var(--c-text-muted)")
-                    ui.label(f"¥{summary['total_budget']:,.2f}").classes("text-xl font-bold").style("color:var(--c-primary)")
+                    ui.label(f"¥{summary.get('total_budget', 0):,.2f}").classes("text-xl font-bold").style("color:var(--c-primary)")
 
         with ui.card().classes("flex-1"):
             with ui.card_section().classes("py-3 px-4"):
                 with ui.column().classes("items-center gap-1"):
                     ui.label("实际支出").classes("text-xs").style("color:var(--c-text-muted)")
-                    ui.label(f"¥{summary['total_actual']:,.2f}").classes("text-xl font-bold").style("color:var(--c-text-primary)")
+                    ui.label(f"¥{summary.get('total_actual', 0):,.2f}").classes("text-xl font-bold").style("color:var(--c-text-primary)")
 
         with ui.card().classes("flex-1"):
             with ui.card_section().classes("py-3 px-4"):
                 with ui.column().classes("items-center gap-1"):
                     ui.label("差异").classes("text-xs").style("color:var(--c-text-muted)")
-                    var = summary['total_variance']
+                    var = summary.get('total_variance', 0)
                     ui.label(f"¥{var:,.2f}").classes("text-xl font-bold").style(
                         f"color:{'var(--c-danger)' if var > 0 else 'var(--c-success)'}"
                     )
@@ -46,8 +46,8 @@ def render_budget():
             with ui.card_section().classes("py-3 px-4"):
                 with ui.column().classes("items-center gap-1"):
                     ui.label("超预算科目").classes("text-xs").style("color:var(--c-text-muted)")
-                    ui.label(f"{summary['over_budget_count']} / {summary['item_count']}").classes("text-xl font-bold").style(
-                        f"color:{'var(--c-danger)' if summary['over_budget_count'] > 0 else 'var(--c-success)'}"
+                    ui.label(f"{summary.get('over_budget_count', 0)} / {summary.get('item_count', 0)}").classes("text-xl font-bold").style(
+                        f"color:{'var(--c-danger)' if summary.get('over_budget_count', 0) > 0 else 'var(--c-success)'}"
                     )
 
     # ── 下部：预算编制 + 执行追踪 ──

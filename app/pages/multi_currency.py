@@ -44,12 +44,12 @@ def render_multi_currency():
                 rows = []
                 for c in currencies:
                     rows.append({
-                        "id": c.id,
-                        "code": c.code,
-                        "name": c.name,
-                        "symbol": c.symbol or c.code,
-                        "is_base": "✅" if c.is_base else "",
-                        "active": "✅" if c.is_active else "❌",
+                        "id": c.get("id", ""),
+                        "code": c.get("code", ""),
+                        "name": c.get("name", ""),
+                        "symbol": c.get("symbol") or c.get("code", ""),
+                        "is_base": "✅" if c.get("is_base") else "",
+                        "active": "✅" if c.get("is_active") else "❌",
                     })
                 ui.table(columns=cols, rows=rows, row_key="id",
                          pagination={"rowsPerPage": 10}).classes("w-full text-sm")
@@ -72,11 +72,12 @@ def render_multi_currency():
                 ]
                 rows = []
                 for er, _fc in rate_results:
+                    er_dict = er if isinstance(er, dict) else {"id": getattr(er, "id", ""), "from_currency": getattr(er, "from_currency", ""), "to_currency": getattr(er, "to_currency", ""), "rate": getattr(er, "rate", 0), "date": getattr(er, "date", "")}
                     rows.append({
-                        "id": er.id,
-                        "pair": f"{er.from_currency}/{er.to_currency}",
-                        "rate": f"{er.rate:.6f}",
-                        "date": er.date,
+                        "id": er_dict.get("id", ""),
+                        "pair": f"{er_dict.get('from_currency', '')}/{er_dict.get('to_currency', '')}",
+                        "rate": f"{er_dict.get('rate', 0):.6f}",
+                        "date": er_dict.get("date", ""),
                     })
                 ui.table(columns=cols, rows=rows, row_key="id",
                          pagination={"rowsPerPage": 10}).classes("w-full text-sm")

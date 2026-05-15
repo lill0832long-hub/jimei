@@ -20,7 +20,14 @@ def render_cash_flow():
     year, month = state.selected_year, state.selected_month
 
     # 获取现金流量数据（直接法）
-    cf = ReportService.get_cash_flow_statement(lid, year, month, method="direct")
+    cf = ReportService.get_cash_flow_statement(lid, year, month, method="direct") or {}
+
+    if not cf.get("operating"):
+        with ui.card().classes("w-full"):
+            with ui.card_section().classes("py-12 text-center"):
+                ui.icon("waterfall_chart").style("font-size: 48px; color: var(--gray-300)")
+                ui.label("暂无现金流量数据").classes("text-lg font-semibold text-grey-4 mt-4")
+        return
 
     with ui.row().classes("w-full gap-3"):
         # 左侧：现金流量表主体（2/3）
@@ -38,13 +45,13 @@ def render_cash_flow():
                 with ui.card_section().classes("py-2 px-3").style("background:var(--c-bg-hover)"):
                     ui.label("一、经营活动产生的现金流量").classes("text-sm font-bold").style("color:var(--c-text-primary)")
 
-                _render_cf_section(cf["operating"], inflow=True)
-                _render_cf_section(cf["operating"], inflow=False)
+                _render_cf_section(cf.get("operating", {}), inflow=True)
+                _render_cf_section(cf.get("operating", {}), inflow=False)
 
                 with ui.card_section().classes("py-1 px-3 border-t").style("border-color:var(--c-border-light)"):
                     with ui.row().classes("justify-between items-center"):
                         ui.label("经营活动现金流量净额").classes("text-sm font-bold").style("color:var(--c-text-primary)")
-                        net = cf["operating"]["net"]
+                        net = cf.get("operating", {}).get("net", 0)
                         ui.label(f"¥{net:,.2f}").classes("text-base font-bold").style(
                             f"color:{'var(--c-success)' if net >= 0 else 'var(--c-danger)'}"
                         )
@@ -53,13 +60,13 @@ def render_cash_flow():
                 with ui.card_section().classes("py-2 px-3").style("background:var(--c-bg-hover)"):
                     ui.label("二、投资活动产生的现金流量").classes("text-sm font-bold").style("color:var(--c-text-primary)")
 
-                _render_cf_section(cf["investing"], inflow=True)
-                _render_cf_section(cf["investing"], inflow=False)
+                _render_cf_section(cf.get("investing", {}), inflow=True)
+                _render_cf_section(cf.get("investing", {}), inflow=False)
 
                 with ui.card_section().classes("py-1 px-3 border-t").style("border-color:var(--c-border-light)"):
                     with ui.row().classes("justify-between items-center"):
                         ui.label("投资活动现金流量净额").classes("text-sm font-bold").style("color:var(--c-text-primary)")
-                        net = cf["investing"]["net"]
+                        net = cf.get("investing", {}).get("net", 0)
                         ui.label(f"¥{net:,.2f}").classes("text-base font-bold").style(
                             f"color:{'var(--c-success)' if net >= 0 else 'var(--c-danger)'}"
                         )
@@ -68,13 +75,13 @@ def render_cash_flow():
                 with ui.card_section().classes("py-2 px-3").style("background:var(--c-bg-hover)"):
                     ui.label("三、筹资活动产生的现金流量").classes("text-sm font-bold").style("color:var(--c-text-primary)")
 
-                _render_cf_section(cf["financing"], inflow=True)
-                _render_cf_section(cf["financing"], inflow=False)
+                _render_cf_section(cf.get("financing", {}), inflow=True)
+                _render_cf_section(cf.get("financing", {}), inflow=False)
 
                 with ui.card_section().classes("py-1 px-3 border-t").style("border-color:var(--c-border-light)"):
                     with ui.row().classes("justify-between items-center"):
                         ui.label("筹资活动现金流量净额").classes("text-sm font-bold").style("color:var(--c-text-primary)")
-                        net = cf["financing"]["net"]
+                        net = cf.get("financing", {}).get("net", 0)
                         ui.label(f"¥{net:,.2f}").classes("text-base font-bold").style(
                             f"color:{'var(--c-success)' if net >= 0 else 'var(--c-danger)'}"
                         )
@@ -83,8 +90,9 @@ def render_cash_flow():
                 with ui.card_section().classes("py-2 px-3").style("background:var(--c-primary-light)"):
                     with ui.row().classes("justify-between items-center"):
                         ui.label("四、现金及现金等价物净增加额").classes("text-base font-bold").style("color:var(--c-text-primary)")
-                        ui.label(f"¥{cf['net_cash_change']:,.2f}").classes("text-xl font-bold").style(
-                            f"color:{'var(--c-success)' if cf['net_cash_change'] >= 0 else 'var(--c-danger)'}"
+                        net_change = cf.get("net_cash_change", 0)
+                        ui.label(f"¥{net_change:,.2f}").classes("text-xl font-bold").style(
+                            f"color:{'var(--c-success)' if net_change >= 0 else 'var(--c-danger)'}"
                         )
 
         # 右侧：现金流分类管理（1/3）

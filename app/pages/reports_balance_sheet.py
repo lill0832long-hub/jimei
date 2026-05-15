@@ -52,6 +52,7 @@ def render_balance_sheet():
                         options={"mom": "环比", "yoy": "同比"},
                         value="mom"
                     ).props("dense").classes("text-xs")
+                    compare_mode.on("update:value", lambda e: _refresh_report())
 
     # ── Loading 状态 ──
     loading_area = ui.column().classes("w-full items-center py-8")
