@@ -14,7 +14,6 @@ def render_charts():
     lid = state.selected_ledger_id
     if not lid:
         return
-    lid = state.selected_ledger_id
 
     # 生成近12个月数据
     periods = generate_periods(state.selected_year, state.selected_month, 12)

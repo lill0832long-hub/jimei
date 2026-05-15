@@ -1,7 +1,7 @@
 ﻿"""报表 — 资产负债表 (优化版)"""
 from nicegui import ui
 from app.components.state import state
-from app.components.ui_helpers import format_amount, show_toast, refresh_main
+from app.components.ui_helpers import format_amount, show_toast, refresh_main, navigate
 from app.components.ui_components import SectionHeader, KpiCard
 from app.services import LedgerService, ReportService
 from app.pages.reports_export import _export_balance_sheet, _export_balance_sheet_pdf

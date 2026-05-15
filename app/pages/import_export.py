@@ -343,7 +343,6 @@ def render_export():
     lid = state.selected_ledger_id
     if not lid:
         return
-    lid = state.selected_ledger_id
     export_dir = os.path.join(os.path.dirname(__file__), "exports")
     os.makedirs(export_dir, exist_ok=True)
 

@@ -180,22 +180,6 @@ def render_ai_assistant():
                     ocr_input = ui.textarea("OCR文本", placeholder="粘贴发票OCR识别结果...").props("outlined dense").classes("w-full")
                     ui.button("🔍 提取信息", color="orange", on_click=lambda: do_ocr_extract(ocr_input.value)).props("dense").classes("w-full mt-1")
 
-            # ── P1-5: 自然语言查询 ──
-            with ui.card().classes("w-full"):
-                SectionHeader("自然语言查询", icon="chat")
-                with ui.card_section().classes("py-2 px-3"):
-                    nl_input = ui.input("问财务问题", placeholder="例：上月利润是多少？银行存款余额？").props("outlined dense").classes("w-full")
-                    nl_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[60px] whitespace-pre-wrap").style("color:var(--c-text-secondary)")
-                    ui.button("🔍 查询", color="teal", on_click=lambda: _do_nl_query(nl_input.value, nl_result)).props("dense").classes("w-full mt-1")
-
-            # ── P1-5: 财务知识问答 ──
-            with ui.card().classes("w-full"):
-                SectionHeader("财务知识库", icon="menu_book")
-                with ui.card_section().classes("py-2 px-3"):
-                    kb_input = ui.input("搜索知识", placeholder="例：什么是借贷记账法？").props("outlined dense").classes("w-full")
-                    kb_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[80px] whitespace-pre-wrap").style("color:var(--c-text-secondary)")
-                    ui.button("📖 查询", color="purple", on_click=lambda: _do_kb_query(kb_input.value, kb_result)).props("dense").classes("w-full mt-1")
-
         with ui.column().classes("w-1/2 gap-2"):
             with ui.card().classes("w-full"):
                 SectionHeader("支持场景", icon="list_alt")
@@ -244,16 +228,16 @@ def render_ai_assistant():
                 SectionHeader("自然语言查询", icon="chat")
                 with ui.card_section().classes("py-2 px-3"):
                     nl_input = ui.input("问财务问题", placeholder="例：上月利润是多少？银行存款余额？").props("outlined dense").classes("w-full")
-                    nl_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[40px]").style("color:var(--c-text-secondary)")
-                    ui.button("🔍 查询", color="purple", on_click=lambda: _do_nl_query(nl_input.value, nl_result)).props("dense").classes("w-full mt-1")
+                    nl_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[60px] whitespace-pre-wrap").style("color:var(--c-text-secondary)")
+                    ui.button("🔍 查询", color="teal", on_click=lambda: _do_nl_query(nl_input.value, nl_result)).props("dense").classes("w-full mt-1")
 
             # 财务知识问答
             with ui.card().classes("w-full"):
                 SectionHeader("财务知识库", icon="menu_book")
                 with ui.card_section().classes("py-2 px-3"):
                     kb_input = ui.input("搜索知识", placeholder="例：什么是借贷记账法？").props("outlined dense").classes("w-full")
-                    kb_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[40px]").style("color:var(--c-text-secondary)")
-                    ui.button("📖 搜索", color="green", on_click=lambda: _do_kb_query(kb_input.value, kb_result)).props("dense").classes("w-full mt-1")
+                    kb_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[80px] whitespace-pre-wrap").style("color:var(--c-text-secondary)")
+                    ui.button("📖 查询", color="purple", on_click=lambda: _do_kb_query(kb_input.value, kb_result)).props("dense").classes("w-full mt-1")
 
 
 # ===== 财务知识库 =====

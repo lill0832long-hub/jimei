@@ -14,7 +14,6 @@ def render_compare():
     lid = state.selected_ledger_id
     if not lid:
         return
-    lid = state.selected_ledger_id
 
     # 期间选择器
     with ui.card().classes("w-full"):

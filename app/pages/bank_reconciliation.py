@@ -122,7 +122,7 @@ def render_bank_reconciliation():
         stmt_list = []
 
     try:
-        unmatched = AccountService.get_unmatched(selected_ba_id)
+        unmatched = AccountService.get_unmatched(state.selected_ledger_id, selected_ba_id)
     except Exception:
         unmatched = []
 

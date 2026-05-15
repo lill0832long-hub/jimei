@@ -13,7 +13,6 @@ def render_close_period():
     lid = state.selected_ledger_id
     if not lid:
         return
-    lid = state.selected_ledger_id
     period = LedgerService.get_period_status(lid, state.selected_year, state.selected_month)
     inc = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
 
@@ -22,10 +21,11 @@ def render_close_period():
     try:
         unapproved_cnt = VoucherService.count(lid, status="draft")
         checklist.append(("凭证全部审核", unapproved_cnt == 0, f"{unapproved_cnt} 张凭证未审核" if unapproved_cnt > 0 else "所有凭证已审核"))
-        has_profit = any(r["type"] in ("revenue_item","revenue_header","rev_total","expense_header","expense_item") for r in inc["rows"])
+        inc_rows = inc.get("rows", []) if isinstance(inc, dict) else []
+        has_profit = any(r.get("type") in ("revenue_item","revenue_header","rev_total","expense_header","expense_item") for r in inc_rows)
         checklist.append(("存在损益数据", has_profit, "暂无损益数据" if not has_profit else "损益数据正常"))
-        total_rev = sum(float(r.get("ytd",0) or 0) for r in inc["rows"] if r["type"] in ("revenue_item","revenue_header"))
-        total_exp = sum(abs(float(r.get("ytd",0) or 0)) for r in inc["rows"] if r["type"] in ("expense_item","expense_header"))
+        total_rev = sum(float(r.get("ytd",0) or 0) for r in inc_rows if r.get("type") in ("revenue_item","revenue_header"))
+        total_exp = sum(abs(float(r.get("ytd",0) or 0)) for r in inc_rows if r.get("type") in ("expense_item","expense_header"))
         checklist.append(("损益数据有效", total_rev > 0 or total_exp > 0, "收入和费用均为0" if total_rev == 0 and total_exp == 0 else "数据有效"))
     except Exception as e:
         checklist.append(("系统检查", False, f"检查异常: {e}"))
@@ -59,7 +59,8 @@ def render_close_period():
                     ui.label(item_name).classes("text-sm").style("color:var(--c-text-secondary)")
                     ui.label(f"— {desc}").classes("text-xs").style("color:var(--c-text-muted)")
 
-        if any(r["type"] in ("revenue_item","revenue_header","rev_total","expense_header","expense_item") for r in inc["rows"]):
+        rows_data = inc.get("rows", []) if isinstance(inc, dict) else []
+        if any(r.get("type") in ("revenue_item","revenue_header","rev_total","expense_header","expense_item") for r in rows_data):
             with ui.card_section().classes("py-2 px-4"):
                 ui.label("损益预览").classes("text-sm font-semibold mb-1")
                 cols = [
@@ -67,13 +68,13 @@ def render_close_period():
                     {"name":"amount","label":"金额","field":"amount","align":"right","classes":"tabular-nums text-sm","headerClasses":"table-header-cell"},
                 ]
                 rows = []
-                for r in inc.get("rows", []):
+                for r in rows_data:
                     if r.get("type") in ("revenue_item","revenue_header","rev_total"):
                         rows.append({"item": f"  ➕ {r.get('name', '')}", "amount": f"¥{r.get('ytd') or 0:,.2f}"})
-                for r in inc.get("rows", []):
+                for r in rows_data:
                     if r.get("type") in ("expense_header","expense_item","subtotal"):
                         rows.append({"item": f"  ➖ {r.get('name', '')}", "amount": f"¥{r.get('ytd') or 0:,.2f}"})
-                rows.append({"item": "💰 净利润", "amount": f"¥{inc.get('net_profit', 0):,.2f}"})
+                rows.append({"item": "💰 净利润", "amount": f"¥{inc.get('net_profit', 0) if isinstance(inc, dict) else 0:,.2f}"})
                 ui.table(columns=cols, rows=rows, row_key="item", pagination=False)
 
         with ui.card_section().classes("py-2 px-4"):

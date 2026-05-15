@@ -1,7 +1,7 @@
 """报表 — 利润表"""
 from nicegui import ui
 from app.components.state import state
-from app.components.ui_helpers import refresh_main, format_amount
+from app.components.ui_helpers import refresh_main, format_amount, navigate
 from app.services import LedgerService, ReportService
 from app.pages.reports_export import _export_income_statement
 
@@ -16,8 +16,8 @@ def render_income_statement():
     if not lid:
         return
 
-    inc = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
-    inc_yoy = ReportService.get_income_statement(lid, state.selected_year - 1, state.selected_month)
+    inc = ReportService.get_income_statement(lid, state.selected_year, state.selected_month) or {}
+    inc_yoy = ReportService.get_income_statement(lid, state.selected_year - 1, state.selected_month) or {}
 
     with ui.card().classes("w-full"):
         with ui.card_section().classes("py-2 px-4 border-b border-grey-2").style("color:var(--c-bg-hover)"):
@@ -45,7 +45,7 @@ def render_income_statement():
                 inc_month_sel.on("update:value", lambda e: _on_inc_period())
 
         with ui.card_section().classes("py-1.5 px-4 border-b").style("border-color:var(--c-border);background:var(--c-bg-hover)"):
-            ui.label(f"📈 利润表 — {inc['date']}").classes("text-sm font-semibold").style("color:var(--c-text-secondary)")
+            ui.label(f"📈 利润表 — {inc.get('date', f'{state.selected_year}年{state.selected_month}月')}").classes("text-sm font-semibold").style("color:var(--c-text-secondary)")
 
         yoy_map = {r["name"]: r.get("ytd") for r in inc_yoy.get("rows", [])}
         rows = []
