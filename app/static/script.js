@@ -123,5 +123,18 @@
                 document.body.setAttribute('data-theme', 'dark');
             }
         } catch(e) {}
+
+        // 5. Sidebar active 状态同步（纯视觉，不拦截点击）
+        // Python 端负责实际的页面导航
+        document.addEventListener('click', function(e) {
+            var btn = e.target.closest('.sidebar-menu-item');
+            if (!btn) return;
+            var page = btn.dataset.page;
+            if (!page) return;
+            document.querySelectorAll('.sidebar-menu-item').forEach(function(el) {
+                el.classList.remove('sidebar-menu-active');
+            });
+            btn.classList.add('sidebar-menu-active');
+        }, true);
     });
 })();

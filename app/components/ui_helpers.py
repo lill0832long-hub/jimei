@@ -89,7 +89,7 @@ def show_modal_error(title="错误", message=""):
 
 def navigate(page):
     """页面导航 — Sidebar v2 架构
-    
+
     导航时只重渲染主内容区，sidebar 由 JS 接管（切换 active class）。
     只有 sidebar 折叠/展开时才需要重渲染 sidebar。
     """
@@ -192,15 +192,6 @@ def _rebuild_content():
         else:
             from app.pages.dashboard import render_dashboard
             render_dashboard()
-    # 通知 JS 切换 active 状态
-    try:
-        ui.run_javascript(f"""
-            if (window.sidebarCtrl && window.sidebarCtrl.setActiveItem) {{
-                window.sidebarCtrl.setActiveItem('{state.current_page}');
-            }}
-        """)
-    except Exception:
-        pass
 
 
 # ===== Header =====
@@ -356,16 +347,77 @@ _bottom_items = [
 ]
 
 
+def _build_sidebar_content(sidebar_el):
+    """向 sidebar 容器中填充内容（不创建新容器）"""
+    # ── Logo ──
+    with ui.element("div").classes("sidebar-logo"):
+        ui.icon("account_balance").classes("sidebar-logo-icon")
+        if not state.sidebar_collapsed:
+            ui.label("AI财务").classes("sidebar-logo-text")
+
+    # ── 分组导航 ──
+    for group_idx, group in enumerate(_nav_groups):
+        gkey = group["key"]
+        glabel = group["label"]
+        gicon = group["icon"]
+        items = group["items"]
+        is_expanded = state.sidebar_group_expanded.get(gkey, True)
+
+        if group_idx > 0:
+            with ui.element("div").classes("sidebar-group-divider"):
+                pass
+
+        # 分组标题（点击折叠/展开）— Python 驱动
+        arrow = "expand_less" if is_expanded else "expand_more"
+        header_classes = "sidebar-group-header" + (" sidebar-group-header--expanded" if is_expanded else "")
+        with ui.button(on_click=lambda _k=gkey: _toggle_sidebar_group(_k)).props(
+            "flat no-caps align-left"
+        ).classes(header_classes).style(
+            "height: 36px; padding: 0 12px; gap: 6px; width: 100%; "
+            "border-radius: 6px; margin: 2px 4px; justify-content: flex-start; "
+            "background: rgba(255,255,255,0.04);"
+        ):
+            ui.icon(gicon).classes("sidebar-group-icon")
+            if not state.sidebar_collapsed:
+                ui.label(glabel).classes("sidebar-group-label")
+                with ui.element("div").style("flex-grow: 1"):
+                    pass
+                ui.icon(arrow).classes("sidebar-group-arrow")
+
+        # 分组内容（Python 控制显隐）
+        if is_expanded and not state.sidebar_collapsed:
+            for key, label, item_icon in items:
+                is_active = state.current_page == key
+                btn_classes = "sidebar-menu-item" + (" sidebar-menu-active" if is_active else "")
+                _p = "flat no-caps align-left data-page=" + str(key) + " data-label=" + str(label)
+                with ui.button(on_click=lambda k=key: navigate(k)).props(_p).classes(btn_classes):
+                    ui.icon(item_icon).classes("sidebar-menu-icon")
+                    ui.label(label).classes("sidebar-menu-label")
+
+    # ── 底部固定区域 ──
+    with ui.element("div").classes("sidebar-spacer"):
+        pass
+    with ui.element("div").classes("sidebar-group-divider"):
+        pass
+
+    for key, label, item_icon in _bottom_items:
+        is_active = state.current_page == key
+        btn_classes = "sidebar-menu-item" + (" sidebar-menu-active" if is_active else "")
+        _p = "flat no-caps align-left data-page=" + str(key) + " data-label=" + str(label)
+        with ui.button(on_click=lambda k=key: navigate(k)).props(_p).classes(btn_classes):
+            ui.icon(item_icon).classes("sidebar-menu-icon")
+            ui.label(label).classes("sidebar-menu-label")
+
+    # ── 折叠按钮 ──
+    with ui.element("div").classes("sidebar-collapse-row"):
+        collapse_icon = "chevron_left" if not state.sidebar_collapsed else "chevron_right"
+        ui.button(icon=collapse_icon, on_click=_toggle_sidebar_collapse).props("flat dense").classes("sidebar-collapse-btn")
+
+
 def render_sidebar():
-    """左侧导航菜单 v3 — Python状态驱动分组折叠
-    
-    改进：
-    1. 分组折叠/展开由 Python state.sidebar_group_expanded 控制，不依赖 JS
-    2. 整体折叠按钮同时重渲染 sidebar + 切换 CSS class
-    3. 菜单项使用 flex-start 对齐（更自然的阅读体验）
-    4. 分组标题有颜色左边框，视觉层次清晰
-    5. 折叠按钮在底部，hover 变蓝色
-    """
+    """左侧导航菜单 v3 — Python状态驱动分组折叠"""
+    import sys
+    print(f"[SIDEBAR] render_sidebar called, page={state.current_page}", file=sys.stderr, flush=True)
     # ── 初始化分组折叠状态（首次渲染） ──
     if state.sidebar_group_expanded is None:
         state.sidebar_group_expanded = {
@@ -375,93 +427,21 @@ def render_sidebar():
             "finance": True,
         }
 
-    # ── 获取或创建 sidebar 容器 ──
-    _need_new_container = (
-        not hasattr(state, '_sidebar_container') or
-        state._sidebar_container is None
-    )
-    if not _need_new_container:
-        try:
-            state._sidebar_container.client
-        except (RuntimeError, AttributeError):
-            _need_new_container = True
-    if _need_new_container:
+    if state._sidebar_container is not None:
+        # 后续渲染：复用已有容器，清除后重新填充
+        sidebar_el = state._sidebar_container
+        sidebar_el.clear()
+        with sidebar_el:
+            _build_sidebar_content(sidebar_el)
+    else:
+        # 首次渲染：创建容器并填充
         sidebar_classes = "sidebar-nav h-full"
         if state.sidebar_collapsed:
             sidebar_classes += " sidebar-collapsed"
         state._sidebar_container = ui.column().classes(sidebar_classes)
-    sidebar_el = state._sidebar_container
-    sidebar_el.clear()
-    if state.sidebar_collapsed:
-        sidebar_el.classes("sidebar-collapsed")
-    else:
-        sidebar_el.classes(remove="sidebar-collapsed")
-
-    with sidebar_el:
-        # ── Logo ──
-        with ui.element("div").classes("sidebar-logo"):
-            ui.icon("account_balance").classes("sidebar-logo-icon")
-            if not state.sidebar_collapsed:
-                ui.label("AI财务").classes("sidebar-logo-text")
-
-        # ── 分组导航 ──
-        for group_idx, group in enumerate(_nav_groups):
-            gkey = group["key"]
-            glabel = group["label"]
-            gicon = group["icon"]
-            items = group["items"]
-            is_expanded = state.sidebar_group_expanded.get(gkey, True)
-
-            if group_idx > 0:
-                with ui.element("div").classes("sidebar-group-divider"):
-                    pass
-
-            # 分组标题（点击折叠/展开）— Python 驱动
-            arrow = "expand_less" if is_expanded else "expand_more"
-            header_classes = "sidebar-group-header" + (" sidebar-group-header--expanded" if is_expanded else "")
-            with ui.button(on_click=lambda _k=gkey: _toggle_sidebar_group(_k)).props(
-                "flat no-caps align-left"
-            ).classes(header_classes).style(
-                "height: 36px; padding: 0 12px; gap: 6px; width: 100%; "
-                "border-radius: 6px; margin: 2px 4px; justify-content: flex-start; "
-                "background: rgba(255,255,255,0.04);"
-            ):
-                ui.icon(gicon).classes("sidebar-group-icon")
-                if not state.sidebar_collapsed:
-                    ui.label(glabel).classes("sidebar-group-label")
-                    with ui.element("div").style("flex-grow: 1"):
-                        pass
-                    ui.icon(arrow).classes("sidebar-group-arrow")
-
-            # 分组内容（Python 控制显隐）
-            if is_expanded and not state.sidebar_collapsed:
-                for key, label, item_icon in items:
-                    is_active = state.current_page == key
-                    btn_classes = "sidebar-menu-item" + (" sidebar-menu-active" if is_active else "")
-                    _p = "flat no-caps align-left data-page=" + str(key) + " data-label=" + str(label)
-                    with ui.button(on_click=lambda k=key: navigate(k)).props(_p).classes(btn_classes):
-                        ui.icon(item_icon).classes("sidebar-menu-icon")
-                        ui.label(label).classes("sidebar-menu-label")
-
-        # ── 底部固定区域 ──
-        with ui.element("div").classes("sidebar-spacer"):
-            pass
-        with ui.element("div").classes("sidebar-group-divider"):
-            pass
-
-        for key, label, item_icon in _bottom_items:
-            is_active = state.current_page == key
-            btn_classes = "sidebar-menu-item" + (" sidebar-menu-active" if is_active else "")
-            _p = "flat no-caps align-left data-page=" + str(key) + " data-label=" + str(label)
-            with ui.button(on_click=lambda k=key: navigate(k)).props(_p).classes(btn_classes):
-                ui.icon(item_icon).classes("sidebar-menu-icon")
-                ui.label(label).classes("sidebar-menu-label")
-
-        # ── 折叠按钮 ──
-        with ui.element("div").classes("sidebar-collapse-row"):
-            collapse_icon = "chevron_left" if not state.sidebar_collapsed else "chevron_right"
-            # 折叠：只更新 state + JS 切换，不重渲染 sidebar（避免 DOM 重建覆盖 JS 动画）
-            ui.button(icon=collapse_icon, on_click=_toggle_sidebar_collapse).props("flat dense").classes("sidebar-collapse-btn")
+        sidebar_el = state._sidebar_container
+        with sidebar_el:
+            _build_sidebar_content(sidebar_el)
 
 
 def _toggle_sidebar_group(gkey):
@@ -481,6 +461,4 @@ def _toggle_sidebar_collapse():
 
 def _refresh_sidebar():
     """重新渲染 sidebar（不重建主内容）"""
-    # 直接调用 render_sidebar，它会 clear() 容器并重新填充内容
-    # 容器引用保持不变，确保 DOM 位置正确
     render_sidebar()

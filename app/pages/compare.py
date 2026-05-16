@@ -36,7 +36,7 @@ def render_compare():
     with ui.card().classes("w-full"):
         SectionHeader("利润对比", icon="trending_up")
 
-        inc_data = ReportService.get_period_compare_income(lid, periods)
+        inc_data = ReportService.get_period_compare_income(lid, state.selected_year, state.selected_month)
         if inc_data["items"] or any(v != 0 for v in inc_data["summary"]["total_revenue"]):
             # 汇总表头
             cols = [{"name":"item","label":"项目","field":"item","align":"left","headerClasses":"table-header-cell"}]

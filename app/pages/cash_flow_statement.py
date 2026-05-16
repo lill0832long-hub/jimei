@@ -95,7 +95,7 @@ def render_cash_flow_statement():
                 cf_month_sel = ui.select(options=list(range(1, 13)), value=state.selected_month, label="月份").props("dense outlined").classes("w-24")
                 ui.separator().props("vertical")
                 cf_method = ui.toggle(
-                    options=[{"label": "直接法", "value": "direct"}, {"label": "间接法", "value": "indirect"}],
+                    options={"direct": "直接法", "indirect": "间接法"},
                     value="direct"
                 ).props("dense").classes("text-xs")
                 ui.separator().props("vertical")
