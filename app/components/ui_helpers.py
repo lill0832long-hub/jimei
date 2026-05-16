@@ -183,6 +183,12 @@ def _rebuild_content():
     """重渲染主内容区（sidebar 由 JS 接管，不重渲染）"""
     if state.main_content is None:
         return
+    # 检查 main_content client 是否存活
+    try:
+        _ = state.main_content.client
+    except RuntimeError:
+        state.main_content = None
+        return
     from app.config import get_page_render
     state.main_content.clear()
     with state.main_content:
@@ -427,6 +433,13 @@ def render_sidebar():
             "finance": True,
         }
 
+    # 检查旧容器的 client 是否存活，若已断开则丢弃重建
+    if state._sidebar_container is not None:
+        try:
+            _ = state._sidebar_container.client
+        except RuntimeError:
+            state._sidebar_container = None
+
     if state._sidebar_container is not None:
         # 后续渲染：复用已有容器，清除后重新填充
         sidebar_el = state._sidebar_container
@@ -434,7 +447,7 @@ def render_sidebar():
         with sidebar_el:
             _build_sidebar_content(sidebar_el)
     else:
-        # 首次渲染：创建容器并填充
+        # 首次渲染（或旧容器已失效）：创建容器并填充
         sidebar_classes = "sidebar-nav h-full"
         if state.sidebar_collapsed:
             sidebar_classes += " sidebar-collapsed"
