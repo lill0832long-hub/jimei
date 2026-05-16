@@ -136,7 +136,15 @@ class VoucherService:
 
     @staticmethod
     def get_detail(ledger_id, voucher_no):
-        return to_dict(run_async(_voucher_repo.get_with_entries(ledger_id, voucher_no)))
+        voucher = run_async(_voucher_repo.get_with_entries(ledger_id, voucher_no))
+        if not voucher:
+            return None
+        # to_dict only serializes __table__ columns, not relationships.
+        # Manually build the dict including journal_entries.
+        d = to_dict(voucher)
+        if d:
+            d["entries"] = [to_dict(e) for e in voucher.journal_entries]
+        return d
 
     @staticmethod
     def search(ledger_id, **kwargs):

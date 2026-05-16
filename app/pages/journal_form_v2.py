@@ -10,23 +10,23 @@ from app.services import AccountService, LedgerService, VoucherService
 
 
 def _generate_voucher_no(lid, voucher_type="记"):
-    import datetime as _dt
-    prefix = f"{voucher_type}-{_dt.datetime.now().strftime('%Y%m')}-"
+    """生成凭证号 — 与 VoucherRepository._generate_voucher_no 保持一致: PZ{ledger_id:02d}{seq:06d}"""
     try:
-        existing = VoucherService.get_all(lid, _dt.datetime.now().year, _dt.datetime.now().month, limit=200)
+        existing = VoucherService.get_all(lid, limit=500)
         max_seq = 0
+        prefix = f"PZ{lid:02d}"
         for v in existing:
             vn = v.get("voucher_no", "")
             if vn.startswith(prefix):
                 try:
-                    seq = int(vn.split("-")[-1])
+                    seq = int(vn[len(prefix):])
                     if seq > max_seq:
                         max_seq = seq
                 except (ValueError, IndexError):
                     pass
-        return f"{prefix}{max_seq + 1:03d}"
+        return f"{prefix}{max_seq + 1:06d}"
     except Exception:
-        return f"{prefix}001"
+        return f"PZ{lid:02d}000001"
 
 
 def show_new_voucher_dialog():
@@ -302,7 +302,17 @@ def _render_voucher_form_dialog(detail=None):
                                 new_entries.append({"acct_code": "", "summary": "", "debit": "", "credit": ""})
                             acct_opts_json = json.dumps(_acct_options_html())
                             entries_json = json.dumps(new_entries)
-                            ui.run_javascript(f"v5rebuildTable({acct_opts_json}, {entries_json});")
+                            # 写入 hidden input 存储数据，由客户端 JS 监听并重建表格
+                            ui.add_head_html(f"""
+                            <script>
+                            (function() {{
+                                window._v5PendingRebuild = {{acctOpts: {acct_opts_json}, entries: {entries_json}}};
+                                if (typeof v5rebuildTable === 'function' && document.getElementById('vcBody')) {{
+                                    v5rebuildTable(window._v5PendingRebuild.acctOpts, window._v5PendingRebuild.entries);
+                                }}
+                            }})();
+                            </script>
+                            """)
                             show_toast(f"已应用模板：{tpl['name']}", "success")
                         except Exception as e:
                             show_toast(f"应用模板失败: {e}", "error")
@@ -313,11 +323,27 @@ def _render_voucher_form_dialog(detail=None):
         with ui.card_section().classes("vcsection-table").style("padding:0"):
             table_html = _build_table_html(init_entries)
             ui.html(table_html, sanitize=False)
-            ui.run_javascript("""
-                document.querySelectorAll('#vcBody .vctd-num').forEach(function(inp) {
-                    inp.addEventListener('input', v5calcTotals);
-                });
-                v5calcTotals();
+            # 注入 JS：绑定 input 事件 + 初始计算（通过 script 标签而非 run_javascript，避免 event loop 依赖）
+            ui.add_head_html(f"""
+            <script>
+            (function() {{
+                function initV5Table() {{
+                    if (!document.getElementById('vcBody')) {{
+                        setTimeout(initV5Table, 100);
+                        return;
+                    }}
+                    document.querySelectorAll('#vcBody .vctd-num').forEach(function(inp) {{
+                        inp.addEventListener('input', v5calcTotals);
+                    }});
+                    v5calcTotals();
+                }}
+                if (document.readyState === 'loading') {{
+                    document.addEventListener('DOMContentLoaded', initV5Table);
+                }} else {{
+                    setTimeout(initV5Table, 50);
+                }}
+            }})();
+            </script>
             """)
 
         # ── 底部签章 ──

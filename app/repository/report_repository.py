@@ -19,6 +19,7 @@ class ReportRepository:
 
             balances = []
             date_prefix = f"{year:04d}-{month:02d}"
+            year_prefix = f"{year:04d}-"
 
             for acct in accounts:
                 # Opening balance
@@ -34,7 +35,7 @@ class ReportRepository:
                 ob = ob_result.scalar_one_or_none()
                 opening = ob.balance if ob else 0
 
-                # Period debit/credit from posted vouchers
+                # Period debit/credit from posted vouchers (current month only)
                 je_stmt = select(
                     func.coalesce(func.sum(JournalEntry.debit), 0).label("total_debit"),
                     func.coalesce(func.sum(JournalEntry.credit), 0).label("total_credit"),
@@ -50,6 +51,24 @@ class ReportRepository:
                 row = je_result.one()
                 period_debit = row.total_debit
                 period_credit = row.total_credit
+
+                # Year-to-date debit/credit from posted vouchers (Jan through current month)
+                ytd_stmt = select(
+                    func.coalesce(func.sum(JournalEntry.debit), 0).label("total_debit"),
+                    func.coalesce(func.sum(JournalEntry.credit), 0).label("total_credit"),
+                ).join(Voucher, JournalEntry.voucher_id == Voucher.id).where(
+                    and_(
+                        JournalEntry.ledger_id == ledger_id,
+                        JournalEntry.account_code == acct.code,
+                        Voucher.date.like(f"{year_prefix}%"),
+                        Voucher.date <= f"{year:04d}-{month:02d}-31",
+                        Voucher.status == "posted",
+                    )
+                )
+                ytd_result = await session.execute(ytd_stmt)
+                ytd_row = ytd_result.one()
+                ytd_debit = ytd_row.total_debit
+                ytd_credit = ytd_row.total_credit
 
                 # Calculate closing balance based on account category
                 # Asset/Expense: debit increases, credit decreases
@@ -67,6 +86,8 @@ class ReportRepository:
                     "period_debit": period_debit,
                     "period_credit": period_credit,
                     "closing_balance": closing,
+                    "ytd_debit": ytd_debit,
+                    "ytd_credit": ytd_credit,
                 })
 
             return balances

@@ -64,52 +64,60 @@ class ReportService:
     def get_income_statement(ledger_id, year, month):
         balances = run_async(_report_repo.get_account_balances(ledger_id, year, month))
         rows = []
-        total_revenue = 0
-        total_expense = 0
+        total_revenue_month = 0
+        total_revenue_ytd = 0
+        total_expense_month = 0
+        total_expense_ytd = 0
 
         # Revenue items
         rows.append({"name": "一、营业收入", "code": "", "level": 0, "month": None, "ytd": None, "type": "header"})
         for b in balances:
             if b["category"] == "收入":
-                ytd = b["period_credit"]
+                month_val = b["period_credit"]
+                ytd_val = b["ytd_credit"]
                 rows.append({
                     "name": b["account_name"],
                     "code": b["account_code"],
                     "level": 1,
-                    "month": ytd,
-                    "ytd": ytd,
+                    "month": month_val,
+                    "ytd": ytd_val,
                     "type": "revenue_item",
                 })
-                total_revenue += ytd
-        rows.append({"name": "营业收入合计", "code": "", "level": 0, "month": total_revenue, "ytd": total_revenue, "type": "rev_total"})
+                total_revenue_month += month_val
+                total_revenue_ytd += ytd_val
+        rows.append({"name": "营业收入合计", "code": "", "level": 0, "month": total_revenue_month, "ytd": total_revenue_ytd, "type": "rev_total"})
 
         # Expense items
         rows.append({"name": "减：营业成本及费用", "code": "", "level": 0, "month": None, "ytd": None, "type": "expense_header"})
         for b in balances:
             if b["category"] == "费用":
-                ytd = b["period_debit"]
+                month_val = b["period_debit"]
+                ytd_val = b["ytd_debit"]
                 rows.append({
                     "name": b["account_name"],
                     "code": b["account_code"],
                     "level": 1,
-                    "month": ytd,
-                    "ytd": ytd,
+                    "month": month_val,
+                    "ytd": ytd_val,
                     "type": "expense_item",
                 })
-                total_expense += ytd
-        rows.append({"name": "费用合计", "code": "", "level": 0, "month": total_expense, "ytd": total_expense, "type": "subtotal"})
+                total_expense_month += month_val
+                total_expense_ytd += ytd_val
+        rows.append({"name": "费用合计", "code": "", "level": 0, "month": total_expense_month, "ytd": total_expense_ytd, "type": "subtotal"})
 
-        net = total_revenue - total_expense
-        rows.append({"name": "净利润", "code": "", "level": 0, "month": net, "ytd": net, "type": "total"})
+        net_month = total_revenue_month - total_expense_month
+        net_ytd = total_revenue_ytd - total_expense_ytd
+        rows.append({"name": "净利润", "code": "", "level": 0, "month": net_month, "ytd": net_ytd, "type": "total"})
 
         return {
+            "date": f"{year}-{month:02d}",
             "rows": rows,
             "revenue": [b for b in balances if b["category"] == "收入"],
             "expenses": [b for b in balances if b["category"] == "费用"],
-            "total_revenue": total_revenue,
-            "total_expense": total_expense,
-            "net_income": net,
-            "net_profit": net,
+            "total_revenue": total_revenue_ytd,
+            "total_expense": total_expense_ytd,
+            "net_income": net_ytd,
+            "net_profit": net_ytd,
         }
 
     # ── 现金流（暂保留旧实现） ──
