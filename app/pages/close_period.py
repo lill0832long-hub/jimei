@@ -1,7 +1,7 @@
 """期末结转"""
 from nicegui import ui
 from app.components.state import state
-from app.components.ui_helpers import show_toast, format_amount
+from app.components.ui_helpers import show_toast, format_amount, refresh_main
 from app.components.ui_components import SectionHeader, MetricRow
 from app.services import LedgerService, ReportService, VoucherService
 
@@ -19,8 +19,10 @@ def render_close_period():
     # ── 结转前检查清单 ──
     checklist = []
     try:
-        unapproved_cnt = VoucherService.count(lid, status="draft")
-        checklist.append(("凭证全部审核", unapproved_cnt == 0, f"{unapproved_cnt} 张凭证未审核" if unapproved_cnt > 0 else "所有凭证已审核"))
+        draft_cnt = VoucherService.count(lid, status="draft")
+        pending_cnt = VoucherService.count(lid, status="pending_review")
+        unapproved_cnt = draft_cnt + pending_cnt
+        checklist.append(("凭证全部审核", unapproved_cnt == 0, f"{unapproved_cnt} 张凭证未审核（草稿{draft_cnt}+待审核{pending_cnt}）" if unapproved_cnt > 0 else "所有凭证已审核"))
         inc_rows = inc.get("rows", []) if isinstance(inc, dict) else []
         has_profit = any(r.get("type") in ("revenue_item","revenue_header","rev_total","expense_header","expense_item") for r in inc_rows)
         checklist.append(("存在损益数据", has_profit, "暂无损益数据" if not has_profit else "损益数据正常"))

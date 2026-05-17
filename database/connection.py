@@ -610,7 +610,7 @@ def init_db():
     """)
 
     conn.commit()
-    conn.close()
+    release_conn(conn)
     clear_query_cache()
 
 def init_v3_tables():
@@ -816,7 +816,7 @@ def init_v3_tables():
             pass
 
     conn.commit()
-    conn.close()
+    release_conn(conn)
     clear_query_cache()
 
 def init_system_templates(ledger_id):
@@ -897,5 +897,5 @@ def init_system_templates(ledger_id):
             (ledger_id, t["name"], t["description"], json.dumps(t["entries"], ensure_ascii=False))
         )
     conn.commit()
-    conn.close()
+    release_conn(conn)
     clear_query_cache()

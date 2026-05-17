@@ -69,12 +69,12 @@ class ReportService:
         total_expense_month = 0
         total_expense_ytd = 0
 
-        # Revenue items
+        # Revenue items: revenue = credit - debit (net inflow)
         rows.append({"name": "一、营业收入", "code": "", "level": 0, "month": None, "ytd": None, "type": "header"})
         for b in balances:
             if b["category"] == "收入":
-                month_val = b["period_credit"]
-                ytd_val = b["ytd_credit"]
+                month_val = b["period_credit"] - b["period_debit"]
+                ytd_val = b["ytd_credit"] - b["ytd_debit"]
                 rows.append({
                     "name": b["account_name"],
                     "code": b["account_code"],
@@ -87,12 +87,12 @@ class ReportService:
                 total_revenue_ytd += ytd_val
         rows.append({"name": "营业收入合计", "code": "", "level": 0, "month": total_revenue_month, "ytd": total_revenue_ytd, "type": "rev_total"})
 
-        # Expense items
+        # Expense items: expense = debit - credit (net outflow)
         rows.append({"name": "减：营业成本及费用", "code": "", "level": 0, "month": None, "ytd": None, "type": "expense_header"})
         for b in balances:
             if b["category"] == "费用":
-                month_val = b["period_debit"]
-                ytd_val = b["ytd_debit"]
+                month_val = b["period_debit"] - b["period_credit"]
+                ytd_val = b["ytd_debit"] - b["ytd_credit"]
                 rows.append({
                     "name": b["account_name"],
                     "code": b["account_code"],
@@ -148,24 +148,24 @@ class ReportService:
     @staticmethod
     def get_cash_flow_detail(ledger_id, cf_type, year, month):
         # TODO: migrate to repository pattern
-        from database.connection import get_conn
+        from database.connection import get_conn, release_conn
         conn = get_conn()
-        rows = conn.execute("""
-            SELECT v.voucher_no, v.date, v.summary,
-                   a.code as acct_code, a.name as acct_name,
-                   e.debit, e.credit
-            FROM vouchers v
-            JOIN entries e ON e.voucher_id = v.id
-            JOIN accounts a ON a.id = e.account_id
-            JOIN entry_cash_flow ecf ON ecf.entry_id = e.id
-            JOIN cash_flow_categories cfc ON cfc.id = ecf.cf_category_id
-            WHERE v.ledger_id = ? AND cfc.code = ?
-              AND strftime('%Y-%m', v.date) = ?
-            ORDER BY v.date DESC
-            LIMIT 50
-        """, (ledger_id, cf_type, f"{year}-{month:02d}")).fetchall()
-        conn.close()
-        return [dict(r) for r in rows]
+        try:
+            rows = conn.execute("""
+                SELECT v.voucher_no, v.date, v.description as summary,
+                       a.code as acct_code, a.name as acct_name,
+                       e.debit, e.credit
+                FROM vouchers v
+                JOIN journal_entries e ON e.voucher_id = v.id
+                JOIN accounts a ON a.code = e.account_code
+                WHERE v.ledger_id = ? AND e.cash_flow_type = ?
+                  AND strftime('%Y-%m', v.date) = ?
+                ORDER BY v.date DESC
+                LIMIT 50
+            """, (ledger_id, cf_type, f"{year}-{month:02d}")).fetchall()
+            return [dict(r) for r in rows]
+        finally:
+            release_conn(conn)
 
     # ── 期间对比（暂保留旧实现） ──
     @staticmethod

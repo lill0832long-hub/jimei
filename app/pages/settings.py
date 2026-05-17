@@ -8,8 +8,8 @@ from app.services.account_service import AccountService
 from app.services.auth_service import AuthService
 
 # 版本信息（与 app.py 保持一致）
-VERSION = "3.0.0"
-VERSION_NAME = "V3"
+VERSION = "5.1.0"
+VERSION_NAME = "V5.1"
 
 def render_settings():
     ledgers = LedgerService.get_all()

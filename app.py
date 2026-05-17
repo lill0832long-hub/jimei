@@ -4,8 +4,8 @@ AI 财务系统 — 模块化主入口
 import sys, os
 
 # ── 版本信息 ──
-VERSION = "3.0.0"
-VERSION_NAME = "V3"
+VERSION = "5.1.0"
+VERSION_NAME = "V5.1"
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)

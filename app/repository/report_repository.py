@@ -10,69 +10,84 @@ class ReportRepository:
     """Read-only queries for report generation."""
 
     async def get_account_balances(self, ledger_id: int, year: int, month: int):
-        """Get account balances with opening + period activity."""
+        """Get account balances with opening + period activity.
+
+        Uses batch GROUP BY queries instead of per-account N+1 queries.
+        3 queries total regardless of account count.
+        """
         async with get_db() as session:
-            # Get all active accounts
+            date_prefix = f"{year:04d}-{month:02d}"
+            year_prefix = f"{year:04d}-"
+            month_end = f"{year:04d}-{month:02d}-31"
+
+            # 1. Get all active accounts
             stmt = select(Account).where(Account.is_active == 1).order_by(Account.code)
             result = await session.execute(stmt)
             accounts = result.scalars().all()
+            account_codes = [a.code for a in accounts]
 
+            if not accounts:
+                return []
+
+            # 2. Batch: opening balances for all accounts
+            ob_stmt = select(
+                OpeningBalance.account_code,
+                OpeningBalance.balance,
+            ).where(
+                and_(
+                    OpeningBalance.ledger_id == ledger_id,
+                    OpeningBalance.account_code.in_(account_codes),
+                    OpeningBalance.year == year,
+                    OpeningBalance.month <= month,
+                )
+            ).order_by(OpeningBalance.account_code, OpeningBalance.year.desc(), OpeningBalance.month.desc())
+            ob_result = await session.execute(ob_stmt)
+            # Take the latest opening balance per account_code
+            opening_map = {}
+            for ob_row in ob_result.all():
+                if ob_row.account_code not in opening_map:
+                    opening_map[ob_row.account_code] = ob_row.balance
+
+            # 3. Batch: period debit/credit (current month) — GROUP BY account_code
+            period_stmt = select(
+                JournalEntry.account_code,
+                func.coalesce(func.sum(JournalEntry.debit), 0).label("total_debit"),
+                func.coalesce(func.sum(JournalEntry.credit), 0).label("total_credit"),
+            ).join(Voucher, JournalEntry.voucher_id == Voucher.id).where(
+                and_(
+                    JournalEntry.ledger_id == ledger_id,
+                    JournalEntry.account_code.in_(account_codes),
+                    Voucher.date.like(f"{date_prefix}%"),
+                    Voucher.status == "posted",
+                )
+            ).group_by(JournalEntry.account_code)
+            period_result = await session.execute(period_stmt)
+            period_map = {r.account_code: (r.total_debit, r.total_credit) for r in period_result.all()}
+
+            # 4. Batch: YTD debit/credit (Jan through current month) — GROUP BY account_code
+            ytd_stmt = select(
+                JournalEntry.account_code,
+                func.coalesce(func.sum(JournalEntry.debit), 0).label("total_debit"),
+                func.coalesce(func.sum(JournalEntry.credit), 0).label("total_credit"),
+            ).join(Voucher, JournalEntry.voucher_id == Voucher.id).where(
+                and_(
+                    JournalEntry.ledger_id == ledger_id,
+                    JournalEntry.account_code.in_(account_codes),
+                    Voucher.date.like(f"{year_prefix}%"),
+                    Voucher.date <= month_end,
+                    Voucher.status == "posted",
+                )
+            ).group_by(JournalEntry.account_code)
+            ytd_result = await session.execute(ytd_stmt)
+            ytd_map = {r.account_code: (r.total_debit, r.total_credit) for r in ytd_result.all()}
+
+            # 5. Assemble results (no more DB queries)
             balances = []
-            date_prefix = f"{year:04d}-{month:02d}"
-            year_prefix = f"{year:04d}-"
-
             for acct in accounts:
-                # Opening balance
-                ob_stmt = select(OpeningBalance).where(
-                    and_(
-                        OpeningBalance.ledger_id == ledger_id,
-                        OpeningBalance.account_code == acct.code,
-                        OpeningBalance.year == year,
-                        OpeningBalance.month <= month,
-                    )
-                ).order_by(OpeningBalance.year.desc(), OpeningBalance.month.desc())
-                ob_result = await session.execute(ob_stmt)
-                ob = ob_result.scalar_one_or_none()
-                opening = ob.balance if ob else 0
+                opening = opening_map.get(acct.code, 0)
+                period_debit, period_credit = period_map.get(acct.code, (0, 0))
+                ytd_debit, ytd_credit = ytd_map.get(acct.code, (0, 0))
 
-                # Period debit/credit from posted vouchers (current month only)
-                je_stmt = select(
-                    func.coalesce(func.sum(JournalEntry.debit), 0).label("total_debit"),
-                    func.coalesce(func.sum(JournalEntry.credit), 0).label("total_credit"),
-                ).join(Voucher, JournalEntry.voucher_id == Voucher.id).where(
-                    and_(
-                        JournalEntry.ledger_id == ledger_id,
-                        JournalEntry.account_code == acct.code,
-                        Voucher.date.like(f"{date_prefix}%"),
-                        Voucher.status == "posted",
-                    )
-                )
-                je_result = await session.execute(je_stmt)
-                row = je_result.one()
-                period_debit = row.total_debit
-                period_credit = row.total_credit
-
-                # Year-to-date debit/credit from posted vouchers (Jan through current month)
-                ytd_stmt = select(
-                    func.coalesce(func.sum(JournalEntry.debit), 0).label("total_debit"),
-                    func.coalesce(func.sum(JournalEntry.credit), 0).label("total_credit"),
-                ).join(Voucher, JournalEntry.voucher_id == Voucher.id).where(
-                    and_(
-                        JournalEntry.ledger_id == ledger_id,
-                        JournalEntry.account_code == acct.code,
-                        Voucher.date.like(f"{year_prefix}%"),
-                        Voucher.date <= f"{year:04d}-{month:02d}-31",
-                        Voucher.status == "posted",
-                    )
-                )
-                ytd_result = await session.execute(ytd_stmt)
-                ytd_row = ytd_result.one()
-                ytd_debit = ytd_row.total_debit
-                ytd_credit = ytd_row.total_credit
-
-                # Calculate closing balance based on account category
-                # Asset/Expense: debit increases, credit decreases
-                # Liability/Equity/Credit: credit increases, debit decreases
                 if acct.category in ("资产", "费用"):
                     closing = opening + period_debit - period_credit
                 else:

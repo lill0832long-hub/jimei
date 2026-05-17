@@ -87,6 +87,9 @@ def show_modal_error(title="错误", message=""):
 
 # ===== 导航 =====
 
+# 导航到这些页面时需要保留 selected_voucher_no
+_PAGES_KEEPING_VOUCHER = {"voucher_detail", "journal"}
+
 def navigate(page):
     """页面导航 — Sidebar v2 架构
 
@@ -96,7 +99,9 @@ def navigate(page):
     if page == state.current_page:
         return
     state.current_page = page
-    state.selected_voucher_no = None
+    # 仅在导航到与凭证无关的页面时清理选中凭证
+    if page not in _PAGES_KEEPING_VOUCHER:
+        state.selected_voucher_no = None
     _rebuild_content()  # 只重渲染 main_content，sidebar 不动
 
 
@@ -231,7 +236,7 @@ def render_header():
                 ui.button(icon="menu", on_click=lambda: ui.run_javascript("window.sidebarCtrl&&window.sidebarCtrl.toggleDrawer()"))                     .props("flat dense").classes("hamburger-btn")
                 ui.icon("account_balance").classes("header-logo-icon")
                 ui.label("AI财务系统").classes("header-title")
-                ui.label("v3.0").classes("header-version")
+                ui.label("v5.1").classes("header-version")
                 with ui.element("div").classes("header-divider"):
                     pass
                 ledgers = get_ledgers()
@@ -257,10 +262,9 @@ def render_header():
                 ).props("dense dark input-style=\"text-align: center\"").classes("header-month-select")
                 ui.label("月").classes("header-period-label")
 
-            with ui.row().classes("header-right items-center gap-3"):
-                ui.button(icon="search", color="primary", on_click=open_global_search) \
-                    .props("dense flat round data-search-trigger=true").classes("header-search-btn")
-                ui.label("Ctrl+K").classes("text-xs").style("color:var(--c-text-muted)")
+            with ui.row().classes("header-right items-center gap-2"):
+                ui.button(icon="search", on_click=open_global_search) \
+                    .props("flat round dense").classes("header-search-btn")
                 if state.current_user:
                     with ui.element("div").classes("header-notif-wrapper"):
                         ui.icon("notifications").classes("header-notif-icon")
@@ -276,13 +280,13 @@ def render_header():
                             role_text = "管理员" if (state.current_user or {}).get('role') == 'admin' else "操作员"
                             ui.label(role_text).classes("header-role")
                     ui.button(icon="dark_mode", on_click=lambda: ui.run_javascript("toggleDarkTheme()")) \
-                        .props("flat dense").classes("header-logout-btn").classes("mr-1")
+                        .props("flat dense round").classes("header-icon-btn")
 
                     def _logout():
                         state.current_user = None
                         state.current_page = "dashboard"
                         ui.navigate.to("/")
-                    ui.button(icon="logout", on_click=_logout).props("flat dense").classes("header-logout-btn")
+                    ui.button(icon="logout", on_click=_logout).props("flat dense round").classes("header-icon-btn")
 
 
 # ===== Sidebar v2 =====
@@ -305,7 +309,6 @@ _nav_groups = [
         "icon": "edit_note",
         "items": [
             ("journal", "记账凭证", "edit_note"),
-            ("voucher_detail", "凭证详情", "description"),
             ("import", "批量导入", "cloud_upload"),
             ("invoices", "发票管理", "receipt_long"),
         ],
@@ -318,10 +321,8 @@ _nav_groups = [
             ("trial_balance", "科目余额表", "grid_on"),
             ("balance_sheet", "资产负债表", "account_balance"),
             ("income_statement", "利润表", "trending_up"),
-            ("cash_flow", "现金流量表", "waterfall_chart"),
-            ("cash_flow_statement", "现金流量表(新)", "waterfall_chart"),
+            ("cash_flow_statement", "现金流量表", "waterfall_chart"),
             ("account_ledger", "科目明细账", "table_chart"),
-            ("accounts", "科目余额表", "table_chart"),
             ("charts", "图表分析", "bar_chart"),
             ("compare", "对比分析", "compare_arrows"),
         ],
@@ -379,9 +380,9 @@ def _build_sidebar_content(sidebar_el):
         with ui.button(on_click=lambda _k=gkey: _toggle_sidebar_group(_k)).props(
             "flat no-caps align-left"
         ).classes(header_classes).style(
-            "height: 36px; padding: 0 12px; gap: 6px; width: 100%; "
-            "border-radius: 6px; margin: 2px 4px; justify-content: flex-start; "
-            "background: rgba(255,255,255,0.04);"
+            "height: 28px; padding: 0 12px; gap: 6px; width: 100%; "
+            "border-radius: 0; margin: 10px 0 2px 0; justify-content: flex-start; "
+            "background: transparent;"
         ):
             ui.icon(gicon).classes("sidebar-group-icon")
             if not state.sidebar_collapsed:
@@ -422,8 +423,6 @@ def _build_sidebar_content(sidebar_el):
 
 def render_sidebar():
     """左侧导航菜单 v3 — Python状态驱动分组折叠"""
-    import sys
-    print(f"[SIDEBAR] render_sidebar called, page={state.current_page}", file=sys.stderr, flush=True)
     # ── 初始化分组折叠状态（首次渲染） ──
     if state.sidebar_group_expanded is None:
         state.sidebar_group_expanded = {
@@ -433,28 +432,21 @@ def render_sidebar():
             "finance": True,
         }
 
-    # 检查旧容器的 client 是否存活，若已断开则丢弃重建
+    # 安全重置：如果容器已被标记为需要刷新，或 client 已断开，则重建
     if state._sidebar_container is not None:
         try:
             _ = state._sidebar_container.client
         except RuntimeError:
             state._sidebar_container = None
 
-    if state._sidebar_container is not None:
-        # 后续渲染：复用已有容器，清除后重新填充
-        sidebar_el = state._sidebar_container
-        sidebar_el.clear()
-        with sidebar_el:
-            _build_sidebar_content(sidebar_el)
-    else:
-        # 首次渲染（或旧容器已失效）：创建容器并填充
-        sidebar_classes = "sidebar-nav h-full"
-        if state.sidebar_collapsed:
-            sidebar_classes += " sidebar-collapsed"
-        state._sidebar_container = ui.column().classes(sidebar_classes)
-        sidebar_el = state._sidebar_container
-        with sidebar_el:
-            _build_sidebar_content(sidebar_el)
+    # 创建 sidebar 容器（每次页面渲染都创建新容器，NiceGUI 会正确处理 DOM 更新）
+    sidebar_classes = "sidebar-nav h-full"
+    if state.sidebar_collapsed:
+        sidebar_classes += " sidebar-collapsed"
+    state._sidebar_container = ui.column().classes(sidebar_classes)
+    sidebar_el = state._sidebar_container
+    with sidebar_el:
+        _build_sidebar_content(sidebar_el)
 
 
 def _toggle_sidebar_group(gkey):

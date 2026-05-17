@@ -9,6 +9,8 @@ venv/
 # Database
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 
 # Logs & temp
 *.log
@@ -28,10 +30,6 @@ app/backups/
 *_patch*.py
 *_additions*.py
 
-# Cloudflare debug files
-cf_*
-temp_cf_*
-
 # Scraper scripts & artifacts
 scrape_*
 view_voucher.py
@@ -44,6 +42,10 @@ voucher_table_test*
 e319e8cc*.png
 split_db.py
 PLAN_*.md
+check_nav.py
+test_navigation.py
+list_modules.js
+tmp_screenshots/
 
 # Docs (keep in workspace, not in repo)
 *_报告.md

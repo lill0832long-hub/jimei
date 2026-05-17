@@ -46,8 +46,16 @@ class VoucherService:
         ))
 
     @staticmethod
-    def update(voucher_no, date_str=None, description=None, entries=None, user_id=None, operator_name=None):
-        """更新凭证 — 如修改明细则重新校验借贷平衡"""
+    def update(voucher_no, date_str=None, description=None, entries=None, user_id=None, operator_name=None, ledger_id=None):
+        """更新凭证 — 仅草稿状态可修改，如修改明细则重新校验借贷平衡"""
+        # 校验状态：只有草稿状态才能修改
+        if ledger_id:
+            voucher = to_dict(run_async(_voucher_repo.get_with_entries(ledger_id, voucher_no)))
+            if voucher:
+                current_status = voucher.get("status") if isinstance(voucher, dict) else getattr(voucher, "status", None)
+                if current_status != "draft":
+                    raise PermissionError(f"凭证当前状态为 '{current_status}'，只有草稿状态的凭证才能修改")
+
         if entries and len(entries) > 0:
             total_debit = 0
             total_credit = 0
@@ -69,6 +77,13 @@ class VoucherService:
 
     @staticmethod
     def post(ledger_id, voucher_no=None, user_id=None, operator_name=None):
+        """过账 — 仅审核通过状态的凭证可过账"""
+        voucher = to_dict(run_async(_voucher_repo.get_with_entries(ledger_id, voucher_no)))
+        if not voucher:
+            raise FileNotFoundError(f"凭证 {voucher_no} 不存在")
+        current_status = voucher.get("status") if isinstance(voucher, dict) else getattr(voucher, "status", None)
+        if current_status != "approved":
+            raise PermissionError(f"凭证当前状态为 '{current_status}'，只有审核通过状态的凭证才能过账")
         return run_async(_voucher_repo.update_status(
             voucher_no=voucher_no, new_status="posted",
             user_id=user_id, action="post", comment="",
@@ -103,6 +118,13 @@ class VoucherService:
 
     @staticmethod
     def reject(ledger_id, voucher_no, reason="", user_id=None, operator_name=None):
+        """驳回 — 仅待审核状态的凭证可驳回"""
+        voucher = to_dict(run_async(_voucher_repo.get_with_entries(ledger_id, voucher_no)))
+        if not voucher:
+            raise FileNotFoundError(f"凭证 {voucher_no} 不存在")
+        current_status = voucher.get("status") if isinstance(voucher, dict) else getattr(voucher, "status", None)
+        if current_status != "pending_review":
+            raise PermissionError(f"凭证当前状态为 '{current_status}'，只有待审核状态的凭证才能驳回")
         return run_async(_voucher_repo.update_status(
             voucher_no=voucher_no, new_status="rejected",
             user_id=user_id, action="reject", comment=reason,
@@ -110,6 +132,24 @@ class VoucherService:
 
     @staticmethod
     def reverse(voucher_no, reason="", user_id=None, operator_name=None):
+        """冲销 — 仅已过账状态的凭证可冲销"""
+        # 需要ledger_id来查询，尝试从所有ledger中查找
+        voucher = None
+        try:
+            ledgers = LedgerService.get_all()
+            for ledger in ledgers:
+                lid = ledger.get("id") if isinstance(ledger, dict) else ledger["id"]
+                v = to_dict(run_async(_voucher_repo.get_with_entries(lid, voucher_no)))
+                if v:
+                    voucher = v
+                    break
+        except Exception:
+            pass
+        if not voucher:
+            raise FileNotFoundError(f"凭证 {voucher_no} 不存在")
+        current_status = voucher.get("status") if isinstance(voucher, dict) else getattr(voucher, "status", None)
+        if current_status != "posted":
+            raise PermissionError(f"凭证当前状态为 '{current_status}'，只有已过账状态的凭证才能冲销")
         return run_async(_voucher_repo.update_status(
             voucher_no=voucher_no, new_status="reversed",
             user_id=user_id, action="reverse", comment=reason,

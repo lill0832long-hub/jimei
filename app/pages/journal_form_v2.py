@@ -387,6 +387,10 @@ def _render_voucher_form_dialog(detail=None):
 async def _collect_entries(acct_map):
     """从 JS 收集分录数据并验证"""
     raw = await ui.run_javascript("return v5collectEntries();")
+    # Handle undefined/null — JS function may not be loaded yet
+    if raw is None or raw == "undefined" or raw == "null":
+        show_toast("凭证表格尚未加载完成，请稍后重试", "warning")
+        raise ValueError("表格未加载")
     try:
         entries_raw = json.loads(raw) if isinstance(raw, str) else json.loads(str(raw))
     except Exception as e:

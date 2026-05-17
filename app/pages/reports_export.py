@@ -86,11 +86,13 @@ def _export_balance_sheet():
             cell.alignment = Alignment(horizontal="center")
         thin = Side(style="thin", color="E5E7EB")
         border = Border(left=thin, right=thin, top=thin, bottom=thin)
-        for row in report:
-            data_row = [row.get("code",""), row.get("name",""),
-                       row.get("opening_balance",0) or 0, row.get("balance",0) or 0,
-                       row.get("change",0) or 0, row.get("change_pct","")]
-            ws.append(data_row)
+        # report 是字典，包含 assets/liabilities/equity 三个列表
+        for section_key in ("assets", "liabilities", "equity"):
+            for row in report.get(section_key, []):
+                data_row = [row.get("code",""), row.get("name",""),
+                           row.get("opening_balance",0) or 0, row.get("end",0) or 0,
+                           row.get("change",0) or 0, row.get("change_pct","")]
+                ws.append(data_row)
             for cell in ws[ws.max_row]:
                 cell.border = border
                 cell.alignment = Alignment(horizontal="center")
@@ -116,11 +118,15 @@ def _export_balance_sheet_pdf():
         if not report:
             show_toast("无资产负债表数据", "warning")
             return
-        _build_pdf(fpath, "资产负债表", report,
+        # report 是字典，包含 assets/liabilities/equity 三个列表
+        pdf_data = []
+        for section_key in ("assets", "liabilities", "equity"):
+            pdf_data.extend(report.get(section_key, []))
+        _build_pdf(fpath, "资产负债表", pdf_data,
                    ["科目代码","科目名称","期初余额","期末余额","变动金额","变动比例"],
                    lambda r: [r.get("code",""), r.get("name",""),
                               f'¥{r.get("opening_balance",0) or 0:,.2f}',
-                              f'¥{r.get("balance",0) or 0:,.2f}',
+                              f'¥{r.get("end",0) or 0:,.2f}',
                               f'¥{r.get("change",0) or 0:,.2f}',
                               r.get("change_pct","")])
         show_toast(f"✅ 资产负债表PDF已导出 → {fname}", "success")
@@ -155,7 +161,8 @@ def _export_income_statement():
             cell.alignment = Alignment(horizontal="center")
         thin = Side(style="thin", color="E5E7EB")
         border = Border(left=thin, right=thin, top=thin, bottom=thin)
-        for row in report:
+        # report 是字典，包含 rows 列表
+        for row in report.get("rows", []):
             data_row = [row.get("code",""), row.get("name",""), row.get("category",""),
                        row.get("balance",0) or 0, row.get("prev_balance",0) or 0,
                        row.get("change_pct","")]

@@ -64,6 +64,10 @@ class VoucherRepository(BaseRepository):
             total_debit = sum(float(e.get("debit", 0) or 0) for e in entries)
             total_credit = sum(float(e.get("credit", 0) or 0) for e in entries)
 
+            # Validate debit == credit
+            if abs(total_debit - total_credit) >= 0.01:
+                raise ValueError(f"借贷不平衡：借方 {total_debit:.2f} ≠ 贷方 {total_credit:.2f}")
+
             voucher = Voucher(
                 ledger_id=ledger_id,
                 voucher_no=voucher_no,
@@ -100,9 +104,11 @@ class VoucherRepository(BaseRepository):
         seq = count + 1
         return f"PZ{ledger_id:02d}{seq:06d}"
 
-    async def update(self, voucher_no: str, date: str = None, description: str = None, entries: list = None):
+    async def update(self, voucher_no: str, date: str = None, description: str = None, entries: list = None, ledger_id: int = None):
         async with get_db() as session:
             stmt = select(Voucher).where(Voucher.voucher_no == voucher_no)
+            if ledger_id is not None:
+                stmt = stmt.where(Voucher.ledger_id == ledger_id)
             result = await session.execute(stmt)
             voucher = result.scalar_one_or_none()
             if voucher:
@@ -130,9 +136,11 @@ class VoucherRepository(BaseRepository):
                     voucher.total_credit = sum(float(e.get("credit", 0) or 0) for e in entries)
             return voucher
 
-    async def delete(self, voucher_no: str) -> bool:
+    async def delete(self, voucher_no: str, ledger_id: int = None) -> bool:
         async with get_db() as session:
             stmt = select(Voucher).where(Voucher.voucher_no == voucher_no)
+            if ledger_id is not None:
+                stmt = stmt.where(Voucher.ledger_id == ledger_id)
             result = await session.execute(stmt)
             voucher = result.scalar_one_or_none()
             if voucher:
@@ -183,15 +191,17 @@ class VoucherRepository(BaseRepository):
                 old_status = voucher.status
                 voucher.status = new_status
                 if action:
-                    await self.add_workflow(
+                    # Use the same session — don't call add_workflow which opens a new one
+                    wf = VoucherWorkflow(
                         voucher_id=voucher.id,
                         ledger_id=voucher.ledger_id,
                         action=action,
-                        to_status=new_status,
                         from_status=old_status,
+                        to_status=new_status,
                         user_id=user_id,
                         comment=comment,
                     )
+                    session.add(wf)
             return voucher
 
     async def get_entries(self, voucher_id: int):
