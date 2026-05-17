@@ -473,7 +473,7 @@ body[data-theme="dark"] .header-bar {
 
 /* 图标按钮（暗色模式、退出） */
 .header-icon-btn {
-    color: var(--header-text-muted);
+    color: var(--header-text-secondary);
     min-height: 30px;
     min-width: 30px;
     transition: color var(--transition-fast), background var(--transition-fast);
@@ -866,6 +866,13 @@ html {
     border-radius: var(--radius-sm) !important;
     box-shadow: var(--shadow-lg) !important;
     padding: 6px 10px !important;
+}
+
+/* 手机端底部导航 + 抽屉：仅在小屏幕显示 */
+@media (min-width: 769px) {
+    .bottom-nav { display: none !important; }
+    .drawer-overlay { display: none !important; }
+    #drawerSidebar { display: none !important; }
 }
 
 /* 打印优化 */
