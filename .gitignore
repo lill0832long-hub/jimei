@@ -47,6 +47,9 @@ test_navigation.py
 list_modules.js
 tmp_screenshots/
 
+# Annotations (user design notes, not for repo)
+.claude/annotations/
+
 # Docs (keep in workspace, not in repo)
 *_报告.md
 *_计划.md

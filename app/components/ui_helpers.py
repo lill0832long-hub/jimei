@@ -279,6 +279,8 @@ def render_header():
                             ui.label(_username).classes("header-username")
                             role_text = "管理员" if (state.current_user or {}).get('role') == 'admin' else "操作员"
                             ui.label(role_text).classes("header-role")
+                    ui.button(icon="edit_note", on_click=lambda: ui.run_javascript("window._annot&&window._annot.toggle()")) \
+                        .props("flat dense round").classes("header-icon-btn").tooltip("标注页面")
                     ui.button(icon="dark_mode", on_click=lambda: ui.run_javascript("toggleDarkTheme()")) \
                         .props("flat dense round").classes("header-icon-btn")
 

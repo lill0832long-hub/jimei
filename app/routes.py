@@ -3,6 +3,7 @@ import os
 import time
 import logging
 import functools
+import json
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -309,3 +310,43 @@ def register_routes(app):
         month = _validate_positive_integer(q.get("month"), "month")
         result = LedgerService.reverse_close_period(ledger_id, year, month)
         return JSONResponse({"success": True, "data": result})
+
+    # ═══════════════════════════
+    #  标注 API（设计协作）
+    # ═══════════════════════════
+
+    # 标注文件保存路径：优先用环境变量，否则用项目根目录下的 .claude/annotations/
+    # 在 WSL 环境中运行时，通过 /mnt/e/... 映射到 Windows 工作区，确保 Claude Code 可直接读取
+    _ANNOTATIONS_DIR = os.environ.get(
+        "ANNOTATIONS_DIR",
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".claude", "annotations")
+    )
+    # 如果 WSL 映射存在，优先使用 Windows 侧路径（方便 Claude Code 读取）
+    _wsl_alt = "/mnt/e/ClaudeCode/my-project/.claude/annotations"
+    if os.path.isdir("/mnt/e/ClaudeCode/my-project/.claude"):
+        _ANNOTATIONS_DIR = _wsl_alt
+    os.makedirs(_ANNOTATIONS_DIR, exist_ok=True)
+
+    def _annotation_file(page: str) -> str:
+        safe = "".join(c if c.isalnum() or c in "-_" else "_" for c in page)
+        return os.path.join(_ANNOTATIONS_DIR, f"{safe}.json")
+
+    @app.get("/api/v1/annotations/{page}")
+    async def api_get_annotations(page: str):
+        """读取页面标注"""
+        f = _annotation_file(page)
+        if os.path.exists(f):
+            with open(f, "r", encoding="utf-8") as fh:
+                data = json.load(fh)
+        else:
+            data = {"page": page, "annotations": []}
+        return JSONResponse({"success": True, "data": data})
+
+    @app.post("/api/v1/annotations/{page}")
+    async def api_save_annotations(page: str, request: Request):
+        """保存页面标注"""
+        body = await request.json()
+        f = _annotation_file(page)
+        with open(f, "w", encoding="utf-8") as fh:
+            json.dump(body, fh, ensure_ascii=False, indent=2)
+        return JSONResponse({"success": True, "message": "标注已保存"})
