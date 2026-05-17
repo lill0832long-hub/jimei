@@ -113,6 +113,11 @@
         _canvas = c;
         _sizeCanvas();
         window.addEventListener("resize", _sizeCanvas);
+        // 直接绑 canvas 作为后备
+        c.addEventListener("mousedown", _onMouseDown);
+        c.addEventListener("mousemove", _onMouseMove);
+        c.addEventListener("mouseup", _onMouseUp);
+        c.addEventListener("contextmenu", _onContextMenu);
         return c;
     }
 
@@ -321,11 +326,11 @@
         _updateBtns();
     }
 
-    // ── 全局事件 ──
-    document.addEventListener("mousedown", _onMouseDown);
-    document.addEventListener("mousemove", _onMouseMove);
-    document.addEventListener("mouseup", _onMouseUp);
-    document.addEventListener("contextmenu", _onContextMenu);
+    // ── 全局事件（capture phase 绕过 Quasar 拦截）──
+    document.addEventListener("mousedown", _onMouseDown, true);
+    document.addEventListener("mousemove", _onMouseMove, true);
+    document.addEventListener("mouseup", _onMouseUp, true);
+    document.addEventListener("contextmenu", _onContextMenu, true);
 
     // ── 样式 ──
     var style = document.createElement("style");

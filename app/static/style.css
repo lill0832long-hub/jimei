@@ -357,7 +357,7 @@ body[data-theme="dark"] .header-bar {
 .header-center {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
 }
 .header-center > .row,
 .header-center > .nicegui-row {
@@ -369,39 +369,40 @@ body[data-theme="dark"] .header-bar {
 }
 .header-year-select,
 .header-month-select {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--header-text-primary);
+    font-size: 14px;
+    font-weight: 700;
+    color: #000000;
 }
-.header-year-select { width: 72px; }
-.header-month-select { width: 56px; }
+.header-year-select { width: 88px; }
+.header-month-select { width: 64px; }
 .header-year-select .q-field__control,
 .header-year-select .q-field__native,
 .header-month-select .q-field__control,
 .header-month-select .q-field__native {
     text-align: center !important;
     justify-content: center !important;
-    font-weight: 600;
+    font-weight: 700;
+    color: #000000;
 }
 .header-period-label {
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--header-text-secondary);
-    margin-left: -2px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #000000;
+    margin-left: 2px;
 }
 
 /* ── 右区：搜索 + 通知 + 用户 + 操作 ── */
 .header-right {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
 }
 
 /* 搜索按钮 */
 .header-search-btn {
     color: var(--header-text-muted);
-    min-height: 32px;
-    min-width: 32px;
+    min-height: 26px;
+    min-width: 26px;
     transition: color var(--transition-fast);
 }
 .header-search-btn:hover {
@@ -471,11 +472,11 @@ body[data-theme="dark"] .header-bar {
     letter-spacing: 0.2px;
 }
 
-/* 图标按钮（暗色模式、退出） */
+/* 图标按钮（标注、暗色模式、退出） */
 .header-icon-btn {
     color: var(--header-text-secondary);
-    min-height: 30px;
-    min-width: 30px;
+    min-height: 26px;
+    min-width: 26px;
     transition: color var(--transition-fast), background var(--transition-fast);
 }
 .header-icon-btn:hover {
