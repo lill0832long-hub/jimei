@@ -1,7 +1,10 @@
 """Database module: multi_currency domain"""
 
+import logging
 from datetime import datetime
-from .connection import get_conn, transaction, DB_PATH, clear_query_cache
+from .connection import get_conn, release_conn, transaction, DB_PATH, clear_query_cache
+
+logger = logging.getLogger(__name__)
 
 def _init_default_currencies(c):
     """Phase 10: 初始化默认币种数据"""
@@ -59,7 +62,7 @@ def set_exchange_rate(from_currency: str, to_currency: str, rate: float, date: s
         VALUES (?,?,?,?)
     """, (from_currency.upper(), to_currency.upper(), rate, date))
     conn.commit()
-    conn.close()
+    release_conn(conn)
     clear_query_cache()
 
 def get_exchange_rate(from_currency: str, to_currency: str, date: str = None) -> float:
@@ -75,8 +78,11 @@ def get_exchange_rate(from_currency: str, to_currency: str, date: str = None) ->
           AND date <= ?
         ORDER BY date DESC LIMIT 1
     """, (from_currency.upper(), to_currency.upper(), date)).fetchone()
-    conn.close()
-    return row["rate"] if row else 1.0
+    release_conn(conn)
+    if not row:
+        logger.warning("No exchange rate found for %s->%s on %s, using 1.0", from_currency, to_currency, date)
+        return 1.0
+    return row["rate"]
 
 def convert_currency(amount: float, from_currency: str, to_currency: str, date: str = None) -> float:
     """货币转换"""

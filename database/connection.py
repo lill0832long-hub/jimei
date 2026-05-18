@@ -52,8 +52,8 @@ def get_conn():
                 logger.warning("Pooled connection unhealthy, creating new one")
                 try:
                     conn.close()
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug("Failed to close unhealthy connection: %s", e)
     # 池为空或连接不可用，创建新连接
     return _create_connection()
 

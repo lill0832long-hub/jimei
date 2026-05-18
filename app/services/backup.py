@@ -5,11 +5,11 @@ from database.ledger import get_ledgers, backup_ledger_to_json
 
 logger = logging.getLogger(__name__)
 
-_AUTO_BACKUP_ENABLED = True
 _AUTO_BACKUP_INTERVAL_HOURS = 24
 _AUTO_BACKUP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "backups")
 _BACKUP_LOCK = threading.Lock()
 _backup_status = {"last_backup": None, "last_status": "未启动", "total_backups": 0, "errors": []}
+_stop_event = threading.Event()
 
 
 def _auto_backup_worker():
@@ -20,7 +20,7 @@ def _auto_backup_worker():
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
     logger.addHandler(handler)
 
-    while _AUTO_BACKUP_ENABLED:
+    while not _stop_event.is_set():
         try:
             with _BACKUP_LOCK:
                 ledgers = get_ledgers()
@@ -40,13 +40,15 @@ def _auto_backup_worker():
         except Exception as e:
             _backup_status["last_status"] = f"失败: {e}"
             logger.error(f"备份异常: {e}")
-        for _ in range(_AUTO_BACKUP_INTERVAL_HOURS * 3600):
-            if not _AUTO_BACKUP_ENABLED:
-                break
-            time.sleep(1)
+        _stop_event.wait(timeout=_AUTO_BACKUP_INTERVAL_HOURS * 3600)
 
 
 def start_auto_backup():
+    _stop_event.clear()
     t = threading.Thread(target=_auto_backup_worker, daemon=True, name="auto-backup")
     t.start()
     return t
+
+
+def stop_auto_backup():
+    _stop_event.set()

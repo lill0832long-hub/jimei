@@ -72,9 +72,9 @@ def restore_database(backup_dir: str, target_ledger_id: int = None) -> dict:
         # Create new ledger
         ledger_info = data.get("ledger", {})
         new_id = create_ledger(
-            name=ledger_info.get("name", "恢复账套") + "_恢复",
-            company=ledger_info.get("company", "未知公司"),
-            currency=ledger_info.get("currency", "CNY"),
+            name=(ledger_info.get("name") or "恢复账套") + "_恢复",
+            company=ledger_info.get("company") or "未知公司",
+            currency=ledger_info.get("currency") or "CNY",
         )
         target_ledger_id = new_id
 

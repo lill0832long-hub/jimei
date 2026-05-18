@@ -14,8 +14,6 @@ def render_import():
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
     lid = state.selected_ledger_id
-    import tempfile, os
-
     with ui.row().classes("w-full gap-3"):
         # 左侧：上传 + 模板下载
         with ui.column().classes("w-1/2 gap-2"):

@@ -1,7 +1,10 @@
 """Database module: voucher domain"""
 
 import json
+import logging
 from .connection import get_conn, transaction, DB_PATH, clear_query_cache
+
+logger = logging.getLogger(__name__)
 from .audit import add_audit_log
 
 def create_voucher(ledger_id, date_str, description, entries, status="posted", voucher_no=None, user_id=None, operator_name=None):
@@ -827,7 +830,8 @@ def create_voucher_template(ledger_id, name, description, entries, category='gen
             (ledger_id, name, description, category, json.dumps(entries, ensure_ascii=False), is_system)
         )
         conn.commit()
-    except sqlite3.IntegrityError:
+    except sqlite3.IntegrityError as e:
+        logger.warning("create_voucher_template IntegrityError: %s", e)
         raise ValueError(f"模板名称 '{name}' 已存在")
     finally:
         conn.close()

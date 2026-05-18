@@ -1,6 +1,6 @@
 """Database module: period domain"""
 
-from .connection import get_conn, transaction, DB_PATH, clear_query_cache
+from .connection import get_conn, release_conn, transaction, DB_PATH, clear_query_cache
 
 def get_close_period_checklist(ledger_id, year, month) -> list:
     """获取期末结转检查清单（每项含名称/状态/描述）"""
@@ -41,7 +41,7 @@ def get_close_period_checklist(ledger_id, year, month) -> list:
     items.append({"name": "期间状态", "ok": period_status != "closed",
                   "desc": f"当前状态: {period_status}"})
 
-    conn.close()
+    release_conn(conn)
     return items
 
 def close_period(ledger_id, year, month, user_id=None, operator_name=None):
@@ -187,7 +187,7 @@ def close_period(ledger_id, year, month, user_id=None, operator_name=None):
 
         return voucher_no
     finally:
-        conn.close()
+        release_conn(conn)
 
 def get_period_status(ledger_id, year, month):
     """获取会计期间状态（是否已结转）"""
@@ -196,7 +196,7 @@ def get_period_status(ledger_id, year, month):
         "SELECT voucher_no, created_at FROM vouchers WHERE ledger_id = ? AND description LIKE ? AND status = 'posted' ORDER BY date DESC LIMIT 1",
         (ledger_id, f"%结转{year}年{month}月损益%")
     ).fetchone()
-    conn.close()
+    release_conn(conn)
     if row:
         return {"closed": True, "voucher_no": row["voucher_no"], "closed_at": row["created_at"]}
     return {"closed": False, "voucher_no": None, "closed_at": None}
@@ -218,15 +218,24 @@ def reverse_close_period(ledger_id, year, month):
     """, (ledger_id, next_period)).fetchone()['cnt']
     
     if next_closed > 0:
-        conn.close()
+        release_conn(conn)
         return {'success': False, 'message': f'下一期间 {next_period} 已结账，无法反结账'}
     
+    # 查找并删除结转凭证（通过 description 匹配）
+    rows = conn.execute(
+        "SELECT id FROM vouchers WHERE ledger_id = ? AND description LIKE ? AND status = 'posted'",
+        (ledger_id, f"%结转{year}年{month}月损益%")
+    ).fetchall()
+    for r in rows:
+        conn.execute("DELETE FROM journal_entries WHERE voucher_id = ?", (r["id"],))
+        conn.execute("DELETE FROM vouchers WHERE id = ?", (r["id"],))
+
     # 删除结转记录
     conn.execute("DELETE FROM closing_entries WHERE ledger_id = ? AND period = ?",
                  (ledger_id, period))
-    
+
     conn.commit()
-    conn.close()
+    release_conn(conn)
     clear_query_cache()
 
 def set_opening_balance(ledger_id, account_code, year, month, balance):
@@ -237,7 +246,7 @@ def set_opening_balance(ledger_id, account_code, year, month, balance):
         VALUES (?,?,?,?,?)
     """, (ledger_id, account_code, year, month, balance))
     conn.commit()
-    conn.close()
+    release_conn(conn)
     clear_query_cache()
 
 def get_opening_balance(ledger_id, account_code, year, month):
@@ -250,5 +259,5 @@ def get_opening_balance(ledger_id, account_code, year, month):
         ORDER BY year DESC, month DESC
         LIMIT 1
     """, (ledger_id, account_code, year, year, month)).fetchone()
-    conn.close()
+    release_conn(conn)
     return row["balance"] if row else 0
