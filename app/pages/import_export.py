@@ -99,7 +99,7 @@ def _generate_template():
     """生成 Excel 模板文件"""
     import openpyxl
     from openpyxl.styles import Font, PatternFill, Alignment
-    import tempfile, os
+    import tempfile
 
     wb = openpyxl.Workbook()
     ws = wb.active
