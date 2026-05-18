@@ -272,6 +272,22 @@ type: `feat` | `fix` | `refactor` | `test` | `docs` | `chore`
 
 ---
 
+## Memory 管理
+
+### 对话结束前必做
+
+每次对话结束（compaction 前、用户说"结束"、或自然结束时），检查本次对话是否有值得记录的内容，有则按 `_COMPRESSION_RULES.md` 规范写入 `memory/daily/daily-log.md`。
+
+### 反复修正检测
+
+对话中同一文件同一位置被 Edit 2 次以上，或用户说"还是不对"/"又出问题了"，必须用 `[recurring]` 标记提炼教训，写入 daily-log.md，并在 MEMORY.md 中用 🔴 标记。
+
+### 读取规则
+
+每次会话启动，先读 MEMORY.md 和 user_identity.md，有 🔴 标记的条目优先处理。
+
+---
+
 ## Git 工作流（Git Workflow）
 
 参考 addyosmani/agent-skills 的 trunk-based 开发模式。

@@ -1,39 +1,14 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python -c \"import database_v3; print\\([x for x in dir\\(database_v3\\) if 'account' in x.lower\\(\\)]\\)\")",
-      "Bash(python -c ' *)",
-      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/voucher_service.py', doraise=True\\); print\\('voucher_service.py OK'\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/ledger_service.py', doraise=True\\); print\\('ledger_service.py OK'\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/budget_service.py', doraise=True\\); print\\('budget_service.py OK'\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\('app/pages/journal_form.py', doraise=True\\); print\\('journal_form.py OK'\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\('app/pages/settings.py', doraise=True\\); print\\('settings.py OK'\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/report_service.py', doraise=True\\); print\\('report_service.py OK'\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/tax_service.py', doraise=True\\); print\\('tax_service.py OK'\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/account_service.py', doraise=True\\); print\\('account_service.py OK'\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\('app/services/auth_service.py', doraise=True\\); print\\('auth_service.py OK'\\)\")",
-      "Bash(python -c \"from app.services import LedgerService, VoucherService, ReportService, AuthService, AccountService, BudgetService, TaxService; print\\('All service imports OK'\\)\")",
-      "Bash(git commit -m ' *)",
-      "Bash(git push *)",
-      "Bash(dir /s /b E:\\\\ClaudeCode\\\\my-project\\\\database_v3.py)",
-      "Bash(python -m py_compile \"e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\ai_assistant.py\")",
-      "Bash(python -c \"import py_compile; files = ['app/pages/audit_log.py', 'app/pages/auth.py', 'app/pages/journal_actions.py', 'app/pages/journal_detail.py', 'app/pages/journal_list.py', 'app/pages/reports_balance_sheet.py', 'app/pages/reports_income_statement.py', 'app/pages/reports_account_ledger.py', 'app/pages/account_ledger.py']; [py_compile.compile\\(f, doraise=True\\) for f in files]; print\\('All 9 files compiled successfully.'\\)\")",
-      "Bash(python -m py_compile \"e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\import_export.py\")",
-      "Bash(python -m py_compile \"e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\reports_export.py\")",
-      "Bash(python -m py_compile \"e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\journal_form.py\")",
-      "Bash(python -m py_compile \"e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\multi_currency.py\")",
-      "Bash(python -c \"import py_compile; print\\('ok'\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\(r'e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\auxiliary.py', doraise=True\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\(r'e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\bank_reconciliation.py', doraise=True\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\(r'e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\cash_flow.py', doraise=True\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\(r'e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\cash_flow_statement.py', doraise=True\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\(r'e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\charts.py', doraise=True\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\(r'e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\close_period.py', doraise=True\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\(r'e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\compare.py', doraise=True\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\(r'e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\scheduled_vouchers.py', doraise=True\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\(r'e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\setup_wizard.py', doraise=True\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\(r'e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\voucher_template.py', doraise=True\\)\")",
-      "Bash(python -c \"import py_compile; py_compile.compile\\(r'e:\\\\ClaudeCode\\\\my-project\\\\app\\\\pages\\\\cashier.py', doraise=True\\)\")"
+      "Bash(wsl -e bash -c *)",
+      "Bash(curl *)",
+      "Bash(netstat *)",
+      "Bash(findstr *)",
+      "Bash(tasklist *)",
+      "Bash(taskkill *)",
+      "Read(//mnt/e/ClaudeCode/**)",
+      "Read(//e/ClaudeCode/**)"
     ]
   }
 }
