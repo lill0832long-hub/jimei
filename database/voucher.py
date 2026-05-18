@@ -1,5 +1,6 @@
 """Database module: voucher domain"""
 
+import json
 from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 from .audit import add_audit_log
 
@@ -959,7 +960,7 @@ def run_scheduled_voucher(scheduled_id: int) -> str:
     if sv["template_id"]:
         tpl = conn.execute("SELECT entries FROM voucher_templates WHERE id = ?", (sv["template_id"],)).fetchone()
         if tpl:
-            entries = _json_mod.loads(tpl["entries"])
+            entries = json.loads(tpl["entries"])
     else:
         conn.close()
         raise ValueError("定时任务未关联凭证模板")
@@ -1051,8 +1052,8 @@ def import_vouchers_from_excel(ledger_id: int, file_path: str) -> dict:
         desc = str(row[1]).strip() if row[1] else ""
         code = str(row[2]).strip() if row[2] else ""
         name = str(row[3]).strip() if row[3] else ""
-        debit = float(row[4]) if row[4] else 0
-        credit = float(row[5]) if row[5] else 0
+        debit = float(row[4] or 0)
+        credit = float(row[5] or 0)
 
         # 日期解析
         if isinstance(date_val, datetime):
@@ -1559,7 +1560,7 @@ def save_voucher_template(ledger_id: int, name: str, entries: list, description:
     conn = get_conn()
     conn.execute(
         "INSERT INTO voucher_templates (ledger_id, name, description, voucher_type, entries) VALUES (?,?,?,?,?)",
-        (ledger_id, name, description, voucher_type, _json_mod.dumps(entries, ensure_ascii=False))
+        (ledger_id, name, description, voucher_type, json.dumps(entries, ensure_ascii=False))
     )
     conn.commit()
     tid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]

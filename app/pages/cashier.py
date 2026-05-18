@@ -55,11 +55,13 @@ def _do_show_unmatched(bank_sel, result_label):
             return
         lines = [f"⚠️ 未达账项：{len(rows)} 笔", "─" * 40]
         for r in rows:
-            dr = r.debit or 0
-            cr = r.credit or 0
+            dr = getattr(r, "debit", None) or 0
+            cr = getattr(r, "credit", None) or 0
             amt = dr if dr else cr
             side = "收" if dr else "付"
-            lines.append(f"  {r.transaction_date}  [{side}] ¥{amt:,.2f}  {r.summary}")
+            tx_date = getattr(r, "transaction_date", "") or r.get("transaction_date", "")
+            summary = getattr(r, "summary", "") or r.get("summary", "")
+            lines.append(f"  {tx_date}  [{side}] ¥{amt:,.2f}  {summary}")
         result_label.text = "\n".join(lines)
     except Exception as e:
         show_toast(f"❌ 查询失败: {e}", "error")

@@ -184,7 +184,7 @@ class AccountService:
         if account:
             account_code = account.get("code")
             if account_code:
-                from database.connection import get_conn
+                from database.connection import get_conn, release_conn
                 conn = get_conn()
                 try:
                     cursor = conn.execute(
@@ -197,7 +197,7 @@ class AccountService:
                             f"科目 '{account_code}' 已被 {count} 条凭证明细引用，无法删除"
                         )
                 finally:
-                    conn.close()
+                    release_conn(conn)
 
         logger.info(f"Deleting account {account_id}")
         return to_dict(run_async(_account_repo.delete(account_id)))

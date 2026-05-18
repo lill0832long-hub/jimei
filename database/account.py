@@ -1,6 +1,6 @@
 """Database module: account domain"""
 
-from .connection import get_conn, transaction, DB_PATH, clear_query_cache
+from .connection import get_conn, release_conn, transaction, DB_PATH, clear_query_cache
 
 def get_account_balances(ledger_id, year, month) -> list[dict]:
     """科目余额表 — 6列金额：期初借贷/本期借贷/本年累计借贷/期末借贷"""
@@ -198,11 +198,11 @@ def import_bank_statement(bank_account_id, rows):
             INSERT INTO bank_statements (bank_account_id, statement_date, transaction_date, summary, debit, credit, reference_no)
             VALUES (?,?,?,?,?,?,?)
         """, (bank_account_id, row.get('statement_date'), row.get('transaction_date'),
-              row.get('summary', ''), int(row.get('debit', 0)), int(row.get('credit', 0)),
+              row.get('summary', ''), int(row.get('debit') or 0), int(row.get('credit') or 0),
               row.get('reference_no', '')))
         imported += 1
     conn.commit()
-    conn.close()
+    release_conn(conn)
     clear_query_cache()
     return imported
 
@@ -439,21 +439,21 @@ def auto_match_bank_statement(bank_account_id):
         stmt_amount = stmt['debit'] - stmt['credit']  # 银行视角
         # 查找匹配的凭证分录
         entries = conn.execute("""
-            SELECT ve.* FROM voucher_entries ve
-            JOIN vouchers v ON ve.voucher_id = v.id
+            SELECT je.* FROM journal_entries je
+            JOIN vouchers v ON je.voucher_id = v.id
             WHERE v.ledger_id = (SELECT ledger_id FROM bank_accounts WHERE id = ?)
-            AND v.voucher_date = ?
-            AND ((ve.debit_amount = ? AND ? > 0) OR (ve.credit_amount = ? AND ? < 0))
+            AND v.date = ?
+            AND ((je.debit = ? AND ? > 0) OR (je.credit = ? AND ? < 0))
             LIMIT 1
-        """, (bank_account_id, stmt['transaction_date'], 
-              stmt['debit'], stmt['credit'], abs(stmt['credit']), stmt['credit'])).fetchall()
+        """, (bank_account_id, stmt['transaction_date'],
+              stmt['debit'], stmt['debit'], stmt['credit'], stmt['credit'])).fetchall()
         
         if entries:
             conn.execute("UPDATE bank_statements SET is_matched = 1 WHERE id = ?", (stmt['id'],))
             matched += 1
-    
+
     conn.commit()
-    conn.close()
+    release_conn(conn)
     clear_query_cache()
     return matched
 

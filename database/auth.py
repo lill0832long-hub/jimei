@@ -2,6 +2,26 @@
 
 from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 
+# ── 角色常量 ──
+ROLE_ADMIN = "admin"
+ROLE_USER = "user"
+ROLE_VIEWER = "viewer"
+
+# ── 权限表 ──
+PERMISSIONS = {
+    "voucher_create": {ROLE_ADMIN, ROLE_USER},
+    "voucher_edit": {ROLE_ADMIN, ROLE_USER},
+    "voucher_delete": {ROLE_ADMIN},
+    "voucher_post": {ROLE_ADMIN, ROLE_USER},
+    "voucher_reverse": {ROLE_ADMIN},
+    "report_view": {ROLE_ADMIN, ROLE_USER, ROLE_VIEWER},
+    "ledger_manage": {ROLE_ADMIN},
+    "user_manage": {ROLE_ADMIN},
+    "settings_manage": {ROLE_ADMIN},
+    "data_export": {ROLE_ADMIN, ROLE_USER},
+    "backup_restore": {ROLE_ADMIN},
+}
+
 def hash_password(password: str) -> str:
     import bcrypt
     return bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)).decode()

@@ -6,7 +6,91 @@ Use the `/browse` skill from gstack for all web browsing. Do NOT use `mcp__claud
 
 ### Available gstack skills
 
-`/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`, `/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`, `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/connect-chrome`, `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/setup-deploy`, `/setup-gbrain`, `/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`, `/plan-devex-review`, `/devex-review`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/gstack-upgrade`, `/learn`
+`/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`, `/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`, `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/connect-chrome`, `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/setup-deploy`, `/setup-gbrain`, `/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`, `/plan-devex-review`, `/devex-review`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/gstack-upgrade`, `/learn`, `/explore`, `/code-simplifier`
+
+---
+
+## 开发工作流（Development Workflow）
+
+每次改代码必须按以下流程执行，不可跳过：
+
+### Phase 1: Explore — 画项目地图
+
+**接到需求后，先不动手，先建立全局视角。**
+
+1. 识别入口：找到请求涉及的核心文件（页面、路由、服务）
+2. 追调用链路：入口 → 服务层 → 数据库层，理清数据流
+3. 记录依赖关系：哪些模块会受本次改动影响
+4. 输出：在回复中简要说明"我读了哪些文件，调用链路是什么"
+
+**为什么先读后写：** 避免重复造轮子，避免改了 A 坏了 B，避免在错误的地方改代码。
+
+> 💡 调用 `/learn` 技能可以快速探索陌生代码库。
+
+### Phase 2: Debugger — 定位根因
+
+**有 bug 时，必须走调试流程，不可直接改。**
+
+1. 复现：稳定复现 bug，收集日志和错误输出
+2. 定位：缩小范围到具体层（UI / 服务 / 数据库）
+3. 精简：创建最小复现用例
+4. 修复根因：问"为什么会发生"直到找到真正原因
+5. 防护：写测试/检查防止复发
+6. 验证：确认修复有效
+
+> 💡 调用 `/investigate` 技能执行系统化调试。
+
+### Phase 3: Code Review — 查漏洞和边界条件
+
+**改完代码后，自我审查再提交。**
+
+按以下维度检查：
+1. **正确性** — 边界情况？错误路径？
+2. **可读性** — 命名清晰？控制流直接？
+3. **架构** — 符合现有模式？依赖方向正确？
+4. **安全性** — 输入验证？注入风险？
+5. **性能** — N+1 查询？无界循环？
+
+审查严重性标签：`Critical`（阻塞）/ `Nit`（轻微）/ `Optional`（建议）
+
+> 💡 调用 `/review` 技能做 PR 级代码审查。
+
+### Phase 4: Test Engineer — 判断该补哪些测试
+
+**每次改动后评估测试策略：**
+
+1. 这个改动的风险点在哪？
+2. 现有测试能否覆盖？
+3. 需要补哪些测试？（单元测试 / 集成测试 / E2E）
+4. 好的测试应验证意图和行为，不是为了通过测试
+
+> 💡 调用 `/qa` 技能测试 Web 应用并修复发现的问题。
+
+### Phase 5: Code Simplifier — 删冗余清结构
+
+**改动完成后，检查是否可以简化：**
+
+1. 嵌套超过 3 层？→ 提取 guard clause
+2. 函数超过 50 行？→ 拆分小函数
+3. 重复逻辑？→ 提取共享函数
+4. 死代码、注释掉的块？→ 直接删除
+5. 通用命名（data/result/temp）→ 改为描述性命名
+
+**注意：** 只简化本次改动相关的代码，不做无关重构。遵循 Chesterton's Fence 原则——不理解的东西先研究再动。
+
+> 💡 使用 `/simplify` 技能（bundled）执行代码简化。
+
+### Phase 6: Security Review — 扫安全边界
+
+**涉及以下模块时，必须做安全审查：**
+
+- **登录/认证** — 密码哈希、会话管理、速率限制
+- **权限控制** — 每个端点检查权限、用户只能访问自己的资源
+- **支付/金额** — 金额计算精度、并发控制、幂等性
+- **输入验证** — 所有用户输入在边界验证、SQL 参数化
+- **敏感数据** — 不在日志中记录、不在 API 响应中暴露
+
+> 💡 调用 `/cso` 技能做安全专项审查。
 
 ---
 

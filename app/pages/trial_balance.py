@@ -43,8 +43,8 @@ def render_trial_balance():
                         state.selected_month = int(month_sel.value)
                         refresh_main()
 
-                    year_sel.on("update:model-value", lambda: _on_period_change())
-                    month_sel.on("update:model-value", lambda: _on_period_change())
+                    year_sel.on("update:value", lambda: _on_period_change())
+                    month_sel.on("update:value", lambda: _on_period_change())
 
                     # 导出按钮
                     ui.button("导出Excel", icon="download", on_click=lambda: _export_excel(lid, year, month)).props("flat dense")

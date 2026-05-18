@@ -1,10 +1,13 @@
 """Database module: backup domain"""
 
+import os
+import json
+from datetime import datetime
+
 from .connection import get_conn, transaction, DB_PATH
 
 def backup_database(ledger_id: int, backup_dir: str) -> str:
     """按账套备份数据为JSON文件，返回文件路径"""
-    import json
     os.makedirs(backup_dir, exist_ok=True)
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     ledger = get_ledger(ledger_id)

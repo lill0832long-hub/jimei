@@ -10,23 +10,25 @@ from app.services import AccountService, LedgerService, VoucherService
 
 
 def _generate_voucher_no(lid, voucher_type="记"):
-    """生成凭证号 — 与 VoucherRepository._generate_voucher_no 保持一致: PZ{ledger_id:02d}{seq:06d}"""
+    """生成凭证号 — 用 SQL 直接查最大序号，避免全量加载"""
+    from database.connection import get_conn, release_conn
+    prefix = f"PZ{lid:02d}"
     try:
-        existing = VoucherService.get_all(lid, limit=500)
-        max_seq = 0
-        prefix = f"PZ{lid:02d}"
-        for v in existing:
-            vn = v.get("voucher_no", "")
-            if vn.startswith(prefix):
-                try:
-                    seq = int(vn[len(prefix):])
-                    if seq > max_seq:
-                        max_seq = seq
-                except (ValueError, IndexError):
-                    pass
+        conn = get_conn()
+        row = conn.execute(
+            "SELECT MAX(CAST(SUBSTR(voucher_no, ?) AS INTEGER)) as max_seq "
+            "FROM vouchers WHERE ledger_id = ? AND voucher_no LIKE ?",
+            (len(prefix) + 1, lid, f"{prefix}%")
+        ).fetchone()
+        max_seq = row["max_seq"] or 0 if row else 0
         return f"{prefix}{max_seq + 1:06d}"
     except Exception:
-        return f"PZ{lid:02d}000001"
+        return f"{prefix}000001"
+    finally:
+        try:
+            release_conn(conn)
+        except Exception:
+            pass
 
 
 def show_new_voucher_dialog():

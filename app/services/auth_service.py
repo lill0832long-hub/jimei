@@ -2,6 +2,7 @@
 from app.services._utils import run_async, to_dict
 import bcrypt
 import hashlib
+import hmac
 from app.repository.auth_repository import AuthRepository, AuditRepository
 
 _auth_repo = AuthRepository()
@@ -58,9 +59,9 @@ class AuthService:
             return bcrypt.checkpw(password.encode(), password_hash.encode())
         # legacy SHA-256 hash (64 hex chars)
         if len(password_hash) == 64:
-            return hashlib.sha256(password.encode()).hexdigest() == password_hash
+            return hmac.compare_digest(hashlib.sha256(password.encode()).hexdigest(), password_hash)
         # legacy SHA-1 hash (40 hex chars)
-        return hashlib.sha1(password.encode()).hexdigest() == password_hash
+        return hmac.compare_digest(hashlib.sha1(password.encode()).hexdigest(), password_hash)
 
     @staticmethod
     def create(username, password, role="user", ledger_id=None):

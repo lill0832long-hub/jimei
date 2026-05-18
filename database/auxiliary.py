@@ -1,6 +1,6 @@
 """Database module: auxiliary domain"""
 
-from .connection import get_conn, transaction, DB_PATH, clear_query_cache
+from .connection import get_conn, release_conn, transaction, DB_PATH, clear_query_cache
 
 def create_auxiliary(ledger_id, aux_type, code, name, parent_id=None):
     """创建辅助核算项目"""
@@ -11,7 +11,7 @@ def create_auxiliary(ledger_id, aux_type, code, name, parent_id=None):
     """, (ledger_id, aux_type, code, name, parent_id))
     aux_id = cur.lastrowid
     conn.commit()
-    conn.close()
+    release_conn(conn)
     clear_query_cache()
     return aux_id
 
@@ -26,7 +26,7 @@ def get_auxiliaries(ledger_id, aux_type=None):
         rows = conn.execute(
             "SELECT * FROM auxiliary_categories WHERE ledger_id = ? AND is_active = 1 ORDER BY aux_type, code",
             (ledger_id,)).fetchall()
-    conn.close()
+    release_conn(conn)
     return [dict(r) for r in rows]
 
 def update_auxiliary(aux_id, code=None, name=None, is_active=None):
@@ -44,12 +44,12 @@ def update_auxiliary(aux_id, code=None, name=None, is_active=None):
         updates.append("is_active = ?")
         params.append(is_active)
     if not updates:
-        conn.close()
+        release_conn(conn)
         return
     params.append(aux_id)
     conn.execute(f"UPDATE auxiliary_categories SET {', '.join(updates)} WHERE id = ?", params)
     conn.commit()
-    conn.close()
+    release_conn(conn)
     clear_query_cache()
 
 def delete_auxiliary(aux_id):
@@ -57,11 +57,11 @@ def delete_auxiliary(aux_id):
     conn = get_conn()
     ref = conn.execute("SELECT COUNT(*) as cnt FROM voucher_entry_auxiliaries WHERE aux_id = ?", (aux_id,)).fetchone()['cnt']
     if ref > 0:
-        conn.close()
+        release_conn(conn)
         return False, f"该辅助核算项目已被 {ref} 条凭证分录引用，无法删除"
     conn.execute("DELETE FROM auxiliary_categories WHERE id = ?", (aux_id,))
     conn.commit()
-    conn.close()
+    release_conn(conn)
     clear_query_cache()
     return True, "删除成功"
 
@@ -75,14 +75,14 @@ def save_aux_mapping(entry_id, aux_type, aux_id, aux_name=None):
             "INSERT INTO voucher_entry_auxiliaries (entry_id, aux_type, aux_id, aux_name) VALUES (?,?,?,?)",
             (entry_id, aux_type, aux_id, aux_name))
     conn.commit()
-    conn.close()
+    release_conn(conn)
     clear_query_cache()
 
 def get_aux_mapping(entry_id):
     """获取凭证分录的辅助核算关联"""
     conn = get_conn()
     rows = conn.execute("SELECT * FROM voucher_entry_auxiliaries WHERE entry_id = ?", (entry_id,)).fetchall()
-    conn.close()
+    release_conn(conn)
     return [dict(r) for r in rows]
 
 def get_aux_balance(ledger_id, aux_type, year=None, month=None):
@@ -104,11 +104,11 @@ def get_aux_balance(ledger_id, aux_type, year=None, month=None):
         "FROM auxiliary_categories ac "
         "LEFT JOIN voucher_entry_auxiliaries vea ON vea.aux_id = ac.id AND vea.aux_type = ac.aux_type "
         "LEFT JOIN journal_entries je ON je.id = vea.entry_id "
-        "LEFT JOIN vouchers v ON v.voucher_no = je.voucher_no AND v.ledger_id = ? "
+        "LEFT JOIN vouchers v ON v.id = je.voucher_id AND v.ledger_id = ? "
         "WHERE ac.ledger_id = ? AND ac.aux_type = ? AND ac.is_active = 1 " + date_filter + " "
         "GROUP BY ac.id, ac.code, ac.name, ac.aux_type ORDER BY ac.code",
         params).fetchall()
-    conn.close()
+    release_conn(conn)
     return [dict(r) for r in rows]
 
 def multi_aux_search(ledger_id, aux_filters, year=None, month=None):
@@ -141,11 +141,11 @@ def multi_aux_search(ledger_id, aux_filters, year=None, month=None):
     sql = (
         "SELECT DISTINCT v.voucher_no, v.date, v.summary, v.total_debit, v.total_credit, v.status "
         "FROM vouchers v "
-        "INNER JOIN journal_entries je ON je.voucher_no = v.voucher_no "
+        "INNER JOIN journal_entries je ON je.voucher_id = v.id "
         + join_str + " "
         "WHERE " + where_str + " " + date_filter + " "
         "ORDER BY v.date DESC, v.voucher_no DESC"
     )
     rows = conn.execute(sql, params).fetchall()
-    conn.close()
+    release_conn(conn)
     return [dict(r) for r in rows]

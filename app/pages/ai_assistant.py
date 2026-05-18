@@ -255,8 +255,8 @@ def _do_nl_query(query_text, result_label):
             month = state.selected_month
             report = ReportService.get_income_statement(lid, year, month)
             if report:
-                total_revenue = sum(float(r.get("balance", 0)) for r in report if r.get("category") == "revenue")
-                total_expense = sum(abs(float(r.get("balance", 0))) for r in report if r.get("category") == "expense")
+                total_revenue = sum(float(r.get("balance") or 0) for r in report if r.get("category") == "revenue")
+                total_expense = sum(abs(float(r.get("balance") or 0)) for r in report if r.get("category") == "expense")
                 net_profit = total_revenue - total_expense
                 result_label.text = (f"📊 {year}年{month}月利润表摘要\n"
                                       f"━━━━━━━━━━━━━━━━━━\n"
@@ -275,7 +275,7 @@ def _do_nl_query(query_text, result_label):
                 lines = ["💰 货币资金余额", "━━━━━━━━━━━━━━━━━━"]
                 total = 0
                 for a in cash_items:
-                    bal = float(a.get("balance", 0))
+                    bal = float(a.get("balance") or 0)
                     total += bal
                     lines.append(f"{a.get('name','')}：¥{bal:,.2f}")
                 lines.append(f"━━━━━━━━━━━━━━━━━━")
@@ -291,7 +291,7 @@ def _do_nl_query(query_text, result_label):
                 lines = ["📋 应收账款余额", "━━━━━━━━━━━━━━━━━━"]
                 total = 0
                 for a in ar_items:
-                    bal = float(a.get("balance", 0))
+                    bal = float(a.get("balance") or 0)
                     total += bal
                     lines.append(f"{a.get('name','')}：¥{bal:,.2f}")
                 lines.append(f"合计：¥{total:,.2f}")
@@ -306,7 +306,7 @@ def _do_nl_query(query_text, result_label):
                 lines = ["📋 应付账款余额", "━━━━━━━━━━━━━━━━━━"]
                 total = 0
                 for a in ap_items:
-                    bal = float(a.get("balance", 0))
+                    bal = float(a.get("balance") or 0)
                     total += bal
                     lines.append(f"{a.get('name','')}：¥{bal:,.2f}")
                 lines.append(f"合计：¥{total:,.2f}")

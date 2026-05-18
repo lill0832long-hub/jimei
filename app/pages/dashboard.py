@@ -279,9 +279,9 @@ def render_dashboard():
                 try:
                     trend_data = ReportService.get_monthly_trend(lid, 12)
                     if trend_data:
-                        months_list = [f"{m.get('year','')}-{m.get('month',''):02d}" if isinstance(m.get('month'), int) else str(m.get('month','')) for m in trend_data]
-                        income_list = [float(m.get('revenue', m.get('income', 0)) or 0) for m in trend_data]
-                        expense_list = [float(m.get('expense', 0) or 0) for m in trend_data]
+                        months_list = [str(m.get("month", "")) for m in trend_data]
+                        income_list = [float(m.get("income") or m.get("revenue") or 0) for m in trend_data]
+                        expense_list = [float(m.get("expense") or 0) for m in trend_data]
                         trend_option = {
                             "tooltip": {"trigger": "axis"},
                             "legend": {"data": ["收入", "费用"], "bottom": 0},

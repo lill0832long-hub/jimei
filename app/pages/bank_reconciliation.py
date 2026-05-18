@@ -27,14 +27,21 @@ def render_bank_reconciliation():
             try:
                 text = e.content.read().decode("utf-8")
                 reader = csv.DictReader(io.StringIO(text))
+                def _parse_amount(val):
+                    """安全解析金额，非数字返回0"""
+                    try:
+                        return int(float(val or 0) * 100)
+                    except (ValueError, TypeError):
+                        return 0
+
                 rows = []
                 for r in reader:
                     rows.append({
                         "statement_date": r.get("日期", r.get("date", "")),
                         "transaction_date": r.get("交易日期", r.get("transaction_date", r.get("日期", r.get("date", "")))),
                         "summary": r.get("摘要", r.get("summary", r.get("备注", ""))),
-                        "debit": int(float(r.get("借方", r.get("debit", r.get("收入", 0))) or 0) * 100),
-                        "credit": int(float(r.get("贷方", r.get("credit", r.get("支出", 0))) or 0) * 100),
+                        "debit": _parse_amount(r.get("借方", r.get("debit", r.get("收入", 0)))),
+                        "credit": _parse_amount(r.get("贷方", r.get("credit", r.get("支出", 0)))),
                         "reference_no": r.get("参考号", r.get("reference_no", "")),
                     })
                 if rows:

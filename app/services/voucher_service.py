@@ -23,8 +23,8 @@ class VoucherService:
             total_debit = 0
             total_credit = 0
             for entry in entries:
-                debit = float(entry.get("debit", 0) if isinstance(entry, dict) else getattr(entry, "debit", 0))
-                credit = float(entry.get("credit", 0) if isinstance(entry, dict) else getattr(entry, "credit", 0))
+                debit = float(entry.get("debit") or 0 if isinstance(entry, dict) else (getattr(entry, "debit", None) or 0))
+                credit = float(entry.get("credit") or 0 if isinstance(entry, dict) else (getattr(entry, "credit", None) or 0))
                 total_debit += debit
                 total_credit += credit
             # 允许 0.01 的浮点误差
@@ -60,8 +60,8 @@ class VoucherService:
             total_debit = 0
             total_credit = 0
             for entry in entries:
-                debit = float(entry.get("debit", 0) if isinstance(entry, dict) else getattr(entry, "debit", 0))
-                credit = float(entry.get("credit", 0) if isinstance(entry, dict) else getattr(entry, "credit", 0))
+                debit = float(entry.get("debit") or 0 if isinstance(entry, dict) else (getattr(entry, "debit", None) or 0))
+                credit = float(entry.get("credit") or 0 if isinstance(entry, dict) else (getattr(entry, "credit", None) or 0))
                 total_debit += debit
                 total_credit += credit
             if abs(total_debit - total_credit) > 0.01:
@@ -138,7 +138,7 @@ class VoucherService:
         try:
             ledgers = LedgerService.get_all()
             for ledger in ledgers:
-                lid = ledger.get("id") if isinstance(ledger, dict) else ledger["id"]
+                lid = ledger.get("id") if isinstance(ledger, dict) else getattr(ledger, "id", None)
                 v = to_dict(run_async(_voucher_repo.get_with_entries(lid, voucher_no)))
                 if v:
                     voucher = v
