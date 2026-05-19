@@ -1,100 +1,101 @@
 /* ============================================================
-   Design Tokens — 全局设计变量
+   Design Tokens — 全局设计变量（暖色系）
    ============================================================ */
 
 :root {
     /* ── 字体 ── */
-    --font-stack: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+    --font-stack: "Nunito", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
                   "Noto Sans CJK SC", system-ui, -apple-system, sans-serif;
     --font-mono: "SF Mono", "Consolas", "Monaco", monospace;
 
-    /* ── 全局色板 ── */
-    --c-primary:       #494fdf;
-    --c-primary-light: #eef2ff;
-    --c-primary-hover: #3a40c4;
-    --c-success:       #05b169;
-    --c-success-light: #f0fdf4;
-    --c-danger:        #cf202f;
-    --c-danger-light:  #fef2f2;
-    --c-warning:       #f4b000;
-    --c-warning-light: #fffbeb;
+    /* ── 全局色板（暖色系） ── */
+    --c-primary:       #C4784A;   /* 暖橙棕 — 主色调 */
+    --c-primary-light: #FFF3E8;   /* 浅暖橙 — 背景高亮 */
+    --c-primary-hover:#A86238;   /* 深暖橙 — 悬停态 */
+    --c-success:       #5A9E6F;   /* 柔和绿 */
+    --c-success-light: #F0F9F3;
+    --c-danger:        #C95A5A;   /* 柔和红 */
+    --c-danger-light:  #FDF2F2;
+    --c-warning:       #D4A843;   /* 暖金黄 */
+    --c-warning-light: #FFFBF0;
 
-    /* ── 页面背景 ── */
-    --c-bg-page:       #F8F9FA;
-    --c-bg-card:       #FFFFFF;
-    --c-bg-hover:      #F1F5F9;
-    --c-border:        #E2E8F0;
-    --c-border-light:  #F1F5F9;
-    --c-text-primary:  #0F172A;
-    --c-text-secondary:#475569;
-    --c-text-muted:    #94A3B8;
-    --c-text-inverse:  #FFFFFF;
+    /* ── 页面背景（暖白/米色调） ── */
+    --c-bg-page:       #FAF7F2;   /* 米白 — 页面背景 */
+    --c-bg-card:       #FFFFFF;   /* 纯白 — 卡片背景 */
+    --c-bg-hover:      #F3EDE4;   /* 暖灰 — 悬停背景 */
+    --c-border:        #E8E0D4;   /* 暖灰 — 边框 */
+    --c-border-light:  #F0EBE3;   /* 浅暖灰 — 淡边框 */
+    --c-text-primary:  #2D2620;   /* 深棕 — 主文本 */
+    --c-text-secondary:#6B5D52;   /* 中棕 — 副文本 */
+    --c-text-muted:    #9E8F82;   /* 浅棕 — 弱化文本 */
+    --c-text-inverse:  #FFFFFF;   /* 白 — 深色底上的文字 */
 
-    /* ── 阴影 ── */
-    --shadow-sm:  0 1px 2px rgba(0,0,0,0.04);
-    --shadow-md:  0 2px 8px rgba(0,0,0,0.06);
-    --shadow-lg:  0 8px 32px rgba(0,0,0,0.10);
+    /* ── 阴影（暖色调） ── */
+    --shadow-sm:  0 1px 3px rgba(139, 94, 60, 0.06);
+    --shadow-md:  0 2px 10px rgba(139, 94, 60, 0.08);
+    --shadow-lg:  0 8px 32px rgba(139, 94, 60, 0.12);
 
-    /* ── 圆角 ── */
-    --radius-sm: 4px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
+    /* ── 圆角（更圆润） ── */
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 14px;
+    --radius-xl: 18px;
 
     /* ── 过渡 ── */
     --transition-fast: 0.12s ease;
     --transition-base: 0.15s ease;
     --transition-slow: 0.2s cubic-bezier(0.4,0,0.2,1);
 
-    /* ── 侧边栏专属 (深色 fintech) ── */
-    --sidebar-bg:           #0B1120;
-    --sidebar-bg-hover:     rgba(255,255,255,0.04);
-    --sidebar-bg-active:    rgba(79,79,223,0.10);
-    --sidebar-accent:       #494fdf;
-    --sidebar-accent-light: #7c83f5;
-    --sidebar-accent-glow:  rgba(79,79,223,0.15);
-    --sidebar-text-primary:  rgba(255,255,255,0.88);
-    --sidebar-text-secondary:rgba(255,255,255,0.45);
-    --sidebar-text-muted:    rgba(255,255,255,0.28);
+    /* ── 侧边栏专属（暖色系深色） ── */
+    --sidebar-bg:           #2D2620;   /* 深暖棕 — 侧边栏背景 */
+    --sidebar-bg-hover:     rgba(255,255,255,0.06);
+    --sidebar-bg-active:    rgba(196,120,74,0.15);
+    --sidebar-accent:       #C4784A;   /* 暖橙 — 强调色 */
+    --sidebar-accent-light: #E8A87C;   /* 浅暖橙 — 选中态文字 */
+    --sidebar-accent-glow:  rgba(196,120,74,0.2);
+    --sidebar-text-primary:  rgba(255,255,255,0.90);
+    --sidebar-text-secondary:rgba(255,255,255,0.50);
+    --sidebar-text-muted:    rgba(255,255,255,0.30);
     --sidebar-text-disabled: rgba(255,255,255,0.18);
-    --sidebar-divider:       rgba(255,255,255,0.05);
+    --sidebar-divider:       rgba(255,255,255,0.06);
     --sidebar-logo-text:     rgba(255,255,255,0.95);
-    --sidebar-logo-icon:     #494fdf;
+    --sidebar-logo-icon:     #C4784A;
     --sidebar-width:         220px;
     --sidebar-width-collapsed: 48px;
     --sidebar-logo-h:        44px;
     --sidebar-group-h:       28px;
-    --sidebar-item-h:        34px;
+    --sidebar-item-h:        36px;
 
-    /* ── 顶部栏专属 (浅色 Stripe) ── */
+    /* ── 顶部栏专属（暖色浅底） ── */
     --header-bg:             #FFFFFF;
-    --header-bg-scrolled:    rgba(255,255,255,0.95);
-    --header-border:         rgba(0,0,0,0.06);
-    --header-shadow:         0 1px 3px rgba(0,0,0,0.04);
-    --header-text-primary:   #0F172A;
-    --header-text-secondary: #64748B;
-    --header-text-muted:     #94A3B8;
-    --header-accent:         #494fdf;
+    --header-bg-scrolled:    rgba(255,255,255,0.96);
+    --header-border:         rgba(139, 94, 60, 0.08);
+    --header-shadow:         0 1px 4px rgba(139, 94, 60, 0.06);
+    --header-text-primary:   #2D2620;
+    --header-text-secondary: #6B5D52;
+    --header-text-muted:     #9E8F82;
+    --header-accent:         #C4784A;
     --header-h:              52px;
     --header-padding-x:      20px;
 }
 
-/* ===== Dark Theme ===== */
+/* ===== Dark Theme（暖色深色模式） ===== */
 body[data-theme="dark"] {
-    --c-primary:       #60A5FA;
-    --c-primary-light: #1E3A5F;
-    --c-primary-hover: #93C5FD;
-    --c-success:       #4ADE80;
-    --c-success-light: #14532D;
-    --c-danger:        #F87171;
-    --c-danger-light:  #7F1D1D;
-    --c-warning:       #FBBF24;
-    --c-warning-light: #78350F;
-    --c-bg-page:       #0F172A;
-    --c-bg-card:       #1E293B;
-    --c-bg-hover:      #334155;
-    --c-border:        #334155;
-    --c-border-light:  #1E293B;
-    --c-text-primary:  #F1F5F9;
-    --c-text-secondary:#CBD5E1;
-    --c-text-muted:    #64748B;
+    --c-primary:       #E8A87C;
+    --c-primary-light: #3D2E20;
+    --c-primary-hover: #F0C4A0;
+    --c-success:       #7AB88F;
+    --c-success-light: #1A3020;
+    --c-danger:        #D47878;
+    --c-danger-light:  #3D2020;
+    --c-warning:       #D4B85C;
+    --c-warning-light: #3D3020;
+    --c-bg-page:       #1A1612;
+    --c-bg-card:       #2D2620;
+    --c-bg-hover:      #3D342C;
+    --c-border:        #3D342C;
+    --c-border-light:  #2D2620;
+    --c-text-primary:  #F0EBE3;
+    --c-text-secondary:#C8B8A8;
+    --c-text-muted:    #8A7A6C;
 }

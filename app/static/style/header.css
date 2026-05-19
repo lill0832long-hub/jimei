@@ -1,5 +1,5 @@
 /* ============================================================
-   Header — Stripe / Coinbase inspired light navigation bar
+   Header — 暖色系顶部导航栏
    ============================================================ */
 
 .header-bar {
@@ -13,7 +13,7 @@
     transition: background var(--transition-base), box-shadow var(--transition-base);
 }
 body[data-theme="dark"] .header-bar {
-    background: #1a1d23 !important;
+    background: #2D2620 !important;
     border-bottom-color: rgba(255,255,255,0.06) !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
 }
@@ -41,7 +41,7 @@ body[data-theme="dark"] .header-bar {
     font-size: 16px;
     font-weight: 700;
     color: var(--header-text-primary);
-    letter-spacing: -0.2px;
+    letter-spacing: -0.1px;
     white-space: nowrap;
 }
 .header-version {
@@ -50,7 +50,7 @@ body[data-theme="dark"] .header-bar {
     color: var(--header-text-muted);
     background: var(--c-bg-hover);
     padding: 1px 5px;
-    border-radius: 3px;
+    border-radius: 4px;
     letter-spacing: 0.3px;
 }
 .header-divider {
@@ -93,7 +93,7 @@ body[data-theme="dark"] .header-bar {
 .header-month-select {
     font-size: 14px;
     font-weight: 700;
-    color: #000000;
+    color: var(--c-text-primary);
 }
 .header-year-select { width: 88px; }
 .header-month-select { width: 64px; }
@@ -104,12 +104,12 @@ body[data-theme="dark"] .header-bar {
     text-align: center !important;
     justify-content: center !important;
     font-weight: 700;
-    color: #000000;
+    color: var(--c-text-primary);
 }
 .header-period-label {
     font-size: 14px;
     font-weight: 600;
-    color: #000000;
+    color: var(--c-text-primary);
     margin-left: 2px;
 }
 
@@ -117,14 +117,14 @@ body[data-theme="dark"] .header-bar {
 .header-right {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
 }
 
 /* 搜索按钮 */
 .header-search-btn {
     color: var(--header-text-muted);
-    min-height: 26px;
-    min-width: 26px;
+    min-height: 28px;
+    min-width: 28px;
     transition: color var(--transition-fast);
 }
 .header-search-btn:hover {
@@ -163,8 +163,8 @@ body[data-theme="dark"] .header-bar {
 
 /* 用户信息 */
 .header-avatar {
-    width: 28px;
-    height: 28px;
+    width: 30px;
+    height: 30px;
     border-radius: 50%;
     background: var(--header-accent);
     display: flex;
@@ -182,7 +182,7 @@ body[data-theme="dark"] .header-bar {
 }
 .header-username {
     font-size: 13px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--header-text-primary);
     line-height: 1.2;
 }
@@ -197,9 +197,10 @@ body[data-theme="dark"] .header-bar {
 /* 图标按钮（标注、暗色模式、退出） */
 .header-icon-btn {
     color: var(--header-text-secondary);
-    min-height: 26px;
-    min-width: 26px;
+    min-height: 28px;
+    min-width: 28px;
     transition: color var(--transition-fast), background var(--transition-fast);
+    border-radius: 6px;
 }
 .header-icon-btn:hover {
     color: var(--header-text-primary);

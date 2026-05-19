@@ -1,5 +1,5 @@
 /* ============================================================
-   Sidebar — Revolut / Coinbase inspired dark fintech navigation
+   Sidebar — 暖色系左侧导航
    ============================================================ */
 
 /* ── 容器 ── */
@@ -34,8 +34,8 @@ body[data-theme="dark"] .sidebar-nav {
 /* ── 滚动条美化 ── */
 .sidebar-nav::-webkit-scrollbar { width: 4px; }
 .sidebar-nav::-webkit-scrollbar-track { background: transparent; }
-.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
-.sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+.sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.18); }
 
 /* ── Logo 区域 ── */
 .sidebar-logo {
@@ -46,7 +46,7 @@ body[data-theme="dark"] .sidebar-nav {
     gap: 10px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--sidebar-divider);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 .sidebar-logo-icon {
     font-size: 20px;
@@ -58,14 +58,14 @@ body[data-theme="dark"] .sidebar-nav {
     font-weight: 700;
     color: var(--sidebar-logo-text);
     white-space: nowrap;
-    letter-spacing: -0.3px;
+    letter-spacing: -0.1px;
     transition: opacity var(--transition-fast);
 }
 
 /* ── 分组标题 ── */
 .sidebar-group-header {
     height: var(--sidebar-group-h);
-    padding: 0 12px;
+    padding: 0 14px;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -84,7 +84,7 @@ body[data-theme="dark"] .sidebar-nav {
     letter-spacing: 1.2px;
 }
 .sidebar-group-header:hover {
-    color: rgba(255,255,255,0.6);
+    color: rgba(255,255,255,0.65);
 }
 .sidebar-group-header--expanded {
     color: rgba(255,255,255,0.55);
@@ -112,19 +112,19 @@ body[data-theme="dark"] .sidebar-nav {
 
 .sidebar-group-divider { display: none; }
 
-/* ── 菜单项 ── */
+/* ── 菜单项（圆润） ── */
 .sidebar-menu-item {
-    width: calc(100% - 16px);
+    width: calc(100% - 14px);
     height: var(--sidebar-item-h);
     font-size: 13px;
-    border-radius: 6px;
+    border-radius: 8px;
     padding: 0 10px 0 14px;
     justify-content: flex-start;
     color: var(--sidebar-text-primary);
     border-left: 2px solid transparent;
     transition: background var(--transition-fast), color var(--transition-fast),
                 border-color var(--transition-fast), padding var(--transition-fast);
-    margin: 1px 8px;
+    margin: 2px 7px;
     gap: 10px;
     font-weight: 500;
 }
@@ -136,7 +136,7 @@ body[data-theme="dark"] .sidebar-nav {
 
 /* ── 菜单图标 ── */
 .sidebar-menu-icon {
-    font-size: 14px;
+    font-size: 15px;
     opacity: 0.5;
     flex-shrink: 0;
     width: 20px;
@@ -147,19 +147,19 @@ body[data-theme="dark"] .sidebar-nav {
     font-size: 13px;
     white-space: nowrap;
     font-weight: 500;
-    letter-spacing: -0.1px;
+    letter-spacing: 0;
     transition: font-weight var(--transition-fast);
 }
 
-/* ── 选中态 — 紫色竖条 + 淡紫背景 ── */
+/* ── 选中态 — 暖橙竖条 + 淡暖背景 ── */
 .sidebar-menu-active {
     background: var(--sidebar-bg-active) !important;
     color: var(--sidebar-accent-light) !important;
     border-left-color: var(--sidebar-accent) !important;
 }
 .sidebar-menu-active:hover {
-    background: rgba(79,79,223,0.15) !important;
-    color: #c7d2fe !important;
+    background: rgba(196,120,74,0.2) !important;
+    color: #F0C4A0 !important;
 }
 .sidebar-menu-active .sidebar-menu-icon {
     opacity: 1 !important;
@@ -185,7 +185,7 @@ body[data-theme="dark"] .sidebar-nav {
     color: var(--sidebar-text-muted);
     min-height: 36px;
     width: 100%;
-    border-radius: 6px;
+    border-radius: 8px;
     transition: color var(--transition-fast), background var(--transition-fast);
 }
 .sidebar-collapse-btn:hover {
@@ -209,7 +209,7 @@ body[data-theme="dark"] .sidebar-nav {
     justify-content: center !important;
     padding: 0 !important;
     width: 36px !important;
-    margin: 1px 6px !important;
+    margin: 2px 6px !important;
     border-left: none !important;
 }
 .sidebar-nav.sidebar-collapsed .sidebar-menu-item:hover {
@@ -232,7 +232,7 @@ body[data-theme="dark"] .sidebar-nav {
     transform: translateY(-50%);
     margin-left: 10px;
     padding: 5px 10px;
-    background: #1e1b4b;
+    background: #3D2E20;
     color: rgba(255,255,255,0.9);
     font-size: 12px;
     font-weight: 500;
@@ -242,7 +242,7 @@ body[data-theme="dark"] .sidebar-nav {
     pointer-events: none;
     transition: opacity var(--transition-fast), transform var(--transition-fast);
     z-index: 9999;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 .sidebar-nav.sidebar-collapsed .sidebar-menu-item:hover::before {
     opacity: 1;
