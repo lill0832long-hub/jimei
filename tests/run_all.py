@@ -29,7 +29,8 @@ def run_cmd(name, cmd, timeout=60):
     try:
         result = subprocess.run(
             cmd, shell=True, capture_output=True, text=True,
-            timeout=timeout, cwd=os.path.dirname(os.path.dirname(__file__))
+            timeout=timeout, cwd=os.path.dirname(os.path.dirname(__file__)),
+            encoding="utf-8", errors="replace"
         )
         elapsed = time.time() - start
         output = result.stdout + result.stderr
