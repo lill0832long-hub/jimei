@@ -144,6 +144,20 @@ def index():
         '<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">'
     )
 
+    # 从 cookie 恢复 session（登录后页面刷新，Python 内存状态丢失）
+    import json as _json
+    session_cookie = ui.cookies.get("sess")
+    if session_cookie:
+        try:
+            data = _json.loads(session_cookie)
+            state.current_user = {
+                "id": data.get("id", 0),
+                "username": data.get("username", data.get("u", "")),
+                "role": data.get("role", data.get("r", "")),
+            }
+        except Exception:
+            pass
+
     if state.current_user is None:
         render_login()
     else:

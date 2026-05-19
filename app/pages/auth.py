@@ -127,8 +127,12 @@ def do_login(username, password, login_btn, remember, username_input):
         # 写 cookie 后强制页面刷新（ui.navigate 是 SPA 导航，不触发 index() 重新执行）
         import json as _json
         ui.run_javascript(
-            "try{var d=JSON.stringify(" + _json.dumps({"u": user.get("username",""), "r": user.get("role","")}) + ");"
-            "document.cookie='sess='+encodeURIComponent(d)+';path=/;max-age=3600;SameSite=Lax';"
+            "try{var d=JSON.stringify(" + _json.dumps({
+                "id": str(user.get("id", "")),
+                "username": str(user.get("username", "")),
+                "role": str(user.get("role", "")),
+            }) + ");"
+            "document.cookie='sess='+encodeURIComponent(d)+';path=/;max-age=86400;SameSite=Lax';"
             "window.location.href='/';}catch(e){console.error(e)}"
         )
     else:

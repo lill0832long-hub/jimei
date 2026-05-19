@@ -526,6 +526,14 @@ body[data-theme="dark"] .header-bar {
    ================================================================ */
 
 /* ── 容器 ── */
+/* sidebar 外层容器 — 隔离 NiceGUI diff 对 sidebar 的影响 */
+.sidebar-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
 .sidebar-nav {
     width: var(--sidebar-width);
     min-width: var(--sidebar-width);

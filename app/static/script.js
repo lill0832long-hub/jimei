@@ -136,5 +136,24 @@
             });
             btn.classList.add('sidebar-menu-active');
         }, true);
+
+        // 6. 定期清理重复的 sidebar-nav（NiceGUI clear() 不删 DOM 的 workaround）
+        setInterval(function() {
+            var navs = document.querySelectorAll('.sidebar-nav');
+            if (navs.length > 1) {
+                var maxIdx = 0, maxCount = 0;
+                for (var i = 0; i < navs.length; i++) {
+                    if (navs[i].children.length > maxCount) {
+                        maxCount = navs[i].children.length;
+                        maxIdx = i;
+                    }
+                }
+                for (var i = 0; i < navs.length; i++) {
+                    if (i !== maxIdx && navs[i].parentNode) {
+                        navs[i].parentNode.removeChild(navs[i]);
+                    }
+                }
+            }
+        }, 500);
     });
 })();
