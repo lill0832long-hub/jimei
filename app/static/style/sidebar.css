@@ -1,0 +1,264 @@
+/* ============================================================
+   Sidebar — Revolut / Coinbase inspired dark fintech navigation
+   ============================================================ */
+
+/* ── 容器 ── */
+/* sidebar 外层容器 — 隔离 NiceGUI diff 对 sidebar 的影响 */
+.sidebar-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow: hidden;
+}
+
+.sidebar-nav {
+    width: var(--sidebar-width);
+    min-width: var(--sidebar-width);
+    background: var(--sidebar-bg);
+    padding: 0 0 8px 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: width var(--transition-slow), min-width var(--transition-slow);
+    flex-shrink: 0;
+    border-right: 1px solid var(--sidebar-divider);
+}
+.sidebar-nav.sidebar-collapsed {
+    width: var(--sidebar-width-collapsed) !important;
+    min-width: var(--sidebar-width-collapsed) !important;
+}
+body[data-theme="dark"] .sidebar-nav {
+    background: var(--sidebar-bg);
+}
+
+/* ── 滚动条美化 ── */
+.sidebar-nav::-webkit-scrollbar { width: 4px; }
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 2px; }
+.sidebar-nav::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.15); }
+
+/* ── Logo 区域 ── */
+.sidebar-logo {
+    height: var(--sidebar-logo-h);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--sidebar-divider);
+    margin-bottom: 4px;
+}
+.sidebar-logo-icon {
+    font-size: 20px;
+    color: var(--sidebar-logo-icon);
+    flex-shrink: 0;
+}
+.sidebar-logo-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--sidebar-logo-text);
+    white-space: nowrap;
+    letter-spacing: -0.3px;
+    transition: opacity var(--transition-fast);
+}
+
+/* ── 分组标题 ── */
+.sidebar-group-header {
+    height: var(--sidebar-group-h);
+    padding: 0 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 0;
+    margin: 10px 0 2px 0;
+    width: 100%;
+    background: transparent;
+    border: none;
+    transition: color var(--transition-fast);
+    font-size: 10px;
+    color: var(--sidebar-text-secondary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+}
+.sidebar-group-header:hover {
+    color: rgba(255,255,255,0.6);
+}
+.sidebar-group-header--expanded {
+    color: rgba(255,255,255,0.55);
+}
+.sidebar-group-icon { display: none; }
+.sidebar-group-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: inherit;
+    white-space: nowrap;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    transition: color var(--transition-fast);
+}
+.sidebar-group-arrow {
+    font-size: 12px;
+    color: var(--sidebar-text-muted);
+    flex-shrink: 0;
+    margin-left: auto;
+    transition: transform var(--transition-fast);
+}
+.sidebar-group-header--expanded .sidebar-group-arrow {
+    transform: rotate(0deg);
+}
+
+/* ── 分组间距（用留白代替分隔线） ── */
+.sidebar-group-divider { display: none; }
+
+/* ── 菜单项 ── */
+.sidebar-menu-item {
+    width: calc(100% - 16px) !important;
+    height: var(--sidebar-item-h) !important;
+    font-size: 13px !important;
+    border-radius: 6px !important;
+    padding: 0 10px 0 14px !important;
+    justify-content: flex-start !important;
+    color: var(--sidebar-text-primary) !important;
+    border-left: 2px solid transparent !important;
+    transition: background var(--transition-fast), color var(--transition-fast),
+                border-color var(--transition-fast), padding var(--transition-fast) !important;
+    margin: 1px 8px !important;
+    gap: 10px !important;
+    font-weight: 500 !important;
+}
+.sidebar-menu-item:hover {
+    background: var(--sidebar-bg-hover) !important;
+    color: rgba(255,255,255,0.95) !important;
+    padding-left: 16px !important;
+}
+
+/* ── 菜单图标 ── */
+.sidebar-menu-icon {
+    font-size: 14px !important;
+    opacity: 0.5;
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+    transition: opacity var(--transition-fast), color var(--transition-fast);
+}
+.sidebar-menu-label {
+    font-size: 13px !important;
+    white-space: nowrap;
+    font-weight: 500;
+    letter-spacing: -0.1px;
+    transition: font-weight var(--transition-fast);
+}
+
+/* ── 选中态 — 紫色竖条 + 淡紫背景 ── */
+.sidebar-menu-active {
+    background: var(--sidebar-bg-active) !important;
+    color: var(--sidebar-accent-light) !important;
+    border-left-color: var(--sidebar-accent) !important;
+}
+.sidebar-menu-active:hover {
+    background: rgba(79,79,223,0.15) !important;
+    color: #c7d2fe !important;
+}
+.sidebar-menu-active .sidebar-menu-icon {
+    opacity: 1 !important;
+    color: var(--sidebar-accent) !important;
+}
+.sidebar-menu-active .sidebar-menu-label {
+    font-weight: 600 !important;
+}
+
+/* ── 底部固定区域 ── */
+.sidebar-spacer { flex-grow: 1; }
+.sidebar-collapse-row {
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border-top: 1px solid var(--sidebar-divider);
+    margin-top: 4px;
+}
+.sidebar-collapse-btn {
+    font-size: 12px;
+    color: var(--sidebar-text-muted);
+    min-height: 36px;
+    width: 100%;
+    border-radius: 6px;
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+.sidebar-collapse-btn:hover {
+    color: rgba(255,255,255,0.7) !important;
+    background: var(--sidebar-bg-hover) !important;
+}
+
+/* ── 折叠态 ── */
+.sidebar-nav.sidebar-collapsed .sidebar-logo-text,
+.sidebar-nav.sidebar-collapsed .sidebar-group-label,
+.sidebar-nav.sidebar-collapsed .sidebar-menu-label,
+.sidebar-nav.sidebar-collapsed .sidebar-group-arrow,
+.sidebar-nav.sidebar-collapsed .sidebar-group-header {
+    display: none;
+}
+.sidebar-nav.sidebar-collapsed .sidebar-logo {
+    justify-content: center;
+    padding: 0;
+}
+.sidebar-nav.sidebar-collapsed .sidebar-menu-item {
+    justify-content: center !important;
+    padding: 0 !important;
+    width: 36px !important;
+    margin: 1px 6px !important;
+    border-left: none !important;
+}
+.sidebar-nav.sidebar-collapsed .sidebar-menu-item:hover {
+    padding: 0 !important;
+}
+.sidebar-nav.sidebar-collapsed .sidebar-menu-icon {
+    margin: 0 !important;
+    width: auto !important;
+}
+
+/* ── 折叠态 Tooltip ── */
+.sidebar-nav.sidebar-collapsed .sidebar-menu-item {
+    position: relative;
+}
+.sidebar-nav.sidebar-collapsed .sidebar-menu-item::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    margin-left: 10px;
+    padding: 5px 10px;
+    background: #1e1b4b;
+    color: rgba(255,255,255,0.9);
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 6px;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity var(--transition-fast), transform var(--transition-fast);
+    z-index: 9999;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+}
+.sidebar-nav.sidebar-collapsed .sidebar-menu-item:hover::before {
+    opacity: 1;
+    transform: translateY(-50%) translateX(2px);
+}
+
+/* ── 分组间距（用留白代替分隔线） ── */
+.sidebar-group-divider { display: none; }
+
+/* ── 菜单项 ── */
+.sidebar-menu-item {
+    width: calc(100% - 16px) !important;
+    height: var(--sidebar-item-h) !important;
+    font-size: 13px !important;
+    border-radius: 6px !important;
+    padding: 0 10px 0 14px !important;
+    justify-content: flex-start !important;

@@ -1,0 +1,31 @@
+/* ============================================================
+   Responsive — 媒体查询 & 打印优化
+   ============================================================ */
+
+/* 手机端底部导航 + 抽屉：仅在小屏幕显示 */
+@media (min-width: 769px) {
+    .bottom-nav { display: none !important; }
+    .drawer-overlay { display: none !important; }
+    #drawerSidebar { display: none !important; }
+}
+
+/* 打印优化 */
+@media print {
+    .header-bar,
+    .sidebar-nav,
+    .bottom-nav,
+    .q-btn,
+    .q-field,
+    .q-select {
+        display: none !important;
+    }
+    .main-content-area {
+        padding: 0 !important;
+        overflow: visible !important;
+    }
+    .q-card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        break-inside: avoid;
+    }
+}

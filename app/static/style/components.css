@@ -1,0 +1,81 @@
+/* ============================================================
+   Components — SectionHeader、动画 & 微交互
+   ============================================================ */
+
+/* ===== SectionHeader — 分组标题栏 ===== */
+.section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+}
+.section-header-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--c-text-primary);
+}
+.section-header-icon {
+    font-size: 16px;
+    color: var(--c-primary);
+}
+
+/* ===== 页面淡入 ===== */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.main-content-area > * {
+    animation: fadeIn 0.25s ease-out;
+}
+
+/* ===== 卡片入场 ===== */
+@keyframes cardIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+.q-card {
+    animation: cardIn 0.3s ease-out;
+}
+
+/* ===== 对话框弹出 ===== */
+.q-dialog .q-card {
+    animation: dialogIn 0.2s ease-out;
+}
+@keyframes dialogIn {
+    from { opacity: 0; transform: scale(0.95) translateY(10px); }
+    to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ===== 通知提示滑入 ===== */
+.q-notification {
+    animation: notifIn 0.3s ease-out;
+}
+@keyframes notifIn {
+    from { opacity: 0; transform: translateX(40px); }
+    to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ===== 数值变化闪烁 ===== */
+@keyframes numFlash {
+    0%   { color: var(--c-primary); }
+    100% { color: inherit; }
+}
+.num-flash {
+    animation: numFlash 1s ease-out;
+}
+
+/* ===== Tab 切换过渡 ===== */
+.q-tab-panel {
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* ===== Tooltip 增强 ===== */
+.q-tooltip {
+    font-size: 12px !important;
+    border-radius: var(--radius-sm) !important;
+    box-shadow: var(--shadow-lg) !important;
+    padding: 6px 10px !important;
+}

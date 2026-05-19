@@ -1,0 +1,100 @@
+/* ============================================================
+   Design Tokens — 全局设计变量
+   ============================================================ */
+
+:root {
+    /* ── 字体 ── */
+    --font-stack: "Inter", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
+                  "Noto Sans CJK SC", system-ui, -apple-system, sans-serif;
+    --font-mono: "SF Mono", "Consolas", "Monaco", monospace;
+
+    /* ── 全局色板 ── */
+    --c-primary:       #494fdf;
+    --c-primary-light: #eef2ff;
+    --c-primary-hover: #3a40c4;
+    --c-success:       #05b169;
+    --c-success-light: #f0fdf4;
+    --c-danger:        #cf202f;
+    --c-danger-light:  #fef2f2;
+    --c-warning:       #f4b000;
+    --c-warning-light: #fffbeb;
+
+    /* ── 页面背景 ── */
+    --c-bg-page:       #F8F9FA;
+    --c-bg-card:       #FFFFFF;
+    --c-bg-hover:      #F1F5F9;
+    --c-border:        #E2E8F0;
+    --c-border-light:  #F1F5F9;
+    --c-text-primary:  #0F172A;
+    --c-text-secondary:#475569;
+    --c-text-muted:    #94A3B8;
+    --c-text-inverse:  #FFFFFF;
+
+    /* ── 阴影 ── */
+    --shadow-sm:  0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md:  0 2px 8px rgba(0,0,0,0.06);
+    --shadow-lg:  0 8px 32px rgba(0,0,0,0.10);
+
+    /* ── 圆角 ── */
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+
+    /* ── 过渡 ── */
+    --transition-fast: 0.12s ease;
+    --transition-base: 0.15s ease;
+    --transition-slow: 0.2s cubic-bezier(0.4,0,0.2,1);
+
+    /* ── 侧边栏专属 (深色 fintech) ── */
+    --sidebar-bg:           #0B1120;
+    --sidebar-bg-hover:     rgba(255,255,255,0.04);
+    --sidebar-bg-active:    rgba(79,79,223,0.10);
+    --sidebar-accent:       #494fdf;
+    --sidebar-accent-light: #7c83f5;
+    --sidebar-accent-glow:  rgba(79,79,223,0.15);
+    --sidebar-text-primary:  rgba(255,255,255,0.88);
+    --sidebar-text-secondary:rgba(255,255,255,0.45);
+    --sidebar-text-muted:    rgba(255,255,255,0.28);
+    --sidebar-text-disabled: rgba(255,255,255,0.18);
+    --sidebar-divider:       rgba(255,255,255,0.05);
+    --sidebar-logo-text:     rgba(255,255,255,0.95);
+    --sidebar-logo-icon:     #494fdf;
+    --sidebar-width:         220px;
+    --sidebar-width-collapsed: 48px;
+    --sidebar-logo-h:        44px;
+    --sidebar-group-h:       28px;
+    --sidebar-item-h:        34px;
+
+    /* ── 顶部栏专属 (浅色 Stripe) ── */
+    --header-bg:             #FFFFFF;
+    --header-bg-scrolled:    rgba(255,255,255,0.95);
+    --header-border:         rgba(0,0,0,0.06);
+    --header-shadow:         0 1px 3px rgba(0,0,0,0.04);
+    --header-text-primary:   #0F172A;
+    --header-text-secondary: #64748B;
+    --header-text-muted:     #94A3B8;
+    --header-accent:         #494fdf;
+    --header-h:              52px;
+    --header-padding-x:      20px;
+}
+
+/* ===== Dark Theme ===== */
+body[data-theme="dark"] {
+    --c-primary:       #60A5FA;
+    --c-primary-light: #1E3A5F;
+    --c-primary-hover: #93C5FD;
+    --c-success:       #4ADE80;
+    --c-success-light: #14532D;
+    --c-danger:        #F87171;
+    --c-danger-light:  #7F1D1D;
+    --c-warning:       #FBBF24;
+    --c-warning-light: #78350F;
+    --c-bg-page:       #0F172A;
+    --c-bg-card:       #1E293B;
+    --c-bg-hover:      #334155;
+    --c-border:        #334155;
+    --c-border-light:  #1E293B;
+    --c-text-primary:  #F1F5F9;
+    --c-text-secondary:#CBD5E1;
+    --c-text-muted:    #64748B;
+}

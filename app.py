@@ -126,11 +126,25 @@ def index():
     # 注入全局 CSS & JS（内联到 head，确保每次页面加载都生效）
     import os as _os
     _static_dir = _os.path.join(_os.path.dirname(__file__), "app", "static")
-    _css_path = _os.path.join(_static_dir, "style.css")
+    _css_dir = _os.path.join(_static_dir, "style")
+    _css_path = _os.path.join(_css_dir, "index.css")
     _js_path = _os.path.join(_static_dir, "script.js")
     if _os.path.exists(_css_path):
+        import re as _re
         with open(_css_path, encoding="utf-8") as _f:
-            ui.add_head_html(f"<style>{_f.read()}</style>")
+            _css_content = _f.read()
+        _imports = _re.findall(r'@import\s+url\([\"'?]([^\"')]+)[\"'?]\);', _css_content)
+        if _imports:
+            _combined = []
+            for _imp in _imports:
+                _mod_path = _os.path.join(_css_dir, _imp)
+                if _os.path.exists(_mod_path):
+                    with open(_mod_path, encoding="utf-8") as _mf:
+                        _combined.append(_mf.read())
+            if _combined:
+                ui.add_head_html(f"<style>{chr(10).join(_combined)}</style>")
+        else:
+            ui.add_head_html(f"<style>{_css_content}</style>")
     if _os.path.exists(_js_path):
         with open(_js_path, encoding="utf-8") as _f:
             ui.add_head_html(f"<script>{_f.read()}</script>")
