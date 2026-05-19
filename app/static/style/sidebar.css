@@ -3,7 +3,6 @@
    ============================================================ */
 
 /* ── 容器 ── */
-/* sidebar 外层容器 — 隔离 NiceGUI diff 对 sidebar 的影响 */
 .sidebar-wrapper {
     display: flex;
     flex-direction: column;
@@ -111,34 +110,33 @@ body[data-theme="dark"] .sidebar-nav {
     transform: rotate(0deg);
 }
 
-/* ── 分组间距（用留白代替分隔线） ── */
 .sidebar-group-divider { display: none; }
 
 /* ── 菜单项 ── */
 .sidebar-menu-item {
-    width: calc(100% - 16px) !important;
-    height: var(--sidebar-item-h) !important;
-    font-size: 13px !important;
-    border-radius: 6px !important;
-    padding: 0 10px 0 14px !important;
-    justify-content: flex-start !important;
-    color: var(--sidebar-text-primary) !important;
-    border-left: 2px solid transparent !important;
+    width: calc(100% - 16px);
+    height: var(--sidebar-item-h);
+    font-size: 13px;
+    border-radius: 6px;
+    padding: 0 10px 0 14px;
+    justify-content: flex-start;
+    color: var(--sidebar-text-primary);
+    border-left: 2px solid transparent;
     transition: background var(--transition-fast), color var(--transition-fast),
-                border-color var(--transition-fast), padding var(--transition-fast) !important;
-    margin: 1px 8px !important;
-    gap: 10px !important;
-    font-weight: 500 !important;
+                border-color var(--transition-fast), padding var(--transition-fast);
+    margin: 1px 8px;
+    gap: 10px;
+    font-weight: 500;
 }
 .sidebar-menu-item:hover {
-    background: var(--sidebar-bg-hover) !important;
-    color: rgba(255,255,255,0.95) !important;
-    padding-left: 16px !important;
+    background: var(--sidebar-bg-hover);
+    color: rgba(255,255,255,0.95);
+    padding-left: 16px;
 }
 
 /* ── 菜单图标 ── */
 .sidebar-menu-icon {
-    font-size: 14px !important;
+    font-size: 14px;
     opacity: 0.5;
     flex-shrink: 0;
     width: 20px;
@@ -146,7 +144,7 @@ body[data-theme="dark"] .sidebar-nav {
     transition: opacity var(--transition-fast), color var(--transition-fast);
 }
 .sidebar-menu-label {
-    font-size: 13px !important;
+    font-size: 13px;
     white-space: nowrap;
     font-weight: 500;
     letter-spacing: -0.1px;
@@ -250,15 +248,3 @@ body[data-theme="dark"] .sidebar-nav {
     opacity: 1;
     transform: translateY(-50%) translateX(2px);
 }
-
-/* ── 分组间距（用留白代替分隔线） ── */
-.sidebar-group-divider { display: none; }
-
-/* ── 菜单项 ── */
-.sidebar-menu-item {
-    width: calc(100% - 16px) !important;
-    height: var(--sidebar-item-h) !important;
-    font-size: 13px !important;
-    border-radius: 6px !important;
-    padding: 0 10px 0 14px !important;
-    justify-content: flex-start !important;

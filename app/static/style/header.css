@@ -128,7 +128,7 @@ body[data-theme="dark"] .header-bar {
     transition: color var(--transition-fast);
 }
 .header-search-btn:hover {
-    color: var(--header-accent) !important;
+    color: var(--header-accent);
 }
 
 /* 通知铃铛 */
@@ -202,8 +202,8 @@ body[data-theme="dark"] .header-bar {
     transition: color var(--transition-fast), background var(--transition-fast);
 }
 .header-icon-btn:hover {
-    color: var(--header-text-primary) !important;
-    background: var(--c-bg-hover) !important;
+    color: var(--header-text-primary);
+    background: var(--c-bg-hover);
 }
 
 /* ── Connection Lost 提示美化 ── */
