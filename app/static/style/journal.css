@@ -7,3 +7,337 @@
     font-family: var(--font-mono);
     font-variant-numeric: tabular-nums;
 }
+
+/* ============================================================
+   Voucher Form — 记账凭证表格（v5 传统凭证格式）
+   ============================================================ */
+
+/* ── 表格本体 ── */
+.vctable {
+    width: 100%;
+    border-collapse: collapse;
+    border: 2px solid #1a1a1a;
+    font-size: 14px;
+    margin: 0;
+    table-layout: fixed;
+}
+
+/* ── 表头 ── */
+.vcth {
+    border: 1px solid #1a1a1a;
+    padding: 8px 6px;
+    background: #f5f0ea;
+    font-weight: 700;
+    text-align: center;
+    white-space: nowrap;
+    font-size: 13px;
+    color: var(--c-text-primary);
+}
+.vcth-seq    { width: 44px; }
+.vcth-summary { width: 24%; }
+.vcth-acct   { width: 28%; }
+.vcth-debit  { width: 16%; }
+.vcth-credit { width: 16%; }
+.vcth-op     { width: 40px; }
+
+/* ── 单元格 ── */
+.vctd {
+    border: 1px solid #999;
+    padding: 2px 4px;
+    vertical-align: middle;
+    font-size: 13px;
+}
+.vctd-seq {
+    text-align: center;
+    color: var(--c-text-muted);
+    font-size: 12px;
+}
+.vctd-num {
+    text-align: right;
+}
+.vctd-op {
+    text-align: center;
+}
+
+/* ── 表格内输入框（去边框，融入单元格）── */
+.vctd-inp {
+    width: 100%;
+    border: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    padding: 4px 6px !important;
+    font-size: 13px !important;
+    font-family: var(--font-stack) !important;
+    outline: none !important;
+    border-radius: 0 !important;
+}
+.vctd-inp:focus {
+    outline: 2px solid var(--c-primary) !important;
+    outline-offset: -2px;
+    border-radius: 2px;
+}
+
+/* ── 表格内 select ── */
+.vctd-sel {
+    width: 100%;
+    border: none !important;
+    background: transparent !important;
+    padding: 4px 2px !important;
+    font-size: 13px !important;
+    font-family: var(--font-stack) !important;
+    outline: none !important;
+    cursor: pointer;
+}
+.vctd-sel:focus {
+    outline: 2px solid var(--c-primary) !important;
+    outline-offset: -2px;
+    border-radius: 2px;
+}
+
+/* ── 数字输入右对齐 ── */
+.vctd-num .vctd-inp {
+    text-align: right !important;
+    font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ── 删除按钮 ── */
+.vctd-del-btn {
+    width: 24px !important;
+    height: 24px !important;
+    min-width: 24px !important;
+    min-height: 24px !important;
+    border-radius: 50% !important;
+    color: var(--c-text-muted) !important;
+    font-size: 16px !important;
+    line-height: 1 !important;
+    padding: 0 !important;
+}
+.vctd-del-btn:hover {
+    color: var(--c-danger) !important;
+    background: var(--c-danger-light) !important;
+}
+
+/* ── 行 hover ── */
+#vcBody tr:hover {
+    background: var(--c-primary-light) !important;
+}
+#vcBody tr:hover .vctd-inp,
+#vcBody tr:hover .vctd-sel {
+    background: transparent !important;
+}
+
+/* ── 合计行 ── */
+.vctfoot-total {
+    background: #faf6f0;
+    font-weight: 700;
+    border-top: 2px solid #1a1a1a;
+}
+.vctfoot-total .vctd {
+    border: 1px solid #1a1a1a;
+    padding: 8px 6px;
+    font-size: 14px;
+}
+.vctfoot-label {
+    text-align: right;
+    padding-right: 12px !important;
+    color: var(--c-text-primary);
+}
+
+/* ── 借贷平衡提示 ── */
+.vctfoot-balance {
+    text-align: center !important;
+    padding: 4px 0 !important;
+    border: none !important;
+}
+.vc-balance-ok {
+    color: var(--c-success);
+    font-weight: 600;
+    font-size: 12px;
+}
+.vc-balance-bad {
+    color: var(--c-danger);
+    font-weight: 700;
+    font-size: 12px;
+}
+
+/* ── 合计金额显示 ── */
+#vcDrTotal,
+#vcCrTotal {
+    font-family: var(--font-mono) !important;
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* ============================================================
+   Voucher Form — 对话框/卡片布局
+   ============================================================ */
+
+/* ── 对话框宽度 ── */
+.vcdialog {
+    width: 960px !important;
+    max-width: 95vw !important;
+}
+
+/* ── 凭证头部 ── */
+.vcheader {
+    text-align: center;
+    padding: 16px 20px 14px;
+    border-bottom: 2px solid #1a1a1a;
+}
+
+/* ── 凭证字选择框 ── */
+.vctype-sel {
+    width: 72px !important;
+}
+
+/* ── 日期输入框 ── */
+.vcdate-inp {
+    width: 150px !important;
+}
+
+/* ── 摘要输入框 ── */
+.vcsummary-inp {
+    flex: 1;
+    min-width: 200px;
+}
+
+/* ── 附件输入框 ── */
+.vcattach-inp {
+    width: 60px !important;
+}
+
+/* ── 元信息区域 ── */
+.vcsection-meta {
+    padding: 10px 20px;
+    border-bottom: 1px solid #1a1a1a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ── 模板区域 ── */
+.vcsection-tpl {
+    padding: 8px 20px;
+    background: var(--c-warning-light);
+    border-bottom: 1px solid #FDE68A;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ── 表格区域 ── */
+.vcsection-table {
+    padding: 0;
+}
+
+/* ── 签章区域 ── */
+.vcsection-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #1a1a1a;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* ── 保存按钮区域 ── */
+.vcsection-save {
+    padding: 12px 16px;
+    text-align: right;
+    border-top: 1px solid var(--c-border);
+}
+
+/* ============================================================
+   Voucher Form — 页面级元素（非表格部分）
+   ============================================================ */
+
+/* ── 页面标题 ── */
+.vc-page-title {
+    color: var(--c-text-primary) !important;
+}
+
+/* ── 凭证号 badge ── */
+.vc-vno-badge {
+    background: var(--c-primary-light) !important;
+    color: var(--c-primary) !important;
+}
+
+/* ── 凭证号（对话框版）── */
+.vc-vno-text {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+    font-family: Consolas, monospace !important;
+    color: #1a1a1a !important;
+}
+
+/* ── 凭证大标题 ── */
+.vc-doc-title {
+    font-size: 24px !important;
+    font-weight: 900 !important;
+    letter-spacing: 8px !important;
+    color: #1a1a1a !important;
+    margin-bottom: 8px;
+}
+
+/* ── 字段标签 ── */
+.vc-field-label {
+    font-size: 13px !important;
+    color: #333 !important;
+}
+.vc-field-label-bold {
+    font-weight: 600 !important;
+    color: #1a1a1a !important;
+}
+
+/* ── 模板区域 ── */
+.vc-tpl-icon {
+    color: #D97706 !important;
+}
+.vc-tpl-label {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #D97706 !important;
+}
+
+/* ── 签章标签 ── */
+.vc-sign-label {
+    font-size: 12px !important;
+    color: #666 !important;
+}
+
+/* ── 底部操作按钮 ── */
+.vc-action-btn {
+    font-size: 14px !important;
+}
+.vc-action-btn-sm {
+    font-size: 12px !important;
+}
+
+/* ============================================================
+   Responsive — 凭证表格适配
+   ============================================================ */
+
+@media (max-width: 768px) {
+    .vctable {
+        font-size: 12px;
+    }
+    .vcth {
+        padding: 6px 3px;
+        font-size: 11px;
+    }
+    .vctd {
+        padding: 2px 2px;
+    }
+    .vctd-inp,
+    .vctd-sel {
+        padding: 3px 3px !important;
+        font-size: 12px !important;
+    }
+    .vcth-seq,
+    .vcth-op,
+    .vctd-seq,
+    .vctd-op {
+        width: 32px;
+    }
+}

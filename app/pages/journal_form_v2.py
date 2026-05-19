@@ -231,7 +231,7 @@ def _render_voucher_form_dialog(detail=None):
     </tr>
     <tr>
         <td colspan="6" class="vctfoot-balance">
-            <span id="vcBalance" class="vc-bal-ok">借贷平衡</span>
+            <span id="vcBalance" class="vc-balance-ok">借贷平衡</span>
         </td>
     </tr>
 </tfoot>
@@ -240,31 +240,30 @@ def _render_voucher_form_dialog(detail=None):
     # ── 渲染对话框 ──
     with d, ui.card().classes("vcdialog"):
         # ── 凭证头部（标题 + 凭证字/号/日期）──
-        with ui.card_section().classes("vcheader").style("text-align:center;padding:12px 16px 10px;border-bottom:2px solid #1a1a1a"):
-            # 大标题
-            ui.label("记 账 凭 证").style("font-size:22px;font-weight:900;letter-spacing:8px;color:#1a1a1a;margin-bottom:6px")
-            # 第二行：凭证字 + 凭证号 + 日期
+        with ui.card_section().classes("vcheader"):
+            ui.label("记 账 凭 证").classes("vc-doc-title")
             with ui.row().classes("w-full items-center justify-between"):
-                # 凭证字
                 with ui.row().classes("items-center gap-2"):
-                    ui.label("凭证字：").style("font-size:13px;color:#333")
-                    vtype_sel = ui.select(vtype_opts, value=default_vtype).props("outlined dense").classes("vctype-sel")
-                # 凭证号
-                ui.label(f"No. {vn}").style("font-size:14px;font-weight:700;font-family:Consolas,monospace;color:#1a1a1a")
-                # 日期
+                    ui.label("凭证字：").classes("vc-field-label")
+                    vtype_sel = ui.select(vtype_opts, value=default_vtype) \
+                        .props("outlined dense").classes("vctype-sel")
+                ui.label(f"No. {vn}").classes("vc-vno-text")
                 with ui.row().classes("items-center gap-2"):
-                    ui.label("日期：").style("font-size:13px;color:#333")
-                    date_input = ui.input(value=default_date).props("type=date outlined dense").classes("vcdate-inp")
+                    ui.label("日期：").classes("vc-field-label")
+                    date_input = ui.input(value=default_date) \
+                        .props("type=date outlined dense").classes("vcdate-inp")
 
         # ── 摘要 + 附件 ──
-        with ui.card_section().classes("vcsection-meta").style("padding:8px 16px;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center"):
+        with ui.card_section().classes("vcsection-meta"):
             with ui.row().classes("items-center gap-2"):
-                ui.label("摘要：").style("font-size:13px;font-weight:600;color:#1a1a1a")
-                desc_input = ui.input(value=default_desc, placeholder="请输入凭证摘要...").props("outlined dense").classes("vcsummary-inp")
+                ui.label("摘要：").classes("vc-field-label vc-field-label-bold")
+                desc_input = ui.input(value=default_desc, placeholder="请输入凭证摘要...") \
+                    .props("outlined dense").classes("vcsummary-inp")
             with ui.row().classes("items-center gap-2"):
-                ui.label("附件：").style("font-size:13px;color:#333")
-                attach_input = ui.number(value=attach_count, precision=0).props("outlined dense").classes("vcattach-inp")
-                ui.label("张").style("font-size:13px;color:#333")
+                ui.label("附件：").classes("vc-field-label")
+                attach_input = ui.number(value=attach_count, precision=0) \
+                    .props("outlined dense").classes("vcattach-inp")
+                ui.label("张").classes("vc-field-label")
 
         # ── 凭证模板（仅新增时显示）──
         if not is_edit:
@@ -273,11 +272,13 @@ def _render_voucher_form_dialog(detail=None):
             except Exception:
                 _templates = []
             if _templates:
-                with ui.card_section().classes("vcsection-tpl").style("padding:6px 16px;background:#FFFBEB;border-bottom:1px solid #FDE68A;display:flex;align-items:center;gap:8px"):
-                    ui.icon("description", size="sm").style("color:#D97706")
-                    ui.label("模板").style("font-size:12px;font-weight:600;color:#D97706")
+                with ui.card_section().classes("vcsection-tpl"):
+                    ui.icon("description", size="sm").classes("vc-tpl-icon")
+                    ui.label("模板").classes("vc-tpl-label")
                     template_opts = {t["id"]: t["name"] for t in _templates}
-                    template_select = ui.select(options=template_opts, value=None, label="选择").props("outlined dense clearable").classes("w-44")
+                    template_select = ui.select(
+                        options=template_opts, value=None, label="选择"
+                    ).props("outlined dense clearable").classes("w-44")
 
                     def _on_tpl_apply():
                         try:
@@ -304,7 +305,6 @@ def _render_voucher_form_dialog(detail=None):
                                 new_entries.append({"acct_code": "", "summary": "", "debit": "", "credit": ""})
                             acct_opts_json = json.dumps(_acct_options_html())
                             entries_json = json.dumps(new_entries)
-                            # 写入 hidden input 存储数据，由客户端 JS 监听并重建表格
                             ui.add_head_html(f"""
                             <script>
                             (function() {{
@@ -319,13 +319,13 @@ def _render_voucher_form_dialog(detail=None):
                         except Exception as e:
                             show_toast(f"应用模板失败: {e}", "error")
 
-                    ui.button("应用", on_click=_on_tpl_apply).props("dense color=warning").classes("px-3 text-xs")
+                    ui.button("应用", on_click=_on_tpl_apply) \
+                        .props("dense color=warning").classes("px-3 text-xs")
 
         # ── 分录明细表格 ──
-        with ui.card_section().classes("vcsection-table").style("padding:0"):
+        with ui.card_section().classes("vcsection-table"):
             table_html = _build_table_html(init_entries)
             ui.html(table_html, sanitize=False)
-            # 注入 JS：绑定 input 事件 + 初始计算（通过 script 标签而非 run_javascript，避免 event loop 依赖）
             ui.add_head_html(f"""
             <script>
             (function() {{
@@ -349,19 +349,20 @@ def _render_voucher_form_dialog(detail=None):
             """)
 
         # ── 底部签章 ──
-        with ui.card_section().classes("vcsection-footer").style("padding:10px 16px;border-top:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center"):
+        with ui.card_section().classes("vcsection-footer"):
             with ui.row().classes("gap-6"):
                 maker = state.current_user.get('username', '') if state.current_user else ''
-                ui.label(f"制单人：{maker}").style("font-size:12px;color:#666")
-                ui.label("审核人：").style("font-size:12px;color:#666")
-                ui.label("记账人：").style("font-size:12px;color:#666")
-                ui.label("出纳人：").style("font-size:12px;color:#666")
+                ui.label(f"制单人：{maker}").classes("vc-sign-label")
+                ui.label("审核人：").classes("vc-sign-label")
+                ui.label("记账人：").classes("vc-sign-label")
+                ui.label("出纳人：").classes("vc-sign-label")
             with ui.row().classes("gap-2"):
-                ui.button("🖨️ 打印", on_click=lambda: ui.run_javascript("window.print();")).props("dense").style("font-size:12px")
-                ui.button("取消", on_click=d.close).props("flat").style("font-size:12px")
+                ui.button("🖨️ 打印", on_click=lambda: ui.run_javascript("window.print();")) \
+                    .props("dense").classes("vc-action-btn-sm")
+                ui.button("取消", on_click=d.close).props("flat").classes("vc-action-btn-sm")
 
         # ── 保存按钮（底部独立区域）──
-        with ui.card_section().classes("vcsection-save").style("padding:12px 16px;text-align:right;border-top:1px solid #e5e7eb"):
+        with ui.card_section().classes("vcsection-save"):
             if not is_edit:
                 save_draft = ui.checkbox("存为草稿", value=False).classes("text-xs mr-4")
             if is_edit:
@@ -389,7 +390,6 @@ def _render_voucher_form_dialog(detail=None):
 async def _collect_entries(acct_map):
     """从 JS 收集分录数据并验证"""
     raw = await ui.run_javascript("return v5collectEntries();")
-    # Handle undefined/null — JS function may not be loaded yet
     if raw is None or raw == "undefined" or raw == "null":
         show_toast("凭证表格尚未加载完成，请稍后重试", "warning")
         raise ValueError("表格未加载")

@@ -33,12 +33,11 @@ def render_journal_form(detail=None):
             ui.button(icon="arrow_left", on_click=lambda: navigate("journal")) \
                 .props("flat dense round").classes("text-sm")
             ui.label("编辑凭证" if is_edit else "新增记账凭证") \
-                .classes("text-lg font-bold").style("color:var(--c-text-primary)")
+                .classes("text-lg font-bold vc-page-title")
         # 右侧：凭证号
         vn = detail.get("voucher_no", "") if is_edit else _generate_voucher_no(lid)
         ui.label(f"No. {vn}") \
-            .classes("text-sm font-mono font-bold px-3 py-1 rounded") \
-            .style("background:var(--c-primary-light);color:var(--c-primary)")
+            .classes("text-sm font-mono font-bold px-3 py-1 rounded vc-vno-badge")
 
     # ── 注入 JS ──
     ui.add_body_html(_VC_JS)
@@ -124,7 +123,7 @@ def render_journal_form(detail=None):
     </tr>
     <tr>
         <td colspan="6" class="vctfoot-balance">
-            <span id="vcBalance" class="vc-bal-ok">借贷平衡</span>
+            <span id="vcBalance" class="vc-balance-ok">借贷平衡</span>
         </td>
     </tr>
 </tfoot>
@@ -132,25 +131,29 @@ def render_journal_form(detail=None):
 
     # ── 凭证头部 ──
     with ui.card().classes("w-full"):
-        with ui.card_section().classes("vcheader").style("text-align:center;padding:16px 20px 14px;border-bottom:2px solid #1a1a1a"):
-            ui.label("记 账 凭 证").style("font-size:24px;font-weight:900;letter-spacing:8px;color:#1a1a1a;margin-bottom:8px")
+        with ui.card_section().classes("vcheader"):
+            ui.label("记 账 凭 证").classes("vc-doc-title")
             with ui.row().classes("w-full items-center justify-between"):
                 with ui.row().classes("items-center gap-2"):
-                    ui.label("凭证字：").style("font-size:14px;color:#333")
-                    vtype_sel = ui.select(vtype_opts, value=default_vtype).props("outlined dense").classes("vctype-sel")
+                    ui.label("凭证字：").classes("vc-field-label")
+                    vtype_sel = ui.select(vtype_opts, value=default_vtype) \
+                        .props("outlined dense").classes("vctype-sel")
                 with ui.row().classes("items-center gap-2"):
-                    ui.label("日期：").style("font-size:14px;color:#333")
-                    date_input = ui.input(value=default_date).props("type=date outlined dense").classes("vcdate-inp")
+                    ui.label("日期：").classes("vc-field-label")
+                    date_input = ui.input(value=default_date) \
+                        .props("type=date outlined dense").classes("vcdate-inp")
 
         # ── 摘要 + 附件 ──
-        with ui.card_section().classes("vcsection-meta").style("padding:10px 20px;border-bottom:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center"):
+        with ui.card_section().classes("vcsection-meta"):
             with ui.row().classes("items-center gap-2"):
-                ui.label("摘要：").style("font-size:14px;font-weight:600;color:#1a1a1a")
-                desc_input = ui.input(value=default_desc, placeholder="请输入凭证摘要...").props("outlined dense").classes("vcsummary-inp")
+                ui.label("摘要：").classes("vc-field-label vc-field-label-bold")
+                desc_input = ui.input(value=default_desc, placeholder="请输入凭证摘要...") \
+                    .props("outlined dense").classes("vcsummary-inp")
             with ui.row().classes("items-center gap-2"):
-                ui.label("附件：").style("font-size:14px;color:#333")
-                attach_input = ui.number(value=attach_count, precision=0).props("outlined dense").classes("vcattach-inp")
-                ui.label("张").style("font-size:14px;color:#333")
+                ui.label("附件：").classes("vc-field-label")
+                attach_input = ui.number(value=attach_count, precision=0) \
+                    .props("outlined dense").classes("vcattach-inp")
+                ui.label("张").classes("vc-field-label")
 
         # ── 凭证模板（仅新增时）──
         if not is_edit:
@@ -159,11 +162,13 @@ def render_journal_form(detail=None):
             except Exception:
                 _templates = []
             if _templates:
-                with ui.card_section().classes("vcsection-tpl").style("padding:8px 20px;background:#FFFBEB;border-bottom:1px solid #FDE68A;display:flex;align-items:center;gap:8px"):
-                    ui.icon("description", size="sm").style("color:#D97706")
-                    ui.label("模板").style("font-size:13px;font-weight:600;color:#D97706")
+                with ui.card_section().classes("vcsection-tpl"):
+                    ui.icon("description", size="sm").classes("vc-tpl-icon")
+                    ui.label("模板").classes("vc-tpl-label")
                     template_opts = {t["id"]: t["name"] for t in _templates}
-                    template_select = ui.select(options=template_opts, value=None, label="选择").props("outlined dense clearable").classes("w-44")
+                    template_select = ui.select(
+                        options=template_opts, value=None, label="选择"
+                    ).props("outlined dense clearable").classes("w-44")
 
                     def _on_tpl_apply():
                         try:
@@ -204,10 +209,11 @@ def render_journal_form(detail=None):
                         except Exception as e:
                             show_toast(f"应用模板失败: {e}", "error")
 
-                    ui.button("应用", on_click=_on_tpl_apply).props("dense color=warning").classes("px-3 text-xs")
+                    ui.button("应用", on_click=_on_tpl_apply) \
+                        .props("dense color=warning").classes("px-3 text-xs")
 
         # ── 分录明细表格 ──
-        with ui.card_section().classes("vcsection-table").style("padding:0"):
+        with ui.card_section().classes("vcsection-table"):
             table_html = _build_table_html(init_entries)
             ui.html(table_html, sanitize=False)
             ui.add_head_html("""
@@ -233,21 +239,21 @@ def render_journal_form(detail=None):
             """)
 
         # ── 底部签章 ──
-        with ui.card_section().classes("vcsection-footer").style("padding:12px 20px;border-top:1px solid #1a1a1a;display:flex;justify-content:space-between;align-items:center"):
+        with ui.card_section().classes("vcsection-footer"):
             with ui.row().classes("gap-8"):
                 maker = state.current_user.get('username', '') if state.current_user else ''
-                ui.label(f"制单人：{maker}").style("font-size:13px;color:#666")
-                ui.label("审核人：").style("font-size:13px;color:#666")
-                ui.label("记账人：").style("font-size:13px;color:#666")
-                ui.label("出纳人：").style("font-size:13px;color:#666")
+                ui.label(f"制单人：{maker}").classes("vc-sign-label")
+                ui.label("审核人：").classes("vc-sign-label")
+                ui.label("记账人：").classes("vc-sign-label")
+                ui.label("出纳人：").classes("vc-sign-label")
 
     # ── 底部操作栏（独立区域，始终可见）──
     with ui.row().classes("w-full items-center justify-between mt-3"):
         ui.button("返回列表", icon="arrow_left", on_click=lambda: navigate("journal")) \
-            .props("flat").style("font-size:14px")
+            .props("flat").classes("vc-action-btn")
         with ui.row().classes("gap-3"):
             ui.button("🖨️ 打印", on_click=lambda: ui.run_javascript("window.print();")) \
-                .props("dense").style("font-size:14px")
+                .props("dense").classes("vc-action-btn")
             if not is_edit:
                 save_draft = ui.checkbox("存为草稿", value=False).classes("text-sm")
             if is_edit:
@@ -282,8 +288,6 @@ def render_journal_form(detail=None):
                 async def _on_save_click():
                     new_save_btn.props("loading")
                     try:
-                        # _do_save_v3 expects a dialog arg, but we're not in a dialog
-                        # Call the save logic directly
                         date_str = date_input.value or ""
                         desc = desc_input.value or ""
                         entries, total_dr, total_cr = await _collect_entries(_acct_map)
