@@ -91,10 +91,11 @@ def show_modal_error(title="错误", message=""):
 _PAGES_KEEPING_VOUCHER = {"voucher_detail", "journal"}
 
 def navigate(page):
-    """页面导航 — Sidebar v2 架构
+    """页面导航 — 单轨架构
 
-    导航时只重渲染主内容区，sidebar 由 JS 接管（切换 active class）。
-    只有 sidebar 折叠/展开时才需要重渲染 sidebar。
+    Python 是唯一导航逻辑源。
+    导航时重渲染主内容区，并通过 JS 同步 sidebar active 类。
+    sidebar 本身不重渲染（避免 NiceGUI DOM diff 导致的容器重复问题）。
     """
     if page == state.current_page:
         return
@@ -102,7 +103,9 @@ def navigate(page):
     # 仅在导航到与凭证无关的页面时清理选中凭证
     if page not in _PAGES_KEEPING_VOUCHER:
         state.selected_voucher_no = None
-    _rebuild_content()  # 只重渲染 main_content，sidebar 不动
+    _rebuild_content()  # 重渲染 main_content
+    # 同步 sidebar active 类（纯视觉，不触发导航）
+    ui.run_javascript(f"window.sidebarCtrl&&window.sidebarCtrl.setActiveItem('{page}')")
 
 
 # ===== 全局搜索 =====

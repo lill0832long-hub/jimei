@@ -1,15 +1,17 @@
 /**
- * AI 财务系统 v3 — 前端脚本
+ * AI 财务系统 V5.1 — 前端脚本
  *
  * 职责：
- * - sidebar active 状态切换
+ * - sidebar active 状态切换（纯视觉，不拦截点击）
  * - 暗色主题切换
  * - 手机端底部导航栏
  * - 抽屉式侧边栏
+ * - 导航统一：所有导航通过 window.location.href 触发页面重载
+ *   Python navigate() 是唯一的导航逻辑源
  */
 
 (function() {
-    // ── Sidebar + Drawer 控制 ──
+    // ── Sidebar active 状态 ──
     window.sidebarCtrl = {
         setActiveItem: function(pageKey) {
             if (!pageKey) return;
@@ -51,12 +53,16 @@
     };
 
     // ── 手机端导航函数 ──
+    // 统一使用 window.location.href 触发页面重载
+    // Python navigate() 是唯一导航逻辑源，JS 只负责触发页面跳转
     window.navigateTo = function(page) {
         document.querySelectorAll('.bottom-nav-item').forEach(function(el) {
             el.classList.toggle('active', el.dataset.page === page);
         });
-        // 使用 NiceGUI 内置导航
-        Quasar.navigateTo({ path: '/' + page });
+        // 关闭抽屉（如果打开）
+        window.sidebarCtrl.closeDrawer();
+        // 触发页面跳转（全量重载，确保 Python index() 重新执行）
+        window.location.href = '/' + page;
     };
 
     // ── DOMContentLoaded 初始化 ──
@@ -117,6 +123,17 @@
             });
         }
 
+        // 3b. 抽屉菜单点击 → 使用 window.location.href 导航（克隆元素无 Python handler）
+        if (drawerMenu) {
+            drawerMenu.addEventListener('click', function(e) {
+                var btn = e.target.closest('.sidebar-menu-item');
+                if (!btn) return;
+                var page = btn.dataset.page;
+                if (!page) return;
+                window.location.href = '/' + page;
+            });
+        }
+
         // 4. 恢复主题
         try {
             if (localStorage.getItem('theme') === 'dark') {
@@ -124,20 +141,7 @@
             }
         } catch(e) {}
 
-        // 5. Sidebar active 状态同步（纯视觉，不拦截点击）
-        // Python 端负责实际的页面导航
-        document.addEventListener('click', function(e) {
-            var btn = e.target.closest('.sidebar-menu-item');
-            if (!btn) return;
-            var page = btn.dataset.page;
-            if (!page) return;
-            document.querySelectorAll('.sidebar-menu-item').forEach(function(el) {
-                el.classList.remove('sidebar-menu-active');
-            });
-            btn.classList.add('sidebar-menu-active');
-        }, true);
-
-        // 6. 定期清理重复的 sidebar-nav（NiceGUI clear() 不删 DOM 的 workaround）
+        // 5. 定期清理重复的 sidebar-nav（NiceGUI clear() 不删 DOM 的 workaround）
         setInterval(function() {
             var navs = document.querySelectorAll('.sidebar-nav');
             if (navs.length > 1) {
