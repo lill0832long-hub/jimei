@@ -133,7 +133,7 @@ def index():
         import re as _re
         with open(_css_path, encoding="utf-8") as _f:
             _css_content = _f.read()
-        _imports = _re.findall(r'@import\s+url\([\"'?]([^\"')]+)[\"'?]\);', _css_content)
+        _imports = _re.findall(r'@import\s+url\(["\']([^"\']+)["\']\);', _css_content)
         if _imports:
             _combined = []
             for _imp in _imports:
