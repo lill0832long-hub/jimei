@@ -9,6 +9,7 @@ def do_logout():
     """登出"""
     state.current_user = None
     state.current_page = "dashboard"
+    ui.run_javascript("document.cookie='sess=;path=/;max-age=0'")
     ui.navigate.to("/")
 
 
@@ -123,7 +124,13 @@ def do_login(username, password, login_btn, remember, username_input):
             state.selected_ledger_id = ledgers[0].get("id")
         show_toast(f"✅ 欢迎，{user.get('username', '')}！", "success")
         login_btn.props(remove="loading")
-        ui.navigate.to("/")
+        # 写 cookie 后强制页面刷新（ui.navigate 是 SPA 导航，不触发 index() 重新执行）
+        import json as _json
+        ui.run_javascript(
+            "try{var d=JSON.stringify(" + _json.dumps({"u": user.get("username",""), "r": user.get("role","")}) + ");"
+            "document.cookie='sess='+encodeURIComponent(d)+';path=/;max-age=3600;SameSite=Lax';"
+            "window.location.href='/';}catch(e){console.error(e)}"
+        )
     else:
         # 登录失败：输入框标红 + 具体错误提示
         username_input.props("error")

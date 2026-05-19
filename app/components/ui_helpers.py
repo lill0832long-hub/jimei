@@ -424,24 +424,8 @@ def _build_sidebar_content(sidebar_el):
 
 
 def render_sidebar():
-    """左侧导航菜单 v3 — Python状态驱动分组折叠"""
-    # ── 初始化分组折叠状态（首次渲染） ──
-    if state.sidebar_group_expanded is None:
-        state.sidebar_group_expanded = {
-            "work": True,
-            "operations": True,
-            "reports": True,
-            "finance": True,
-        }
-
-    # 安全重置：如果容器已被标记为需要刷新，或 client 已断开，则重建
-    if state._sidebar_container is not None:
-        try:
-            _ = state._sidebar_container.client
-        except RuntimeError:
-            state._sidebar_container = None
-
-    # 创建 sidebar 容器（每次页面渲染都创建新容器，NiceGUI 会正确处理 DOM 更新）
+    """左侧导航菜单 — 创建 sidebar 容器并填充内容"""
+    _init_sidebar_state()
     sidebar_classes = "sidebar-nav h-full"
     if state.sidebar_collapsed:
         sidebar_classes += " sidebar-collapsed"
@@ -449,6 +433,17 @@ def render_sidebar():
     sidebar_el = state._sidebar_container
     with sidebar_el:
         _build_sidebar_content(sidebar_el)
+
+
+def _init_sidebar_state():
+    """初始化分组折叠状态（首次渲染）"""
+    if state.sidebar_group_expanded is None:
+        state.sidebar_group_expanded = {
+            "work": True,
+            "operations": True,
+            "reports": True,
+            "finance": True,
+        }
 
 
 def _toggle_sidebar_group(gkey):
@@ -468,4 +463,19 @@ def _toggle_sidebar_collapse():
 
 def _refresh_sidebar():
     """重新渲染 sidebar（不重建主内容）"""
-    render_sidebar()
+    if state._sidebar_container is None:
+        return
+    try:
+        _ = state._sidebar_container.client
+    except RuntimeError:
+        state._sidebar_container = None
+        return
+    # 更新 CSS 类
+    if state.sidebar_collapsed:
+        state._sidebar_container.classes("sidebar-collapsed")
+    else:
+        state._sidebar_container.classes(remove="sidebar-collapsed")
+    # 清空旧内容，重建
+    state._sidebar_container.clear()
+    with state._sidebar_container:
+        _build_sidebar_content(state._sidebar_container)
