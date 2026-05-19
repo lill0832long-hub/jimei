@@ -103,7 +103,9 @@ def navigate(page):
     # 仅在导航到与凭证无关的页面时清理选中凭证
     if page not in _PAGES_KEEPING_VOUCHER:
         state.selected_voucher_no = None
-    _rebuild_content()  # 重渲染 main_content
+    # 使用 timer 延迟执行，避免在 click handler 中直接 clear() 导致
+    # "parent element has been deleted" RuntimeError
+    ui.timer(0.05, _rebuild_content, once=True)
     # 同步 sidebar active 类（纯视觉，不触发导航）
     ui.run_javascript(f"window.sidebarCtrl&&window.sidebarCtrl.setActiveItem('{page}')")
 
@@ -184,7 +186,8 @@ def hide_loading():
 # ===== 内容重渲染 =====
 
 def refresh_main():
-    _rebuild_content()
+    # 延迟执行，避免在 click handler 中直接 clear() 导致 RuntimeError
+    ui.timer(0.05, _rebuild_content, once=True)
 
 
 def _rebuild_content():

@@ -41,7 +41,7 @@ def render_journal_form(detail=None):
             .style("background:var(--c-primary-light);color:var(--c-primary)")
 
     # ── 注入 JS ──
-    ui.add_body_html(_VC_JS, shared=True)
+    ui.add_body_html(_VC_JS)
 
     # ── 科目数据 ──
     _acct_data = AccountService.get_all()
@@ -255,8 +255,25 @@ def render_journal_form(detail=None):
                 async def _on_edit_click():
                     edit_save_btn.props("loading")
                     try:
-                        await _do_edit_v3(None, detail.get("voucher_no", ""), date_input.value, desc_input.value, _acct_map)
+                        voucher_no = detail.get("voucher_no", "")
+                        date_str = date_input.value or ""
+                        desc = desc_input.value or ""
+                        entries, total_dr, total_cr = await _collect_entries(_acct_map)
+                        if not date_str:
+                            show_toast("请填写日期", "warning")
+                            return
+                        VoucherService.update(
+                            voucher_no, date_str=date_str, description=desc,
+                            entries=[{"account_code": e["account_code"], "account_name": e["account_name"],
+                                       "summary": e["summary"], "debit": e["debit"], "credit": e["credit"]}
+                                     for e in entries],
+                            user_id=state.current_user.get("id") if state.current_user else None,
+                        )
+                        show_toast(f"✅ 凭证 {voucher_no} 修改成功！", "success")
                         navigate("journal")
+                    except Exception as e:
+                        if "借贷不平衡" not in str(e) and "请选择" not in str(e) and "空分录" not in str(e):
+                            show_toast(f"❌ 修改失败: {e}", "error")
                     finally:
                         edit_save_btn.props(remove="loading")
                 edit_save_btn.on_click(_on_edit_click)
