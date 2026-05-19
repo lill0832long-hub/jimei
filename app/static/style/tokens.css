@@ -60,11 +60,11 @@
     --sidebar-divider:       rgba(255,255,255,0.06);
     --sidebar-logo-text:     rgba(255,255,255,0.95);
     --sidebar-logo-icon:     #C4784A;
-    --sidebar-width:         220px;
+    --sidebar-width:         260px;
     --sidebar-width-collapsed: 48px;
-    --sidebar-logo-h:        44px;
-    --sidebar-group-h:       28px;
-    --sidebar-item-h:        36px;
+    --sidebar-logo-h:        52px;
+    --sidebar-group-h:       40px;
+    --sidebar-item-h:        40px;
 
     /* ── 顶部栏专属（暖色浅底） ── */
     --header-bg:             #FFFFFF;
@@ -75,7 +75,7 @@
     --header-text-secondary: #6B5D52;
     --header-text-muted:     #9E8F82;
     --header-accent:         #C4784A;
-    --header-h:              52px;
+    --header-h:              78px;
     --header-padding-x:      20px;
 }
 

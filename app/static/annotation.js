@@ -52,7 +52,7 @@
 
         var okBtn = document.createElement("button");
         okBtn.textContent = "确定";
-        okBtn.style.cssText = "padding:6px 16px;border:none;border-radius:6px;background:#494fdf;color:#fff;cursor:pointer;font-size:13px;font-weight:600;";
+        okBtn.style.cssText = "padding:6px 16px;border:none;border-radius:6px;background:#C4784A;color:#fff;cursor:pointer;font-size:13px;font-weight:600;";
         okBtn.addEventListener("click", function () {
             wrap.remove();
             _modal = null;
@@ -250,7 +250,7 @@
 
     function _doNote(x, y) {
         _showModal({
-            title: "输入备注（如“颜色不对，改成 #494fdf”）",
+            title: '输入备注（如”颜色不对，改成 #C4784A”）',
             placeholder: "输入备注内容...",
             onOk: function (val) {
                 if (val && val.trim()) {
@@ -341,12 +341,12 @@
         "#annotate-toolbar .atb-sep{color:#475569;}",
         "#annotate-toolbar .atb-btn{background:transparent;border:1px solid transparent;color:#cbd5e1;cursor:pointer;padding:4px 10px;border-radius:6px;font-size:13px;transition:all 0.15s;}",
         "#annotate-toolbar .atb-btn:hover{background:rgba(255,255,255,0.1);color:#fff;}",
-        "#annotate-toolbar .atb-btn.active{background:rgba(99,102,241,0.3);color:#a5b4fc;border-color:rgba(99,102,241,0.4);}",
+        "#annotate-toolbar .atb-btn.active{background:rgba(196,120,74,0.3);color:#E8A87C;border-color:rgba(196,120,74,0.4);}",
         "#annotate-toolbar .atb-btn-save{background:rgba(34,197,94,0.2);color:#4ade80;}",
         "#annotate-toolbar .atb-btn-save:hover{background:rgba(34,197,94,0.35);}",
         "#annotate-toolbar .atb-btn-clear{background:rgba(239,68,68,0.15);color:#f87171;}",
         "#annotate-toolbar .atb-btn-close{background:rgba(255,255,255,0.08);color:#94a3b8;}",
-        "#atb-modal input:focus{border-color:#494fdf;}"
+        "#atb-modal input:focus{border-color:#C4784A;}"
     ].join("");
     document.head.appendChild(style);
 

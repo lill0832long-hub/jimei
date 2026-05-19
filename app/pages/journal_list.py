@@ -1,10 +1,10 @@
 """凭证列表"""
 from nicegui import ui
 from app.components.state import state
-from app.components.ui_helpers import refresh_main, format_amount
+from app.components.ui_helpers import refresh_main, format_amount, navigate
 from app.components.ui_components import SectionHeader, EmptyState
 from app.services import LedgerService, VoucherService
-from app.pages.journal_form_v2 import show_new_voucher_dialog, show_edit_voucher_dialog
+from app.pages.journal_form_v2 import show_edit_voucher_dialog
 
 
 def render_journal():
@@ -27,7 +27,7 @@ def render_journal():
                 # 标题行
                 with ui.card_section().classes("py-2.5 px-3"):
                     SectionHeader("凭证列表", icon="receipt_long",
-                                  action=show_new_voucher_dialog if can_create else None,
+                                  action=(lambda: navigate("journal_form")) if can_create else None,
                                   action_icon="新增凭证")
 
                 # 按状态筛选获取凭证
@@ -65,7 +65,7 @@ def render_journal():
 
                 if not vouchers:
                     EmptyState(message="本月暂无凭证", hint="点击右上角「新增凭证」创建第一张凭证",
-                              action=show_new_voucher_dialog if can_create else None,
+                              action=(lambda: navigate("journal_form")) if can_create else None,
                               action_label="新增凭证")
 
                 status_labels = {"draft": "草稿", "posted": "已过账", "reversed": "已冲销", "pending_review": "待审核"}

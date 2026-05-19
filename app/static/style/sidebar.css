@@ -1,5 +1,6 @@
 /* ============================================================
    Sidebar — 暖色系左侧导航
+   核心：所有二级菜单图标严格纵向对齐
    ============================================================ */
 
 /* ── 容器 ── */
@@ -46,15 +47,15 @@ body[data-theme="dark"] .sidebar-nav {
     gap: 10px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--sidebar-divider);
-    margin-bottom: 6px;
+    margin-bottom: 8px;
 }
 .sidebar-logo-icon {
-    font-size: 20px;
+    font-size: 30px;
     color: var(--sidebar-logo-icon);
     flex-shrink: 0;
 }
 .sidebar-logo-text {
-    font-size: 14px;
+    font-size: 21px;
     font-weight: 700;
     color: var(--sidebar-logo-text);
     white-space: nowrap;
@@ -62,45 +63,56 @@ body[data-theme="dark"] .sidebar-nav {
     transition: opacity var(--transition-fast);
 }
 
-/* ── 分组标题 ── */
+/* ── 分组标题（一级菜单） ── */
 .sidebar-group-header {
     height: var(--sidebar-group-h);
-    padding: 0 14px;
+    padding: 0 16px;
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     cursor: pointer;
     user-select: none;
     border-radius: 0;
-    margin: 10px 0 2px 0;
+    margin: 6px 0 2px 0;
     width: 100%;
     background: transparent;
     border: none;
     transition: color var(--transition-fast);
-    font-size: 10px;
-    color: var(--sidebar-text-secondary);
-    font-weight: 600;
+    color: rgba(255,255,255,0.55);
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 1.2px;
+    letter-spacing: 2px;
+    line-height: 1;
 }
 .sidebar-group-header:hover {
-    color: rgba(255,255,255,0.65);
+    color: rgba(255,255,255,0.8);
 }
 .sidebar-group-header--expanded {
-    color: rgba(255,255,255,0.55);
+    color: rgba(255,255,255,0.65);
 }
-.sidebar-group-icon { display: none; }
+.sidebar-group-icon {
+    font-size: 21px;
+    flex-shrink: 0;
+    width: 20px;
+    min-width: 20px;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
 .sidebar-group-label {
-    font-size: 10px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
     color: inherit;
     white-space: nowrap;
-    letter-spacing: 1.2px;
+    letter-spacing: 2px;
     text-transform: uppercase;
     transition: color var(--transition-fast);
+    line-height: 1;
+    flex: 0 0 auto;
 }
 .sidebar-group-arrow {
-    font-size: 12px;
+    font-size: 21px;
     color: var(--sidebar-text-muted);
     flex-shrink: 0;
     margin-left: auto;
@@ -110,48 +122,75 @@ body[data-theme="dark"] .sidebar-nav {
     transform: rotate(0deg);
 }
 
-.sidebar-group-divider { display: none; }
+.sidebar-group-divider {
+    display: block;
+    height: 1px;
+    background: var(--sidebar-divider);
+    margin: 4px 16px;
+}
 
-/* ── 菜单项（圆润） ── */
+/* ── 二级菜单项（关键：图标对齐 + 均匀间距） ── */
 .sidebar-menu-item {
-    width: calc(100% - 14px);
-    height: var(--sidebar-item-h);
-    font-size: 13px;
+    display: flex !important;
+    align-items: center !important;
+    width: calc(100% - 16px) !important;
+    height: var(--sidebar-item-h) !important;
+    min-height: var(--sidebar-item-h) !important;
+    max-height: var(--sidebar-item-h) !important;
+    font-size: 18px;
     border-radius: 8px;
-    padding: 0 10px 0 14px;
-    justify-content: flex-start;
     color: var(--sidebar-text-primary);
     border-left: 2px solid transparent;
     transition: background var(--transition-fast), color var(--transition-fast),
                 border-color var(--transition-fast), padding var(--transition-fast);
-    margin: 2px 7px;
-    gap: 10px;
+    margin: 2px 8px;
+    padding: 0 !important;
+    gap: 0 !important;
     font-weight: 500;
+    box-sizing: border-box !important;
+    position: relative;
+    overflow: hidden;
 }
 .sidebar-menu-item:hover {
     background: var(--sidebar-bg-hover);
     color: rgba(255,255,255,0.95);
-    padding-left: 16px;
+}
+.sidebar-menu-item > * {
+    box-sizing: border-box;
 }
 
-/* ── 菜单图标 ── */
+/* ── 图标槽位（固定宽度，所有组严格对齐） ── */
 .sidebar-menu-icon {
-    font-size: 15px;
-    opacity: 0.5;
-    flex-shrink: 0;
-    width: 20px;
+    font-size: 21px;
+    opacity: 0.45;
+    flex-shrink: 0 !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     text-align: center;
     transition: opacity var(--transition-fast), color var(--transition-fast);
+    box-sizing: border-box;
 }
+
+/* ── 文字标签（flex 填充，居中对齐） ── */
 .sidebar-menu-label {
-    font-size: 13px;
+    font-size: 18px;
     white-space: nowrap;
     font-weight: 500;
     letter-spacing: 0;
+    line-height: 1;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding-right: 12px;
     transition: font-weight var(--transition-fast);
 }
 
-/* ── 选中态 — 暖橙竖条 + 淡暖背景 ── */
+/* ── 选中态 ── */
 .sidebar-menu-active {
     background: var(--sidebar-bg-active) !important;
     color: var(--sidebar-accent-light) !important;
@@ -181,7 +220,7 @@ body[data-theme="dark"] .sidebar-nav {
     margin-top: 4px;
 }
 .sidebar-collapse-btn {
-    font-size: 12px;
+    font-size: 18px;
     color: var(--sidebar-text-muted);
     min-height: 36px;
     width: 100%;
@@ -207,17 +246,14 @@ body[data-theme="dark"] .sidebar-nav {
 }
 .sidebar-nav.sidebar-collapsed .sidebar-menu-item {
     justify-content: center !important;
-    padding: 0 !important;
     width: 36px !important;
     margin: 2px 6px !important;
     border-left: none !important;
 }
-.sidebar-nav.sidebar-collapsed .sidebar-menu-item:hover {
-    padding: 0 !important;
-}
 .sidebar-nav.sidebar-collapsed .sidebar-menu-icon {
-    margin: 0 !important;
     width: auto !important;
+    min-width: auto !important;
+    margin: 0 !important;
 }
 
 /* ── 折叠态 Tooltip ── */
@@ -234,7 +270,7 @@ body[data-theme="dark"] .sidebar-nav {
     padding: 5px 10px;
     background: #3D2E20;
     color: rgba(255,255,255,0.9);
-    font-size: 12px;
+    font-size: 18px;
     font-weight: 500;
     border-radius: 6px;
     white-space: nowrap;

@@ -70,6 +70,7 @@ from app.pages.account_ledger import render_account_ledger
 from app.pages.bank_reconciliation import render_bank_reconciliation
 from app.pages.cash_flow_statement import render_cash_flow_statement
 from app.pages.auth import render_login
+from app.pages.journal_form import render_journal_form
 from app.components.ui_helpers import render_header, render_sidebar
 from app.components.state import state
 
@@ -104,6 +105,7 @@ register_page("cash_flow_statement", render_cash_flow_statement)
 register_page("about", render_about)
 register_page("audit_log", render_audit_log)
 register_page("settings", render_settings)
+register_page("journal_form", render_journal_form)
 
 
 def render_page():
@@ -160,17 +162,18 @@ def index():
 
     # 从 cookie 恢复 session（登录后页面刷新，Python 内存状态丢失）
     import json as _json
-    session_cookie = ui.cookies.get("sess")
-    if session_cookie:
-        try:
+    try:
+        from nicegui import context
+        session_cookie = context.client.cookies.get("sess")
+        if session_cookie:
             data = _json.loads(session_cookie)
             state.current_user = {
                 "id": data.get("id", 0),
                 "username": data.get("username", data.get("u", "")),
                 "role": data.get("role", data.get("r", "")),
             }
-        except Exception:
-            pass
+    except Exception:
+        pass
 
     if state.current_user is None:
         render_login()

@@ -227,6 +227,7 @@ def render_header():
         .header-month-select .q-field__control > div {
             text-align: center !important;
             justify-content: center !important;
+            font-family: var(--font-stack) !important;
         }
         </style>
         ''')
@@ -234,7 +235,8 @@ def render_header():
 
     with ui.header().props("elevated").classes("header-bar"):
         with ui.element("div").classes("header-grid"):
-            with ui.row().classes("header-left items-center gap-2"):
+            with ui.row().classes("header-left items-center") \
+                    .style("gap: 16px;"):
                 # 汉堡菜单按钮（手机端显示）
                 ui.button(icon="menu", on_click=lambda: ui.run_javascript("window.sidebarCtrl&&window.sidebarCtrl.toggleDrawer()"))                     .props("flat dense").classes("hamburger-btn")
                 ui.icon("account_balance").classes("header-logo-icon")
@@ -245,27 +247,28 @@ def render_header():
                 ledgers = get_ledgers()
                 ledger_options = {l["id"]: l['name'] for l in ledgers}
                 if ledger_options:
-                    with ui.row().classes("items-center gap-1"):
+                    with ui.row().classes("items-center").style("gap: 6px;"):
                         ui.icon("business").classes("header-ledger-icon")
                         ui.select(
                             options=ledger_options,
                             value=state.selected_ledger_id or (ledgers[0]["id"] if ledgers else None),
                             on_change=lambda e: [setattr(state,'selected_ledger_id',e.value), refresh_main()]
-                        ).props("dense dark").classes("header-select")
+                        ).props("dense").classes("header-select")
 
             with ui.row().classes("header-center items-center gap-2").style("justify-content: center"):
                 ui.select(
                     list(range(2024,2031)), value=state.selected_year,
                     on_change=lambda e: [setattr(state,'selected_year',e.value), refresh_main()]
-                ).props("dense dark input-style=\"text-align: center\"").classes("header-year-select")
+                ).props("dense input-style=\"text-align: center; font-family: var(--font-stack); font-size: 14px; font-weight: 700; color: var(--c-text-primary);\"").classes("header-year-select")
                 ui.label("年").classes("header-period-label")
                 ui.select(
                     list(range(1,13)), value=state.selected_month,
                     on_change=lambda e: [setattr(state,'selected_month',e.value), refresh_main()]
-                ).props("dense dark input-style=\"text-align: center\"").classes("header-month-select")
+                ).props("dense input-style=\"text-align: center; font-family: var(--font-stack); font-size: 14px; font-weight: 700; color: var(--c-text-primary);\"").classes("header-month-select")
                 ui.label("月").classes("header-period-label")
 
-            with ui.row().classes("header-right items-center gap-2"):
+            with ui.row().classes("header-right items-center") \
+                    .style("gap: 12px;"):
                 ui.button(icon="search", on_click=open_global_search) \
                     .props("flat round dense").classes("header-search-btn")
                 if state.current_user:
@@ -273,7 +276,7 @@ def render_header():
                         ui.icon("notifications").classes("header-notif-icon")
                         with ui.element("div").classes("header-notif-dot"):
                             pass
-                    with ui.row().classes("items-center gap-2"):
+                    with ui.row().classes("items-center").style("gap: 8px;"):
                         _username = state.current_user.get('username', '') if state.current_user else ''
                         first_letter = _username[0].upper() if _username else "U"
                         with ui.element("div").classes("header-avatar"):
@@ -385,8 +388,8 @@ def _build_sidebar_content(sidebar_el):
         with ui.button(on_click=lambda _k=gkey: _toggle_sidebar_group(_k)).props(
             "flat no-caps align-left"
         ).classes(header_classes).style(
-            "height: 28px; padding: 0 12px; gap: 6px; width: 100%; "
-            "border-radius: 0; margin: 10px 0 2px 0; justify-content: flex-start; "
+            "padding: 0 16px; gap: 8px; width: 100%; "
+            "border-radius: 0; margin: 6px 0 2px 0; justify-content: flex-start; "
             "background: transparent;"
         ):
             ui.icon(gicon).classes("sidebar-group-icon")
@@ -402,7 +405,8 @@ def _build_sidebar_content(sidebar_el):
                 is_active = state.current_page == key
                 btn_classes = "sidebar-menu-item" + (" sidebar-menu-active" if is_active else "")
                 _p = "flat no-caps align-left data-page=" + str(key) + " data-label=" + str(label)
-                with ui.button(on_click=lambda k=key: navigate(k)).props(_p).classes(btn_classes):
+                with ui.button(on_click=lambda k=key: navigate(k)).props(_p).classes(btn_classes) \
+                        .style("margin: 2px 8px;"):
                     ui.icon(item_icon).classes("sidebar-menu-icon")
                     ui.label(label).classes("sidebar-menu-label")
 
@@ -416,7 +420,8 @@ def _build_sidebar_content(sidebar_el):
         is_active = state.current_page == key
         btn_classes = "sidebar-menu-item" + (" sidebar-menu-active" if is_active else "")
         _p = "flat no-caps align-left data-page=" + str(key) + " data-label=" + str(label)
-        with ui.button(on_click=lambda k=key: navigate(k)).props(_p).classes(btn_classes):
+        with ui.button(on_click=lambda k=key: navigate(k)).props(_p).classes(btn_classes) \
+                .style("margin: 2px 8px;"):
             ui.icon(item_icon).classes("sidebar-menu-icon")
             ui.label(label).classes("sidebar-menu-label")
 

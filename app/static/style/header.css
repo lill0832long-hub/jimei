@@ -1,5 +1,5 @@
 /* ============================================================
-   Header — 暖色系顶部导航栏
+   Header — 暖色系顶部导航栏（高78px / 三栏均匀分布）
    ============================================================ */
 
 .header-bar {
@@ -25,49 +25,72 @@ body[data-theme="dark"] .header-bar {
     align-items: center;
     width: 100%;
     height: 100%;
-    gap: 12px;
+    gap: 24px;
 }
 .header-left { justify-self: start; }
 .header-center { justify-self: center; }
 .header-right { justify-self: end; }
 
-/* ── 左区：Logo + 账套选择 ── */
+/* ── 全局字体统一 ── */
+.header-bar,
+.header-bar .q-btn,
+.header-bar .q-field__native,
+.header-bar .q-field__control,
+.header-bar .q-select,
+.header-bar input,
+.header-bar span,
+.header-bar div {
+    font-family: var(--font-stack) !important;
+}
+
+/* ── 左区：Logo + 账套选择（宽松间距） ── */
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
 .header-logo-icon {
-    font-size: 22px;
+    font-size: 26px;
     color: var(--header-accent);
     flex-shrink: 0;
 }
+/* ── 重点：标题加大加粗 ── */
 .header-title {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: 22px;
+    font-weight: 800;
     color: var(--header-text-primary);
-    letter-spacing: -0.1px;
+    letter-spacing: -0.3px;
     white-space: nowrap;
+    line-height: 1;
 }
+/* ── 版本号加大 ── */
 .header-version {
-    font-size: 9px;
-    font-weight: 500;
-    color: var(--header-text-muted);
-    background: var(--c-bg-hover);
-    padding: 1px 5px;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--header-accent);
+    background: var(--c-primary-light);
+    padding: 2px 7px;
     border-radius: 4px;
-    letter-spacing: 0.3px;
+    letter-spacing: 0.5px;
+    flex-shrink: 0;
+    line-height: 1.4;
 }
 .header-divider {
     width: 1px;
-    height: 18px;
+    height: 22px;
     background: var(--c-border);
-    margin: 0 2px;
+    margin: 0 8px;
     flex-shrink: 0;
 }
 .header-ledger-icon {
-    font-size: 15px;
+    font-size: 16px;
     color: var(--header-text-secondary);
     flex-shrink: 0;
 }
 .header-select .q-field__control,
 .header-select .q-field__native {
     font-size: 13px;
+    font-weight: 500;
     color: var(--header-text-primary);
 }
 .header-select {
@@ -79,7 +102,7 @@ body[data-theme="dark"] .header-bar {
 .header-center {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px;
 }
 .header-center > .row,
 .header-center > .nicegui-row {
@@ -91,40 +114,44 @@ body[data-theme="dark"] .header-bar {
 }
 .header-year-select,
 .header-month-select {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     color: var(--c-text-primary);
 }
-.header-year-select { width: 88px; }
-.header-month-select { width: 64px; }
+.header-year-select { width: 90px; }
+.header-month-select { width: 66px; }
 .header-year-select .q-field__control,
 .header-year-select .q-field__native,
+.header-year-select input,
 .header-month-select .q-field__control,
-.header-month-select .q-field__native {
+.header-month-select .q-field__native,
+.header-month-select input {
     text-align: center !important;
     justify-content: center !important;
-    font-weight: 700;
-    color: var(--c-text-primary);
+    font-weight: 700 !important;
+    color: var(--c-text-primary) !important;
+    font-family: var(--font-stack) !important;
+    font-size: 15px !important;
 }
 .header-period-label {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
     color: var(--c-text-primary);
-    margin-left: 2px;
+    margin: 0 2px;
 }
 
-/* ── 右区：搜索 + 通知 + 用户 + 操作 ── */
+/* ── 右区：搜索 + 通知 + 用户 + 操作（宽松间距） ── */
 .header-right {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 12px;
 }
 
 /* 搜索按钮 */
 .header-search-btn {
     color: var(--header-text-muted);
-    min-height: 28px;
-    min-width: 28px;
+    min-height: 32px;
+    min-width: 32px;
     transition: color var(--transition-fast);
 }
 .header-search-btn:hover {
@@ -137,7 +164,7 @@ body[data-theme="dark"] .header-bar {
     display: inline-flex;
 }
 .header-notif-icon {
-    font-size: 19px;
+    font-size: 20px;
     color: var(--header-text-secondary);
     cursor: pointer;
     transition: color var(--transition-fast);
@@ -149,8 +176,8 @@ body[data-theme="dark"] .header-bar {
     position: absolute;
     top: 0;
     right: 0;
-    width: 7px;
-    height: 7px;
+    width: 8px;
+    height: 8px;
     background: var(--c-danger);
     border-radius: 50%;
     border: 1.5px solid var(--header-bg);
@@ -163,14 +190,14 @@ body[data-theme="dark"] .header-bar {
 
 /* 用户信息 */
 .header-avatar {
-    width: 30px;
-    height: 30px;
+    width: 34px;
+    height: 34px;
     border-radius: 50%;
     background: var(--header-accent);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     color: #ffffff;
     text-transform: uppercase;
@@ -185,6 +212,7 @@ body[data-theme="dark"] .header-bar {
     font-weight: 600;
     color: var(--header-text-primary);
     line-height: 1.2;
+    font-family: var(--font-stack) !important;
 }
 .header-role {
     font-size: 10px;
@@ -192,13 +220,14 @@ body[data-theme="dark"] .header-bar {
     color: var(--header-text-muted);
     line-height: 1.2;
     letter-spacing: 0.2px;
+    font-family: var(--font-stack) !important;
 }
 
 /* 图标按钮（标注、暗色模式、退出） */
 .header-icon-btn {
     color: var(--header-text-secondary);
-    min-height: 28px;
-    min-width: 28px;
+    min-height: 32px;
+    min-width: 32px;
     transition: color var(--transition-fast), background var(--transition-fast);
     border-radius: 6px;
 }
