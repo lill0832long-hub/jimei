@@ -146,13 +146,7 @@ def index():
                 ui.add_head_html(f'<link rel="stylesheet" href="{_mod_url}">')
         else:
             ui.add_head_html(f'<link rel="stylesheet" href="/static/style/index.css?v={_ts}">')
-    if _os.path.exists(_js_path):
-        with open(_js_path, encoding="utf-8") as _f:
-            ui.add_head_html(f"<script>{_f.read()}</script>")
-    _ann_js_path = _os.path.join(_static_dir, "annotation.js")
-    if _os.path.exists(_ann_js_path):
-        with open(_ann_js_path, encoding="utf-8") as _f:
-            ui.add_head_html(f"<script>{_f.read()}</script>")
+    # JS 延迟到登录后主界面加载，减少登录页初始 HTML 体积
     ui.add_head_html(
         '<link rel="preconnect" href="https://fonts.googleapis.com">'
         '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
@@ -177,6 +171,14 @@ def index():
     if state.current_user is None:
         render_login()
     else:
+        # 主界面才加载 JS（登录页不需要）
+        if _os.path.exists(_js_path):
+            with open(_js_path, encoding="utf-8") as _f:
+                ui.add_head_html(f"<script>{_f.read()}</script>")
+        _ann_js_path = _os.path.join(_static_dir, "annotation.js")
+        if _os.path.exists(_ann_js_path):
+            with open(_ann_js_path, encoding="utf-8") as _f:
+                ui.add_head_html(f"<script>{_f.read()}</script>")
         render_header()
         with ui.row().classes("w-full main-row"):
             render_sidebar()
@@ -196,4 +198,5 @@ if __name__ == "__main__":
         reload=False,
         show=False,
         language="zh-CN",
+        ws_max_size=16 * 1024 * 1024,  # 16MB WebSocket 消息上限
     )
