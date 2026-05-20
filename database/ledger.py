@@ -177,6 +177,36 @@ def restore_ledger_from_json(fpath: str, target_ledger_id: int = None, user_id: 
     finally:
         conn.close()
 
+def get_general_ledger(ledger_id, account_code=None, year=None, month=None):
+    """获取总分类账：所有科目（或指定科目）在期间内的凭证分录明细，按日期排序"""
+    conn = get_conn()
+    date_filter = ""
+    params = [ledger_id]
+
+    if account_code:
+        date_filter += " AND je.account_code = ?"
+        params.append(account_code)
+    if year:
+        date_filter += " AND strftime('%Y', v.date) = ?"
+        params.append(str(year))
+    if month:
+        date_filter += " AND strftime('%m', v.date) = ?"
+        params.append(f"{month:02d}")
+
+    rows = conn.execute("""
+        SELECT je.id, je.debit, je.credit, je.summary,
+               je.account_code, je.account_name,
+               v.voucher_no, v.date, v.description as voucher_desc, v.status
+        FROM journal_entries je
+        JOIN vouchers v ON je.voucher_id = v.id
+        WHERE je.ledger_id = ? """ + date_filter + """
+          AND v.status = 'posted'
+        ORDER BY v.date, v.voucher_no, je.id
+    """, params).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+
 def get_aux_ledger(ledger_id, aux_type, aux_id, year=None, month=None):
     """辅助核算明细账：按辅助核算项查看凭证分录"""
     conn = get_conn()

@@ -91,21 +91,42 @@ def show_modal_error(title="错误", message=""):
 _PAGES_KEEPING_VOUCHER = {"voucher_detail", "journal"}
 
 def navigate(page):
-    """页面导航 — 单轨架构
+    """页面导航 — Tab 架构
 
     Python 是唯一导航逻辑源。
-    导航时重渲染主内容区，并通过 JS 同步 sidebar active 类。
+    导航时：若页面已在 tabs 中则切换到该 tab，否则新建 tab。
     sidebar 本身不重渲染（避免 NiceGUI DOM diff 导致的容器重复问题）。
     """
-    if page == state.current_page:
-        return
+    if page == state.current_page and state.tabs and state.active_tab_idx < len(state.tabs):
+        # 检查当前 tab 是否已经是目标页面（避免重复点击当前 tab 时重建）
+        if state.tabs[state.active_tab_idx]["key"] == page:
+            return
+
+    # 查找是否已有该页面的 tab
+    existing_idx = None
+    for i, tab in enumerate(state.tabs):
+        if tab["key"] == page:
+            existing_idx = i
+            break
+
+    if existing_idx is not None:
+        # 切换到已有 tab
+        state.active_tab_idx = existing_tab_idx = existing_idx
+    else:
+        # 新建 tab
+        label = state.get_tab_label(page)
+        state.tabs.append({"key": page, "label": label})
+        state.active_tab_idx = len(state.tabs) - 1
+
     state.current_page = page
+
     # 仅在导航到与凭证无关的页面时清理选中凭证
     if page not in _PAGES_KEEPING_VOUCHER:
         state.selected_voucher_no = None
-    # 使用 timer 延迟执行，避免在 click handler 中直接 clear() 导致
-    # "parent element has been deleted" RuntimeError
-    ui.timer(0.05, _rebuild_content, once=True)
+
+    # 使用 timer 延迟执行，避免在 click handler 中直接 clear() 导致 RuntimeError
+    ui.timer(0.05, _rebuild_tabs, once=True)
+
     # 同步 sidebar active 类（纯视觉，不触发导航）
     ui.run_javascript(f"window.sidebarCtrl&&window.sidebarCtrl.setActiveItem('{page}')")
 
@@ -209,6 +230,105 @@ def _rebuild_content():
         else:
             from app.pages.dashboard import render_dashboard
             render_dashboard()
+
+
+def _rebuild_tabs():
+    """重渲染 tab 栏 + 当前 tab 内容"""
+    _rebuild_tab_bar()
+    _rebuild_tab_content()
+
+
+def _rebuild_tab_bar():
+    """重渲染 tab 栏（仅 tab 标签部分）"""
+    if state.tab_bar_container is None:
+        return
+    try:
+        _ = state.tab_bar_container.client
+    except RuntimeError:
+        state.tab_bar_container = None
+        return
+    state.tab_bar_container.clear()
+    with state.tab_bar_container:
+        tabs = state.tabs
+        active_idx = state.active_tab_idx
+        for i, tab in enumerate(tabs):
+            is_active = (i == active_idx)
+            tab_label = tab["label"]
+            # tab 样式
+            if is_active:
+                tab_classes = "tab-item tab-item--active"
+            else:
+                tab_classes = "tab-item tab-item--inactive"
+
+            with ui.row().classes(tab_classes).on_click(lambda _i=i: switch_tab(_i)):
+                ui.label(tab_label).classes("tab-label")
+                ui.button(icon="close", on_click=lambda _i=i: close_tab(_i)).props(
+                    "flat dense round size=xs"
+                ).classes("tab-close-btn").style("min-width:24px;min-height:24px;")
+
+
+def _rebuild_tab_content():
+    """重渲染当前 tab 的内容区"""
+    if state.tab_contents is None:
+        # 兼容旧模式：使用 main_content
+        _rebuild_content()
+        return
+    try:
+        _ = state.tab_contents.client
+    except RuntimeError:
+        state.tab_contents = None
+        _rebuild_content()
+        return
+    from app.config import get_page_render
+    state.tab_contents.clear()
+    with state.tab_contents:
+        render_fn = get_page_render(state.current_page)
+        if render_fn:
+            render_fn()
+        else:
+            from app.pages.dashboard import render_dashboard
+            render_dashboard()
+
+
+def switch_tab(idx):
+    """切换到指定索引的 tab"""
+    if idx < 0 or idx >= len(state.tabs):
+        return
+    if idx == state.active_tab_idx:
+        return
+    state.active_tab_idx = idx
+    state.current_page = state.tabs[idx]["key"]
+    ui.timer(0.05, _rebuild_tabs, once=True)
+    # 同步 sidebar active 类
+    ui.run_javascript(f"window.sidebarCtrl&&window.sidebarCtrl.setActiveItem('{state.current_page}')")
+
+
+def close_tab(idx):
+    """关闭指定索引的 tab"""
+    tabs = state.tabs
+    if idx < 0 or idx >= len(tabs):
+        return
+    # 删除 tab
+    tabs.pop(idx)
+    if len(tabs) == 0:
+        # 没有 tab 了，创建默认 dashboard tab
+        state.tabs = [{"key": "dashboard", "label": state.get_tab_label("dashboard")}]
+        state.active_tab_idx = 0
+        state.current_page = "dashboard"
+    else:
+        # 关闭的是当前激活 tab
+        if idx == state.active_tab_idx:
+            # 切换到前一个 tab（如果关闭的是第一个，则切到新的第一个）
+            new_idx = max(0, idx - 1)
+            state.active_tab_idx = new_idx
+            state.current_page = tabs[new_idx]["key"]
+        elif idx < state.active_tab_idx:
+            # 关闭的是当前 tab 前面的 tab，索引前移
+            state.active_tab_idx -= 1
+        # 关闭的是后面的 tab，不需要调整 active_tab_idx
+    ui.timer(0.05, _rebuild_tabs, once=True)
+    # 同步 sidebar active 类
+    ui.run_javascript(f"window.sidebarCtrl&&window.sidebarCtrl.setActiveItem('{state.current_page}')")
 
 
 # ===== Header =====

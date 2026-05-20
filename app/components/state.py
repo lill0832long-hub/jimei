@@ -31,6 +31,85 @@ class State:
     recent_pages = []  # 最近访问的页面（最多3个）
     voucher_status_filter = "all"  # 凭证状态筛选：all/draft/pending_review/posted/reversed
 
+    # ── Tab 系统 ──
+    _tabs = None  # [{"key": "dashboard", "label": "仪表盘"}]
+    _active_tab_idx = 0  # 当前激活 tab 索引
+    _tab_bar_container = None  # tab 栏容器引用
+    _tab_contents = None  # tab 内容容器引用（ui.column）
+    # 页面 key -> 中文标签映射（与 sidebar 菜单一致）
+    _tab_labels = {
+        "dashboard": "仪表盘",
+        "journal": "记账凭证",
+        "voucher_detail": "凭证详情",
+        "accounts": "科目余额表",
+        "balance_sheet": "资产负债表",
+        "trial_balance": "试算平衡表",
+        "income_statement": "利润表",
+        "close_period": "期末结转",
+        "charts": "图表分析",
+        "compare": "对比分析",
+        "ai_assistant": "AI助手",
+        "import": "批量导入",
+        "export": "数据导出",
+        "fixed_assets": "固定资产",
+        "cashier": "出纳管理",
+        "auxiliary": "辅助核算",
+        "settings": "系统设置",
+        "about": "关于",
+        "tax": "增值税管理",
+        "cash_flow": "现金流",
+        "budget": "预算管理",
+        "scheduled_vouchers": "定时凭证",
+        "invoices": "发票管理",
+        "multi_currency": "多币种",
+        "audit_log": "审计日志",
+        "setup_wizard": "设置向导",
+        "voucher_template": "凭证模板",
+        "account_ledger": "科目明细账",
+        "bank_reconciliation": "银行对账",
+        "cash_flow_statement": "现金流量表",
+        "journal_form": "凭证录入",
+    }
+
+
+    # ── Tab 管理 ──
+
+    @property
+    def tabs(self):
+        if self._tabs is None:
+            self._tabs = [{"key": "dashboard", "label": self._tab_labels.get("dashboard", "仪表盘")}]
+        return self._tabs
+
+    @tabs.setter
+    def tabs(self, value):
+        self._tabs = value
+
+    @property
+    def active_tab_idx(self):
+        return self._active_tab_idx
+
+    @active_tab_idx.setter
+    def active_tab_idx(self, value):
+        self._active_tab_idx = value
+
+    @property
+    def tab_bar_container(self):
+        return self._tab_bar_container
+
+    @tab_bar_container.setter
+    def tab_bar_container(self, value):
+        self._tab_bar_container = value
+
+    @property
+    def tab_contents(self):
+        return self._tab_contents
+
+    @tab_contents.setter
+    def tab_contents(self, value):
+        self._tab_contents = value
+
+    def get_tab_label(self, page_key):
+        return self._tab_labels.get(page_key, page_key)
 
     @property
     def ledger(self):

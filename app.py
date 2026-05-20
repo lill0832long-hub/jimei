@@ -67,6 +67,7 @@ from app.pages.audit_log import render_audit_log
 from app.pages.setup_wizard import render_setup_wizard
 from app.pages.voucher_template import render_voucher_template
 from app.pages.account_ledger import render_account_ledger
+from app.pages.general_ledger import render_general_ledger
 from app.pages.bank_reconciliation import render_bank_reconciliation
 from app.pages.cash_flow_statement import render_cash_flow_statement
 from app.pages.auth import render_login
@@ -100,6 +101,7 @@ register_page("multi_currency", render_multi_currency)
 register_page("setup_wizard", render_setup_wizard)
 register_page("voucher_template", render_voucher_template)
 register_page("account_ledger", render_account_ledger)
+register_page("general_ledger", render_general_ledger)
 register_page("bank_reconciliation", render_bank_reconciliation)
 register_page("cash_flow_statement", render_cash_flow_statement)
 register_page("about", render_about)
@@ -126,27 +128,24 @@ def render_page():
 @ui.page("/")
 def index():
     # 注入全局 CSS & JS（内联到 head，确保每次页面加载都生效）
-    import os as _os
+    import os as _os, time as _time
     _static_dir = _os.path.join(_os.path.dirname(__file__), "app", "static")
     _css_dir = _os.path.join(_static_dir, "style")
     _css_path = _os.path.join(_css_dir, "index.css")
     _js_path = _os.path.join(_static_dir, "script.js")
+    # 用 <link> 标签加载 CSS（支持浏览器缓存刷新），用时间戳强制更新
+    _ts = str(int(_time.time()))
     if _os.path.exists(_css_path):
         import re as _re
         with open(_css_path, encoding="utf-8") as _f:
             _css_content = _f.read()
         _imports = _re.findall(r'@import\s+url\(["\']([^"\']+)["\']\);', _css_content)
         if _imports:
-            _combined = []
             for _imp in _imports:
-                _mod_path = _os.path.join(_css_dir, _imp)
-                if _os.path.exists(_mod_path):
-                    with open(_mod_path, encoding="utf-8") as _mf:
-                        _combined.append(_mf.read())
-            if _combined:
-                ui.add_head_html(f"<style>{chr(10).join(_combined)}</style>")
+                _mod_url = f"/static/style/{_imp}?v={_ts}"
+                ui.add_head_html(f'<link rel="stylesheet" href="{_mod_url}">')
         else:
-            ui.add_head_html(f"<style>{_css_content}</style>")
+            ui.add_head_html(f'<link rel="stylesheet" href="/static/style/index.css?v={_ts}">')
     if _os.path.exists(_js_path):
         with open(_js_path, encoding="utf-8") as _f:
             ui.add_head_html(f"<script>{_f.read()}</script>")

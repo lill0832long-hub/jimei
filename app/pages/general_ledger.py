@@ -1,0 +1,159 @@
+from nicegui import ui
+from app.components.ui_components import SectionHeader, EmptyState
+from app.components.state import state
+from app.components.ui_helpers import show_toast, format_amount, navigate
+from app.services import LedgerService, AccountService
+
+
+def render_general_ledger():
+    """总分类账 — 期间筛选+科目筛选+全部科目明细列表"""
+    if not state.selected_ledger_id:
+        ledgers = LedgerService.get_all()
+        if ledgers:
+            state.selected_ledger_id = ledgers[0]["id"]
+    lid = state.selected_ledger_id
+    if not lid:
+        return
+
+    # 获取所有科目供选择
+    accounts = AccountService.get_all()
+    acct_opts = {"": "全部科目"}
+    acct_opts.update({a["code"]: f"{a['code']} {a['name']}" for a in accounts})
+
+    with ui.card().classes("w-full"):
+        with ui.card_section().classes("py-2 px-4 bg-grey-5 border-b border-grey-2"):
+            with ui.row().classes("items-center gap-3"):
+                ui.label("📖 总分类账").classes("text-base font-bold")
+                ui.separator().props("vertical")
+                gl_year_sel = ui.select(options=list(range(2020, 2031)), value=state.selected_year, label="年度").props("dense outlined").classes("w-28")
+                gl_month_sel = ui.select(options=list(range(1, 13)), value=state.selected_month, label="月份").props("dense outlined").classes("w-24")
+                gl_acct_sel = ui.select(options=acct_opts, value="", label="科目").props("outlined dense").classes("w-56")
+                ui.button("🔍 查询", color="primary", on_click=lambda: refresh_main()).props("dense").classes("text-xs")
+
+                def _on_gl_period():
+                    state.selected_year = gl_year_sel.value
+                    state.selected_month = gl_month_sel.value
+                    refresh_main()
+
+                gl_year_sel.on("update:value", lambda e: _on_gl_period())
+                gl_month_sel.on("update:value", lambda e: _on_gl_period())
+
+    # 获取总分类账数据
+    selected_code = gl_acct_sel.value or None
+    try:
+        entries = AccountService.get_general_ledger(
+            lid, account_code=selected_code,
+            year=state.selected_year, month=state.selected_month
+        )
+    except Exception:
+        entries = None
+
+    HC = "text-xs font-semibold uppercase tracking-wide text-grey-6"
+
+    with ui.card().classes("w-full"):
+        if entries is None:
+            with ui.card_section().classes("py-12 text-center"):
+                ui.icon("menu_book").style("font-size: 48px; color: var(--gray-300)")
+                ui.label("加载失败").classes("text-lg font-semibold text-grey-4 mt-4")
+                ui.label("请稍后重试").classes("text-sm text-grey-3 mt-2")
+            return
+
+        if not entries:
+            with ui.card_section().classes("py-12 text-center"):
+                ui.icon("menu_book").style("font-size: 48px; color: var(--gray-300)")
+                ui.label("暂无明细数据").classes("text-lg font-semibold text-grey-4 mt-4")
+                ui.label("请选择期间后点击查询").classes("text-sm text-grey-3 mt-2")
+            return
+
+        # 期间信息栏
+        period_label = f"{state.selected_year}年{state.selected_month}月"
+        with ui.card_section().classes("py-2 px-4 border-b border-grey-2 bg-blue-50"):
+            with ui.row().items_center().classes("gap-4"):
+                ui.label(f"📖 总分类账").classes("text-base font-bold text-blue-7")
+                ui.separator().props("vertical")
+                ui.label(f"期间：{period_label}").classes("text-sm text-grey-6")
+                ui.separator().props("vertical")
+                ui.label(f"共 {len(entries)} 条分录").classes("text-sm text-grey-6")
+
+        # 合计行数据
+        total_debit = sum(e.get("debit", 0) or 0 for e in entries)
+        total_credit = sum(e.get("credit", 0) or 0 for e in entries)
+
+        # 表格
+        cols = [
+            {"name": "date", "label": "日期", "field": "date", "align": "left",
+             "headerClasses": HC, "classes": "text-sm tabular-nums", "style": "width:100px"},
+            {"name": "voucher_no", "label": "凭证号", "field": "voucher_no", "align": "left",
+             "headerClasses": HC, "classes": "text-sm text-blue-7", "style": "width:120px"},
+            {"name": "account_code", "label": "科目代码", "field": "account_code", "align": "left",
+             "headerClasses": HC, "classes": "text-sm tabular-nums", "style": "width:90px"},
+            {"name": "account_name", "label": "科目名称", "field": "account_name", "align": "left",
+             "headerClasses": HC, "classes": "text-sm", "style": "width:120px"},
+            {"name": "summary", "label": "摘要", "field": "summary", "align": "left",
+             "headerClasses": HC, "classes": "text-sm text-grey-7", "style": "min-width:180px"},
+            {"name": "debit", "label": "借方金额", "field": "debit", "align": "right",
+             "headerClasses": HC, "classes": "tabular-nums text-sm", "style": "width:120px"},
+            {"name": "credit", "label": "贷方金额", "field": "credit", "align": "right",
+             "headerClasses": HC, "classes": "tabular-nums text-sm", "style": "width:120px"},
+        ]
+
+        rows = []
+        for e in entries:
+            rows.append({
+                "date": e.get("date", ""),
+                "voucher_no": e.get("voucher_no", ""),
+                "account_code": e.get("account_code", ""),
+                "account_name": e.get("account_name", ""),
+                "summary": e.get("summary", "") or e.get("voucher_desc", "") or "",
+                "debit": e.get("debit", 0) or 0,
+                "credit": e.get("credit", 0) or 0,
+            })
+
+        # 追加合计行
+        rows.append({
+            "date": "",
+            "voucher_no": "",
+            "account_code": "",
+            "account_name": "",
+            "summary": "合  计",
+            "debit": total_debit,
+            "credit": total_credit,
+        })
+
+        tbl = ui.table(columns=cols, rows=rows,
+                       pagination={"rowsPerPage": 50}).classes("w-full")
+
+        tbl.add_slot("body-cell-voucher_no", r"""
+            <q-td key="voucher_no" :props="props">
+                <q-btn v-if="props.row.voucher_no" flat dense no-caps color="primary"
+                       :label="props.row.voucher_no"
+                       @click="$parent.$emit('view_voucher', props.row.voucher_no)" />
+                <span v-else></span>
+            </q-td>
+        """)
+
+        tbl.add_slot("body-cell-debit", r"""
+            <q-td key="debit" :props="props" class="tabular-nums text-sm">
+                <span :class="props.row.summary === '合  计' ? 'font-bold text-green-8' : 'text-green-7'">
+                    {{ props.row.debit ? '¥' + props.row.debit.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—' }}
+                </span>
+            </q-td>
+        """)
+
+        tbl.add_slot("body-cell-credit", r"""
+            <q-td key="credit" :props="props" class="tabular-nums text-sm">
+                <span :class="props.row.summary === '合  计' ? 'font-bold text-red-8' : 'text-red-7'">
+                    {{ props.row.credit ? '¥' + props.row.credit.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}) : '—' }}
+                </span>
+            </q-td>
+        """)
+
+        # 合计行高亮
+        tbl.add_slot("body-cell-summary", r"""
+            <q-td key="summary" :props="props" class="text-sm"
+                :class="props.row.summary === '合  计' ? 'font-bold text-base bg-grey-2' : 'text-grey-7'">
+                {{ props.row.summary }}
+            </q-td>
+        """)
+
+        tbl.on("view_voucher", lambda e: (setattr(state, 'selected_voucher_no', e.args), refresh_main()))

@@ -46,6 +46,14 @@ def _get_account_ledger(ledger_id, account_code, year, month):
     return get_account_ledger(ledger_id, account_code, year, month)
 
 
+def _get_general_ledger(ledger_id, account_code=None, year=None, month=None):
+    """TODO: migrate to repository pattern"""
+    import warnings
+    warnings.warn("get_general_ledger: using deprecated database_v3 path", DeprecationWarning)
+    from database.ledger import get_general_ledger
+    return get_general_ledger(ledger_id, account_code=account_code, year=year, month=month)
+
+
 def _get_bank_reconciliation(bank_account_id, period):
     """TODO: migrate to repository pattern"""
     import warnings
@@ -225,6 +233,10 @@ class AccountService:
     @staticmethod
     def get_ledger(ledger_id, account_code, year=None, month=None):
         return _get_account_ledger(ledger_id, account_code, year, month)
+
+    @staticmethod
+    def get_general_ledger(ledger_id, account_code=None, year=None, month=None):
+        return _get_general_ledger(ledger_id, account_code=account_code, year=year, month=month)
 
     # ── 银行账号 ──
     @staticmethod
