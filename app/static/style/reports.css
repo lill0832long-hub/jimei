@@ -412,3 +412,49 @@
     .tb-table { font-size: 12px; }
     .tb-table thead th, .tb-table tbody td { padding: 6px 8px; }
 }
+
+/* ===== 报表中心标签页 ===== */
+.reports-tab-bar {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 16px 0;
+    border-bottom: 1px solid var(--c-border-light);
+    background: var(--c-bg-card);
+    overflow-x: auto;
+}
+
+.reports-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: 8px 8px 0 0;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+}
+
+.reports-tab--active {
+    background: var(--c-bg);
+    color: var(--c-primary);
+    border: 1px solid var(--c-border-light);
+    border-bottom-color: var(--c-bg);
+    margin-bottom: -1px;
+}
+
+.reports-tab--inactive {
+    background: transparent;
+    color: var(--c-text-secondary);
+}
+.reports-tab--inactive:hover {
+    background: var(--c-bg-hover);
+    color: var(--c-text-primary);
+}
+
+.reports-tab-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 0;
+}

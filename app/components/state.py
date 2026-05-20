@@ -69,6 +69,7 @@ class State:
         "general_ledger": "总分类账",
         "bank_reconciliation": "银行对账",
         "cash_flow_statement": "现金流量表",
+        "reports_center": "报表中心",
         "journal_form": "凭证录入",
     }
 

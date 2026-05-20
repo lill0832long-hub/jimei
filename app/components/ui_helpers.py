@@ -449,15 +449,7 @@ _nav_groups = [
         "label": "报表中心",
         "icon": "assessment",
         "items": [
-            ("trial_balance", "试算平衡表", "grid_on"),
-            ("balance_sheet", "资产负债表", "account_balance"),
-            ("income_statement", "利润表", "trending_up"),
-            ("cash_flow_statement", "现金流量表", "waterfall_chart"),
-            ("account_ledger", "科目明细账", "table_chart"),
-            ("general_ledger", "总分类账", "menu_book"),
-            ("accounts", "科目余额表", "bar_chart"),
-            ("charts", "图表分析", "show_chart"),
-            ("compare", "对比分析", "compare_arrows"),
+            ("reports_center", "报表中心", "assessment"),
         ],
     },
     {

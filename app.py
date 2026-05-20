@@ -59,6 +59,7 @@ from app.pages.reports_income_statement import render_income_statement
 from app.pages.trial_balance import render_trial_balance
 from app.pages.close_period import render_close_period
 from app.pages.charts import render_charts
+from app.pages.reports_center import render_reports_center
 from app.pages.compare import render_compare
 from app.pages.ai_assistant import render_ai_assistant
 from app.pages.import_export import render_import, render_export
@@ -117,6 +118,7 @@ register_page("about", render_about)
 register_page("audit_log", render_audit_log)
 register_page("settings", render_settings)
 register_page("journal_form", render_journal_form)
+register_page("reports_center", render_reports_center)
 
 
 def render_page():
