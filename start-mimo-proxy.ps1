@@ -1,4 +1,4 @@
-$scriptPath = "C:\Users\Administrator\AppData\Roaming\npm\node_modules\mimo2codex\dist\cli.js"
+$scriptPath = "F:\学习\mimo2codex\npm-global\dist\cli.js"
 
 # Check if already running
 $running = Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -like "*mimo2codex*" }
@@ -14,7 +14,7 @@ if ($running) {
     Start-Sleep -Seconds 4
     $tip.Dispose()
 } else {
-    Start-Process -FilePath "node" -ArgumentList "`"$scriptPath`" --no-admin --no-update-check" -NoNewWindow
+    Start-Process -FilePath "node" -ArgumentList "`"$scriptPath`" --no-admin --no-update-check --data-dir F:\学习\mimo2codex" -NoNewWindow
     Start-Sleep -Seconds 5
     $check = Get-CimInstance Win32_Process -Filter "Name='node.exe'" | Where-Object { $_.CommandLine -like "*mimo2codex*" }
     Add-Type -AssemblyName System.Windows.Forms
