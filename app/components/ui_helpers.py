@@ -454,6 +454,7 @@ _nav_groups = [
             ("income_statement", "利润表", "trending_up"),
             ("cash_flow_statement", "现金流量表", "waterfall_chart"),
             ("account_ledger", "科目明细账", "table_chart"),
+            ("general_ledger", "总分类账", "menu_book"),
             ("charts", "图表分析", "bar_chart"),
             ("compare", "对比分析", "compare_arrows"),
         ],

@@ -66,6 +66,7 @@ class State:
         "setup_wizard": "设置向导",
         "voucher_template": "凭证模板",
         "account_ledger": "科目明细账",
+        "general_ledger": "总分类账",
         "bank_reconciliation": "银行对账",
         "cash_flow_statement": "现金流量表",
         "journal_form": "凭证录入",
