@@ -2,7 +2,7 @@
 from nicegui import ui
 from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
-from app.components.ui_helpers import show_toast, format_amount
+from app.components.ui_helpers import show_toast, format_amount, refresh_main
 from app.utils.period import generate_periods
 from app.services import LedgerService, ReportService
 

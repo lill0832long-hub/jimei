@@ -1,7 +1,7 @@
 from nicegui import ui
 from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
-from app.components.ui_helpers import show_toast, format_amount, navigate
+from app.components.ui_helpers import show_toast, format_amount, navigate, refresh_main
 from app.services import LedgerService, AccountService
 
 def render_bank_reconciliation():
