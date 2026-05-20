@@ -10,6 +10,15 @@ VERSION_NAME = "V5.1"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, BASE_DIR)
 
+# ── Monkey-patch: 增大 Engine.IO 最大消息体积，防止复杂页面 WebSocket 报错 ──
+# 必须在 import nicegui 之前执行，因为 nicegui 在导入时即创建 AsyncServer
+import socketio as _sio_mod
+_orig_sio_init = _sio_mod.AsyncServer.__init__
+def _patched_sio_init(self, *args, **kwargs):
+    kwargs.setdefault('max_http_buffer_size', 16 * 1024 * 1024)
+    _orig_sio_init(self, *args, **kwargs)
+_sio_mod.AsyncServer.__init__ = _patched_sio_init
+
 from database.connection import init_db, init_v3_tables, init_system_templates
 from app.services import LedgerService
 
