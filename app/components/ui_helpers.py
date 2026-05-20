@@ -111,7 +111,7 @@ def navigate(page):
 
     if existing_idx is not None:
         # 切换到已有 tab
-        state.active_tab_idx = existing_tab_idx = existing_idx
+        state.active_tab_idx = existing_idx
     else:
         # 新建 tab
         label = state.get_tab_label(page)
