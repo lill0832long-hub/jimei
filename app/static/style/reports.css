@@ -1,8 +1,414 @@
 /* ============================================================
-   Reports — 报表页面专用样式
+   Reports — 报表中心统一样式
    ============================================================ */
 
-/* 报表打印区域 */
+/* ===== 报表打印区域 ===== */
 .report-print-area {
     background: var(--c-bg-card);
+}
+
+/* ===== 表格基础 ===== */
+.tb-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.tb-table thead th {
+    padding: 8px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--c-text-secondary);
+    background: var(--c-bg-muted, #f8f9fa);
+    border-bottom: 2px solid var(--c-border-light, #e0e0e0);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+.tb-table thead th.tb-th-num {
+    text-align: right;
+}
+
+.tb-table tbody td {
+    padding: 7px 12px;
+    border-bottom: 1px solid var(--c-border-light, #f0f0f0);
+    color: var(--c-text-primary);
+    transition: background-color 0.15s ease;
+}
+
+.tb-table tbody td.tb-td-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: "tnum";
+    white-space: nowrap;
+}
+
+.tb-table tbody td.tb-td-code {
+    color: var(--c-text-muted, #888);
+    font-family: var(--font-mono, monospace);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.tb-table tbody td.tb-td-name {
+    font-weight: 500;
+}
+
+.tb-table tbody tr:hover td {
+    background: var(--c-bg-hover, #f5f7ff);
+}
+
+.tb-table tbody tr.tb-row-subtotal td {
+    font-weight: 700;
+    background: var(--c-bg-subtotal, #f0f4ff);
+    border-top: 2px solid var(--c-border-light, #d0d8f0);
+    border-bottom: 1px solid var(--c-border-light, #d0d8f0);
+    color: var(--c-primary, #494fdf);
+}
+
+.tb-table tbody tr.tb-row-total td {
+    font-weight: 700;
+    font-size: 14px;
+    background: var(--c-bg-total, #eef0ff);
+    border-top: 3px double var(--c-primary, #494fdf);
+    border-bottom: none;
+    color: var(--c-primary, #494fdf);
+}
+
+/* ===== 报表卡片容器 ===== */
+.report-card {
+    background: var(--c-bg-card, #fff);
+    border-radius: 12px;
+    border: 1px solid var(--c-border-light, #e8e8e8);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+}
+
+.report-card + .report-card {
+    margin-top: 16px;
+}
+
+/* ===== 报表头部 ===== */
+.report-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--c-border-light, #e8e8e8);
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.report-header__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--c-text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.report-header__subtitle {
+    font-size: 12px;
+    color: var(--c-text-muted, #888);
+    font-weight: 400;
+    margin-left: 4px;
+}
+
+.report-header__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+/* ===== KPI 卡片 ===== */
+.report-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+    padding: 16px 20px;
+}
+
+.report-kpi {
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 1px solid var(--c-border-light, #e8e8e8);
+    background: var(--c-bg-card, #fff);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.report-kpi:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    transform: translateY(-1px);
+}
+
+.report-kpi__label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--c-text-muted, #888);
+}
+
+.report-kpi__value {
+    font-size: 20px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--c-text-primary);
+}
+
+.report-kpi__value--success { color: var(--c-success, #22c55e); }
+.report-kpi__value--danger { color: var(--c-danger, #ef4444); }
+.report-kpi__value--primary { color: var(--c-primary, #494fdf); }
+
+.report-kpi__hint {
+    font-size: 11px;
+    color: var(--c-text-muted, #888);
+}
+
+/* ===== 状态标签 ===== */
+.report-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.report-badge--success {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+.report-badge--warning {
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+
+.report-badge--danger {
+    background: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.report-badge--info {
+    background: #eff6ff;
+    color: #2563eb;
+    border: 1px solid #bfdbfe;
+}
+
+/* ===== 报表内容区 ===== */
+.report-body {
+    padding: 16px 20px;
+}
+
+/* ===== 分类区块 ===== */
+.report-section {
+    margin-bottom: 20px;
+}
+
+.report-section:last-child {
+    margin-bottom: 0;
+}
+
+.report-section__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+    margin-bottom: 8px;
+    border-bottom: 2px solid var(--c-primary, #494fdf);
+}
+
+.report-section__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--c-primary, #494fdf);
+}
+
+.report-section__count {
+    font-size: 11px;
+    color: var(--c-text-muted, #888);
+    background: var(--c-bg-muted, #f0f0f0);
+    padding: 1px 8px;
+    border-radius: 10px;
+}
+
+/* ===== 金额颜色 ===== */
+.amount-positive { color: var(--c-success, #22c55e); }
+.amount-negative { color: var(--c-danger, #ef4444); }
+.amount-zero { color: var(--c-text-muted, #888); }
+
+/* ===== YoY 变化率 ===== */
+.yoy-up { color: var(--c-success, #22c55e); font-weight: 600; }
+.yoy-down { color: var(--c-danger, #ef4444); font-weight: 600; }
+.yoy-flat { color: var(--c-text-muted, #888); }
+
+/* ===== 空状态 ===== */
+.report-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 20px;
+    gap: 12px;
+}
+
+.report-empty__icon { font-size: 48px; opacity: 0.4; }
+.report-empty__text { font-size: 14px; color: var(--c-text-muted, #888); }
+.report-empty__hint { font-size: 12px; color: var(--c-text-muted, #aaa); }
+
+/* ===== 平衡校验 footer ===== */
+.report-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: var(--c-bg-muted, #f8f9fa);
+    border-top: 1px solid var(--c-border-light, #e8e8e8);
+    font-size: 13px;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.report-footer__status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 600;
+}
+
+.report-footer__status--ok { color: var(--c-success, #22c55e); }
+.report-footer__status--error { color: var(--c-danger, #ef4444); }
+.report-footer__detail { color: var(--c-text-muted, #888); font-size: 12px; }
+
+/* ===== 导航按钮组 ===== */
+.report-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--c-border-light, #e8e8e8);
+    background: var(--c-bg-card, #fff);
+}
+
+/* ===== 图表卡片 ===== */
+.chart-card {
+    background: var(--c-bg-card, #fff);
+    border-radius: 12px;
+    border: 1px solid var(--c-border-light, #e8e8e8);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+
+.chart-card__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--c-border-light, #e8e8e8);
+}
+
+.chart-card__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--c-text-primary);
+}
+
+.chart-card__body {
+    padding: 16px 20px;
+}
+
+/* ===== 期末结转状态横幅 ===== */
+.period-status-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin: 0 20px 16px;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.period-status-banner--closed {
+    background: #ecfdf5;
+    color: #059669;
+    border: 1px solid #a7f3d0;
+}
+
+.period-status-banner--open {
+    background: #fffbeb;
+    color: #d97706;
+    border: 1px solid #fde68a;
+}
+
+/* ===== 检查清单 ===== */
+.checklist {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.checklist__item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    font-size: 14px;
+}
+
+.checklist__icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+
+.checklist__icon--pass {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.checklist__icon--fail {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.checklist__text {
+    color: var(--c-text-primary);
+}
+
+/* ===== 响应式 ===== */
+@media (max-width: 768px) {
+    .report-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 12px;
+    }
+    .report-header { padding: 12px 16px; }
+    .report-body { padding: 12px 16px; }
+    .report-footer { padding: 8px 16px; flex-direction: column; align-items: flex-start; }
+    .tb-table { font-size: 12px; }
+    .tb-table thead th, .tb-table tbody td { padding: 6px 8px; }
 }
