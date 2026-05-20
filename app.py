@@ -194,7 +194,11 @@ def index():
         with ui.row().classes("w-full main-row"):
             render_sidebar()
             with ui.column().classes("main-content-area flex-grow gap-3") as state.main_content:
-                render_page()
+                # Tab 系统容器
+                with ui.row().classes("w-full items-center gap-2") as state._tab_bar_container:
+                    pass
+                with ui.column().classes("w-full flex-grow") as state._tab_contents:
+                    render_page()
 
 
 # ── 手机端抽屉式侧边栏 + 遮罩层 ──

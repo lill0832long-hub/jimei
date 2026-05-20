@@ -30,9 +30,11 @@ def render_reports_center():
         return
 
     # ── 全局期间选择器 ──
-    with ui.row().classes("report-header"):
-        ui.label("📊 报表中心").classes("report-header__title")
-        with ui.row().classes("report-header__actions gap-2"):
+    with ui.row().classes("w-full items-center justify-between"):
+        # 左侧：标题
+        ui.label("📊 报表中心").classes("text-base font-bold")
+        # 右侧：筛选控件
+        with ui.row().classes("items-center gap-2"):
             year_sel = ui.select(
                 {str(y): str(y) for y in range(2020, 2031)},
                 value=str(state.selected_year), label="年度"
