@@ -16,6 +16,10 @@ def render_journal():
     if not lid:
         return
 
+    # 清除已消费的钻取状态
+    state.drill_down_voucher_no = None
+    state.drill_down_account_code = None
+
     # 权限检查
     user = state.current_user
     can_create = user and user.get("role") in ("admin", "accountant")

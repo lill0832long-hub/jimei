@@ -458,3 +458,18 @@
     overflow-y: auto;
     padding: 12px 0;
 }
+
+/* ===== 报表钻取链接 ===== */
+.tb-link {
+    color: var(--c-primary, #494fdf);
+    text-decoration: none;
+    cursor: pointer;
+    border-bottom: 1px dashed transparent;
+    transition: border-color 0.15s ease;
+}
+.tb-link:hover {
+    border-bottom-color: var(--c-primary, #494fdf);
+}
+.tb-row:hover {
+    background: var(--c-bg-hover, #f5f7ff) !important;
+}

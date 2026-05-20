@@ -1,7 +1,7 @@
 from nicegui import ui
 from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
-from app.components.ui_helpers import show_toast, format_amount, navigate, refresh_main
+from app.components.ui_helpers import show_toast, format_amount, navigate, refresh_main, drill_down_to_voucher
 from app.services import LedgerService, AccountService
 
 
@@ -20,6 +20,10 @@ def render_general_ledger():
     acct_opts = {"": "全部科目"}
     acct_opts.update({a["code"]: f"{a['code']} {a['name']}" for a in accounts})
 
+    # 检查是否有报表钻取的科目筛选
+    drill_code = state.drill_down_account_code
+    initial_acct = drill_code if drill_code else ""
+
     with ui.card().classes("w-full"):
         with ui.card_section().classes("py-2 px-4 bg-grey-5 border-b border-grey-2"):
             with ui.row().classes("items-center gap-3"):
@@ -27,7 +31,7 @@ def render_general_ledger():
                 ui.separator().props("vertical")
                 gl_year_sel = ui.select(options=list(range(2020, 2031)), value=state.selected_year, label="年度").props("dense outlined").classes("w-28")
                 gl_month_sel = ui.select(options=list(range(1, 13)), value=state.selected_month, label="月份").props("dense outlined").classes("w-24")
-                gl_acct_sel = ui.select(options=acct_opts, value="", label="科目").props("outlined dense").classes("w-56")
+                gl_acct_sel = ui.select(options=acct_opts, value=initial_acct, label="科目").props("outlined dense").classes("w-56")
                 ui.button("🔍 查询", color="primary", on_click=lambda: refresh_main()).props("dense").classes("text-xs")
 
                 def _on_gl_period():
@@ -40,6 +44,10 @@ def render_general_ledger():
 
     # 获取总分类账数据
     selected_code = gl_acct_sel.value or None
+
+    # 清除钻取状态（已消费）
+    if drill_code:
+        state.drill_down_account_code = None
     try:
         entries = AccountService.get_general_ledger(
             lid, account_code=selected_code,
@@ -68,7 +76,7 @@ def render_general_ledger():
         # 期间信息栏
         period_label = f"{state.selected_year}年{state.selected_month}月"
         with ui.card_section().classes("py-2 px-4 border-b border-grey-2 bg-blue-50"):
-            with ui.row().items_center().classes("gap-4"):
+            with ui.row().classes("items-center gap-4"):
                 ui.label(f"📖 总分类账").classes("text-base font-bold text-blue-7")
                 ui.separator().props("vertical")
                 ui.label(f"期间：{period_label}").classes("text-sm text-grey-6")
@@ -156,4 +164,4 @@ def render_general_ledger():
             </q-td>
         """)
 
-        tbl.on("view_voucher", lambda e: (setattr(state, 'selected_voucher_no', e.args), refresh_main()))
+        tbl.on("view_voucher", lambda e: drill_down_to_voucher(e.args))

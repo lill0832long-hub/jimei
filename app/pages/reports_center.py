@@ -1,7 +1,7 @@
 """报表中心 — 统一标签页入口"""
 from nicegui import ui
 from app.components.state import state
-from app.components.ui_helpers import format_amount, show_toast, refresh_main
+from app.components.ui_helpers import format_amount, show_toast, refresh_main, drill_down_to_account, drill_down_to_voucher
 from app.services import LedgerService, ReportService
 
 # 子报表配置：key -> (标签名, 图标)
@@ -51,6 +51,48 @@ def render_reports_center():
 
             year_sel.on("update:value", lambda e: _on_period_change())
             month_sel.on("update:value", lambda e: _on_period_change())
+
+    # ── 报表钻取 JS → Python 桥接 ──
+    # 使用 ui.run_javascript 定时轮询 JS 变量
+    _drill_poll_active = [True]  # 使用 list 以便在闭包中修改
+
+    async def _poll_drill():
+        """每 500ms 轮询一次 JS 变量"""
+        if not _drill_poll_active[0]:
+            return
+        try:
+            acc = await ui.run_javascript("window._drillAccountCode||''", timeout=3)
+            if acc:
+                await ui.run_javascript("window._drillAccountCode=''", timeout=2)
+                _drill_poll_active[0] = False
+                drill_down_to_account(acc)
+                return
+        except Exception:
+            pass
+        try:
+            vno = await ui.run_javascript("window._drillVoucherNo||''", timeout=3)
+            if vno:
+                await ui.run_javascript("window._drillVoucherNo=''", timeout=2)
+                _drill_poll_active[0] = False
+                drill_down_to_voucher(vno)
+                return
+        except Exception:
+            pass
+        ui.timer(0.5, _poll_drill, once=True)
+
+    ui.add_head_html('''<script>
+    window._drillAccountCode = '';
+    window._drillVoucherNo = '';
+    window._drillDownAccount = function(code) { window._drillAccountCode = code; };
+    window._drillDownVoucher = function(vno) { window._drillVoucherNo = vno; };
+    </script>''')
+    ui.run_javascript('''
+        window._drillAccountCode = '';
+        window._drillVoucherNo = '';
+        window._drillDownAccount = function(code) { window._drillAccountCode = code; };
+        window._drillDownVoucher = function(vno) { window._drillVoucherNo = vno; };
+    ''')
+    ui.timer(1.0, _poll_drill, once=True)
 
     # ── 子报表标签页 ──
     # 初始化 reports_center 的 tab 列表
@@ -217,13 +259,13 @@ def _render_trial_balance_content(lid, year, month):
                 debit = float(b.get("period_debit", 0) if b.get("period_debit") is not None else 0)
                 credit = float(b.get("period_credit", 0) if b.get("period_credit") is not None else 0)
                 closing = float(b.get("closing_balance", 0) if b.get("closing_balance") is not None else 0)
-                rows_html += f'''<tr class="tb-row">
-                    <td class="tb-td tb-td-code">{code}</td>
-                    <td class="tb-td tb-td-name">{name}</td>
-                    <td class="tb-td tb-td-num">{format_amount(opening) if opening else "—"}</td>
-                    <td class="tb-td tb-td-num amount-negative">{format_amount(debit) if debit else "—"}</td>
-                    <td class="tb-td tb-td-num amount-positive">{format_amount(credit) if credit else "—"}</td>
-                    <td class="tb-td tb-td-num" style="font-weight:600">{format_amount(closing) if closing else "—"}</td>
+                rows_html += f'''<tr class="tb-row" style="cursor:pointer" onclick="window._drillDownAccount&&window._drillDownAccount('{code}')">
+                    <td class="tb-td tb-td-code"><a class="tb-link" onclick="event.stopPropagation();window._drillDownAccount&&window._drillDownAccount('{code}')">{code}</a></td>
+                    <td class="tb-td tb-td-name"><a class="tb-link" onclick="event.stopPropagation();window._drillDownAccount&&window._drillDownAccount('{code}')">{name}</a></td>
+                    <td class="tb-td tb-td-num" onclick="event.stopPropagation();window._drillDownAccount&&window._drillDownAccount('{code}')">{format_amount(opening) if opening else "—"}</td>
+                    <td class="tb-td tb-td-num amount-negative" onclick="event.stopPropagation();window._drillDownAccount&&window._drillDownAccount('{code}')">{format_amount(debit) if debit else "—"}</td>
+                    <td class="tb-td tb-td-num amount-positive" onclick="event.stopPropagation();window._drillDownAccount&&window._drillDownAccount('{code}')">{format_amount(credit) if credit else "—"}</td>
+                    <td class="tb-td tb-td-num" style="font-weight:600" onclick="event.stopPropagation();window._drillDownAccount&&window._drillDownAccount('{code}')">{format_amount(closing) if closing else "—"}</td>
                 </tr>'''
             rows_html += f'''<tr class="tb-row tb-row-subtotal">
                 <td class="tb-td tb-td-name" colspan="2">小计</td>
@@ -266,10 +308,13 @@ def _render_balance_sheet_content(lid, year, month):
                 ui.label("暂无资产负债表数据").classes("report-empty__text")
         return
 
-    rows_data = bs.get("rows", [])
-    total_assets = sum(float(r.get("amount", 0) or 0) for r in rows_data if r.get("type") == "asset_item")
-    total_liabilities = sum(float(r.get("amount", 0) or 0) for r in rows_data if r.get("type") == "liability_item")
-    total_equity = sum(float(r.get("amount", 0) or 0) for r in rows_data if r.get("type") == "equity_item")
+    # bs 现在返回带 code 的扁平结构
+    assets = bs.get("assets", [])
+    liabilities = bs.get("liabilities", [])
+    equity = bs.get("equity", [])
+    total_assets = bs.get("total_assets", 0) or sum(float(a.get("end", 0) or 0) for a in assets)
+    total_liabilities = bs.get("total_liab", 0) or sum(float(l.get("end", 0) or 0) for l in liabilities)
+    total_equity = bs.get("total_equity", 0) or sum(float(e.get("end", 0) or 0) for e in equity)
     diff = abs(total_assets - (total_liabilities + total_equity))
 
     with ui.row().classes("report-kpi-grid"):
@@ -284,16 +329,39 @@ def _render_balance_sheet_content(lid, year, month):
                 ui.label(format_amount(value)).classes(f"report-kpi__value {color_class}")
 
     table_html = '<table class="tb-table"><thead><tr><th class="tb-th">项目</th><th class="tb-th tb-th-num">金额</th></tr></thead><tbody>'
-    for r in rows_data:
-        row_type = r.get("type", "")
-        name = r.get("name", "")
-        amount = r.get("amount", 0) or 0
-        if row_type.endswith("_header"):
-            table_html += f'<tr class="tb-row-subtotal"><td class="tb-td tb-td-name font-bold">{name}</td><td class="tb-td tb-td-num font-bold">{format_amount(amount)}</td></tr>'
-        elif row_type.endswith("_item"):
+    # 资产
+    table_html += f'<tr class="tb-row-subtotal"><td class="tb-td tb-td-name font-bold">资产类</td><td class="tb-td tb-td-num font-bold"></td></tr>'
+    for a in assets:
+        code = a.get("code", "")
+        name = a.get("name", "")
+        amount = a.get("end", 0) or 0
+        if code:
+            table_html += f'<tr class="tb-row" style="cursor:pointer"><td class="tb-td tb-td-name" style="padding-left:24px"><a class="tb-link" onclick="event.stopPropagation();window._drillDownAccount&&window._drillDownAccount(\'{code}\')">{name}</a></td><td class="tb-td tb-td-num" onclick="window._drillDownAccount&&window._drillDownAccount(\'{code}\')">{format_amount(amount)}</td></tr>'
+        else:
             table_html += f'<tr class="tb-row"><td class="tb-td tb-td-name" style="padding-left:24px">{name}</td><td class="tb-td tb-td-num">{format_amount(amount)}</td></tr>'
-        elif row_type == "total":
-            table_html += f'<tr class="tb-row-subtotal"><td class="tb-td tb-td-name font-bold">{name}</td><td class="tb-td tb-td-num font-bold">{format_amount(amount)}</td></tr>'
+    table_html += f'<tr class="tb-row-subtotal"><td class="tb-td tb-td-name font-bold">资产总计</td><td class="tb-td tb-td-num font-bold">{format_amount(total_assets)}</td></tr>'
+    # 负债
+    table_html += f'<tr class="tb-row-subtotal"><td class="tb-td tb-td-name font-bold">负债类</td><td class="tb-td tb-td-num font-bold"></td></tr>'
+    for l in liabilities:
+        code = l.get("code", "")
+        name = l.get("name", "")
+        amount = l.get("end", 0) or 0
+        if code:
+            table_html += f'<tr class="tb-row" style="cursor:pointer"><td class="tb-td tb-td-name" style="padding-left:24px"><a class="tb-link" onclick="event.stopPropagation();window._drillDownAccount&&window._drillDownAccount(\'{code}\')">{name}</a></td><td class="tb-td tb-td-num" onclick="window._drillDownAccount&&window._drillDownAccount(\'{code}\')">{format_amount(amount)}</td></tr>'
+        else:
+            table_html += f'<tr class="tb-row"><td class="tb-td tb-td-name" style="padding-left:24px">{name}</td><td class="tb-td tb-td-num">{format_amount(amount)}</td></tr>'
+    table_html += f'<tr class="tb-row-subtotal"><td class="tb-td tb-td-name font-bold">负债合计</td><td class="tb-td tb-td-num font-bold">{format_amount(total_liabilities)}</td></tr>'
+    # 权益
+    table_html += f'<tr class="tb-row-subtotal"><td class="tb-td tb-td-name font-bold">所有者权益类</td><td class="tb-td tb-td-num font-bold"></td></tr>'
+    for e in equity:
+        code = e.get("code", "")
+        name = e.get("name", "")
+        amount = e.get("end", 0) or 0
+        if code:
+            table_html += f'<tr class="tb-row" style="cursor:pointer"><td class="tb-td tb-td-name" style="padding-left:24px"><a class="tb-link" onclick="event.stopPropagation();window._drillDownAccount&&window._drillDownAccount(\'{code}\')">{name}</a></td><td class="tb-td tb-td-num" onclick="window._drillDownAccount&&window._drillDownAccount(\'{code}\')">{format_amount(amount)}</td></tr>'
+        else:
+            table_html += f'<tr class="tb-row"><td class="tb-td tb-td-name" style="padding-left:24px">{name}</td><td class="tb-td tb-td-num">{format_amount(amount)}</td></tr>'
+    table_html += f'<tr class="tb-row-subtotal"><td class="tb-td tb-td-name font-bold">所有者权益合计</td><td class="tb-td tb-td-num font-bold">{format_amount(total_equity)}</td></tr>'
     table_html += '</tbody></table>'
 
     with ui.card().classes("report-card"):
@@ -350,14 +418,25 @@ def _render_income_statement_content(lid, year, month):
         name_style = f"{name_weight}{indent}{profit_color}"
         yoy_pct_class = "yoy-up" if yoy_pct and yoy_pct > 0 else ("yoy-down" if yoy_pct and yoy_pct < 0 else "yoy-flat")
         yoy_pct_str = f"{yoy_pct:+.1f}%" if yoy_pct is not None else "—"
+        acct_code = r.get("code", "")
+        is_drillable = bool(acct_code and is_item)
 
-        rows_html += f'''<tr class="{row_class}">
-            <td class="tb-td tb-td-name" style="{name_style}">{r["name"]}</td>
-            <td class="tb-td tb-td-num">{format_amount(ytd_val) if ytd_val is not None else "—"}</td>
-            <td class="tb-td tb-td-num">{format_amount(r.get("month")) if r.get("month") is not None else "—"}</td>
-            <td class="tb-td tb-td-num">{format_amount(yoy_val) if yoy_val is not None else "—"}</td>
-            <td class="tb-td tb-td-num {yoy_pct_class}">{yoy_pct_str}</td>
-        </tr>'''
+        if is_drillable:
+            rows_html += f'''<tr class="{row_class}" style="cursor:pointer">
+                <td class="tb-td tb-td-name" style="{name_style}"><a class="tb-link" onclick="event.stopPropagation();window._drillDownAccount&&window._drillDownAccount('{acct_code}')">{r["name"]}</a></td>
+                <td class="tb-td tb-td-num" onclick="window._drillDownAccount&&window._drillDownAccount('{acct_code}')">{format_amount(ytd_val) if ytd_val is not None else "—"}</td>
+                <td class="tb-td tb-td-num" onclick="window._drillDownAccount&&window._drillDownAccount('{acct_code}')">{format_amount(r.get("month")) if r.get("month") is not None else "—"}</td>
+                <td class="tb-td tb-td-num" onclick="window._drillDownAccount&&window._drillDownAccount('{acct_code}')">{format_amount(yoy_val) if yoy_val is not None else "—"}</td>
+                <td class="tb-td tb-td-num {yoy_pct_class}" onclick="window._drillDownAccount&&window._drillDownAccount('{acct_code}')">{yoy_pct_str}</td>
+            </tr>'''
+        else:
+            rows_html += f'''<tr class="{row_class}">
+                <td class="tb-td tb-td-name" style="{name_style}">{r["name"]}</td>
+                <td class="tb-td tb-td-num">{format_amount(ytd_val) if ytd_val is not None else "—"}</td>
+                <td class="tb-td tb-td-num">{format_amount(r.get("month")) if r.get("month") is not None else "—"}</td>
+                <td class="tb-td tb-td-num">{format_amount(yoy_val) if yoy_val is not None else "—"}</td>
+                <td class="tb-td tb-td-num {yoy_pct_class}">{yoy_pct_str}</td>
+            </tr>'''
 
     table_html = f'''<table class="tb-table">
     <thead><tr>
@@ -437,11 +516,18 @@ def _render_accounts_content(lid, year, month):
         tbl.add_slot("body-cell-name", r"""
             <q-td key="name" :props="props"
                    :style="props.row.is_total ? 'background:var(--c-bg-subtotal);font-weight:700;' : ''">
-                <span :class="props.row.is_total ? 'font-bold text-base' : (props.row.level === 2 ? 'pl-4 text-sm text-grey-6' : 'text-sm text-secondary')">
+                <a v-if="props.row.code && !props.row.is_total" class="tb-link"
+                   @click="$parent.$emit('drillDown', props.row.code)">
+                    <span :class="props.row.level === 2 ? 'pl-4 text-sm text-grey-6' : 'text-sm'">
+                        {{ props.row.name }}
+                    </span>
+                </a>
+                <span v-else :class="props.row.is_total ? 'font-bold text-base' : (props.row.level === 2 ? 'pl-4 text-sm text-grey-6' : 'text-sm text-secondary')">
                     {{ props.row.name }}
                 </span>
             </q-td>
         """)
+        tbl.on("drillDown", lambda e: drill_down_to_account(e.args))
 
     is_balanced = abs(total['debit'] - total['credit']) < 0.01
     with ui.row().classes("report-footer"):

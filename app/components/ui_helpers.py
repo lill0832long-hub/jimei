@@ -90,6 +90,21 @@ def show_modal_error(title="错误", message=""):
 # 导航到这些页面时需要保留 selected_voucher_no
 _PAGES_KEEPING_VOUCHER = {"voucher_detail", "journal"}
 
+def drill_down_to_account(account_code):
+    """报表钻取：从报表数值点击 → 跳转到总分类账并筛选该科目"""
+    state.drill_down_account_code = account_code
+    state.drill_down_voucher_no = None
+    navigate("general_ledger")
+
+
+def drill_down_to_voucher(voucher_no):
+    """报表钻取：从报表凭证号点击 → 跳转到记账凭证并定位该凭证"""
+    state.drill_down_voucher_no = voucher_no
+    state.selected_voucher_no = voucher_no
+    state.drill_down_account_code = None
+    navigate("journal")
+
+
 def navigate(page):
     """页面导航 — Tab 架构
 

@@ -30,6 +30,8 @@ class State:
     show_shortcut_help = False  # 快捷键帮助面板显示状态
     recent_pages = []  # 最近访问的页面（最多3个）
     voucher_status_filter = "all"  # 凭证状态筛选：all/draft/pending_review/posted/reversed
+    drill_down_account_code = None  # 报表钻取：目标科目编码（用于总账/明细账筛选）
+    drill_down_voucher_no = None    # 报表钻取：目标凭证号
 
     # ── Tab 系统 ──
     _tabs = None  # [{"key": "dashboard", "label": "仪表盘"}]
