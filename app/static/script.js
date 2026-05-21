@@ -53,16 +53,14 @@
     };
 
     // ── 手机端导航函数 ──
-    // 统一使用 window.location.href 触发页面重载
-    // Python navigate() 是唯一导航逻辑源，JS 只负责触发页面跳转
+    // 统一调用 Python navigate()，不再全页刷新
     window.navigateTo = function(page) {
         document.querySelectorAll('.bottom-nav-item').forEach(function(el) {
             el.classList.toggle('active', el.dataset.page === page);
         });
-        // 关闭抽屉（如果打开）
         window.sidebarCtrl.closeDrawer();
-        // 触发页面跳转（全量重载，确保 Python index() 重新执行）
-        window.location.href = '/' + page;
+        // 调用 Python navigate() API（SPA，不刷新页面）
+        fetch('/api/navigate/' + page, {method: 'POST'});
     };
 
     // ── DOMContentLoaded 初始化 ──
@@ -123,14 +121,15 @@
             });
         }
 
-        // 3b. 抽屉菜单点击 → 使用 window.location.href 导航（克隆元素无 Python handler）
+        // 3b. 抽屉菜单点击 → 调用 Python navigate()（克隆元素无 Python handler）
         if (drawerMenu) {
             drawerMenu.addEventListener('click', function(e) {
                 var btn = e.target.closest('.sidebar-menu-item');
                 if (!btn) return;
                 var page = btn.dataset.page;
                 if (!page) return;
-                window.location.href = '/' + page;
+                window.sidebarCtrl.closeDrawer();
+                fetch('/api/navigate/' + page, {method: 'POST'});
             });
         }
 
@@ -141,23 +140,6 @@
             }
         } catch(e) {}
 
-        // 5. 定期清理重复的 sidebar-nav（NiceGUI clear() 不删 DOM 的 workaround）
-        setInterval(function() {
-            var navs = document.querySelectorAll('.sidebar-nav');
-            if (navs.length > 1) {
-                var maxIdx = 0, maxCount = 0;
-                for (var i = 0; i < navs.length; i++) {
-                    if (navs[i].children.length > maxCount) {
-                        maxCount = navs[i].children.length;
-                        maxIdx = i;
-                    }
-                }
-                for (var i = 0; i < navs.length; i++) {
-                    if (i !== maxIdx && navs[i].parentNode) {
-                        navs[i].parentNode.removeChild(navs[i]);
-                    }
-                }
-            }
-        }, 500);
+        // 5. （已移除）定期清理重复的 sidebar-nav — Phase 1 修复容器复用后不再需要
     });
 })();

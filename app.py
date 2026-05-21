@@ -45,6 +45,15 @@ app.add_static_files("/static", _STATIC_DIR)
 from app.routes import register_routes
 register_routes(app)
 
+# ── JS → Python 导航桥接（底部导航栏/抽屉菜单用）──
+# JS 通过 fetch 写入目标页面到 app.storage，Python 端轮询检测并执行导航
+_pending_nav_page = [None]  # 用 list 实现可变闭包
+
+@app.post("/api/navigate/{page}")
+async def api_navigate(page: str):
+    """JS 导航入口：写入待导航页面（由 index() 中的 timer 消费）"""
+    _pending_nav_page[0] = page
+
 # ── 自动备份 ──
 from app.services.backup import start_auto_backup
 start_auto_backup()
@@ -199,6 +208,17 @@ def index():
                     pass
                 with ui.column().classes("w-full flex-grow") as state._tab_contents:
                     render_page()
+
+        # ── JS 导航桥接轮询（消费底部导航栏/抽屉菜单的导航请求）──
+        from app.components.ui_helpers import navigate as _navigate
+
+        def _check_js_nav():
+            page = _pending_nav_page[0]
+            if page is not None:
+                _pending_nav_page[0] = None
+                _navigate(page)
+
+        ui.timer(0.1, _check_js_nav)
 
 
 # ── 手机端抽屉式侧边栏 + 遮罩层 ──

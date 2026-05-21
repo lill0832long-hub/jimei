@@ -139,8 +139,8 @@ def navigate(page):
     if page not in _PAGES_KEEPING_VOUCHER:
         state.selected_voucher_no = None
 
-    # 使用 timer 延迟执行，避免在 click handler 中直接 clear() 导致 RuntimeError
-    ui.timer(0.05, _rebuild_tabs, once=True)
+    # 直接重建（不再用 timer 延迟，避免快速点击时多个 timer 并发冲突）
+    _rebuild_tabs()
 
     # 同步 sidebar active 类（纯视觉，不触发导航）
     ui.run_javascript(f"window.sidebarCtrl&&window.sidebarCtrl.setActiveItem('{page}')")
@@ -222,29 +222,8 @@ def hide_loading():
 # ===== 内容重渲染 =====
 
 def refresh_main():
-    # 延迟执行，避免在 click handler 中直接 clear() 导致 RuntimeError
-    ui.timer(0.05, _rebuild_content, once=True)
-
-
-def _rebuild_content():
-    """重渲染主内容区（sidebar 由 JS 接管，不重渲染）"""
-    if state.main_content is None:
-        return
-    # 检查 main_content client 是否存活
-    try:
-        _ = state.main_content.client
-    except RuntimeError:
-        state.main_content = None
-        return
-    from app.config import get_page_render
-    state.main_content.clear()
-    with state.main_content:
-        render_fn = get_page_render(state.current_page)
-        if render_fn:
-            render_fn()
-        else:
-            from app.pages.dashboard import render_dashboard
-            render_dashboard()
+    """刷新当前页面内容（统一走 tab_contents，不再操作 main_content）"""
+    _rebuild_tab_content()
 
 
 def _rebuild_tabs():
@@ -262,47 +241,57 @@ def _rebuild_tab_bar():
     except RuntimeError:
         state.tab_bar_container = None
         return
-    state.tab_bar_container.clear()
-    with state.tab_bar_container:
-        tabs = state.tabs
-        active_idx = state.active_tab_idx
-        for i, tab in enumerate(tabs):
-            is_active = (i == active_idx)
-            tab_label = tab["label"]
-            # tab 样式
-            if is_active:
-                tab_classes = "tab-item tab-item--active"
-            else:
-                tab_classes = "tab-item tab-item--inactive"
+    try:
+        state.tab_bar_container.clear()
+        with state.tab_bar_container:
+            tabs = state.tabs
+            active_idx = state.active_tab_idx
+            for i, tab in enumerate(tabs):
+                is_active = (i == active_idx)
+                tab_label = tab["label"]
+                if is_active:
+                    tab_classes = "tab-item tab-item--active"
+                else:
+                    tab_classes = "tab-item tab-item--inactive"
 
-            with ui.button(on_click=lambda _i=i: switch_tab(_i)).props("flat no-caps align-left").classes(tab_classes):
-                ui.label(tab_label).classes("tab-label")
-                ui.button(icon="close", on_click=lambda _i=i: close_tab(_i)).props(
-                    "flat dense round size=xs"
-                ).classes("tab-close-btn").style("min-width:24px;min-height:24px;")
+                with ui.button(on_click=lambda _i=i: switch_tab(_i)).props("flat no-caps align-left").classes(tab_classes):
+                    ui.label(tab_label).classes("tab-label")
+                    ui.button(icon="close", on_click=lambda _i=i: close_tab(_i)).props(
+                        "flat dense round size=xs"
+                    ).classes("tab-close-btn").style("min-width:24px;min-height:24px;")
+    except Exception:
+        pass
 
 
 def _rebuild_tab_content():
-    """重渲染当前 tab 的内容区"""
+    """重渲染当前 tab 的内容区（统一渲染入口，不再 fallback 到 main_content）"""
     if state.tab_contents is None:
-        # 兼容旧模式：使用 main_content
-        _rebuild_content()
         return
     try:
         _ = state.tab_contents.client
     except RuntimeError:
         state.tab_contents = None
-        _rebuild_content()
         return
     from app.config import get_page_render
     state.tab_contents.clear()
     with state.tab_contents:
-        render_fn = get_page_render(state.current_page)
-        if render_fn:
-            render_fn()
-        else:
-            from app.pages.dashboard import render_dashboard
-            render_dashboard()
+        try:
+            render_fn = get_page_render(state.current_page)
+            if render_fn:
+                render_fn()
+            else:
+                from app.pages.dashboard import render_dashboard
+                render_dashboard()
+        except Exception as e:
+            import traceback
+            state.tab_contents.clear()
+            with state.tab_contents:
+                show_page_error(
+                    state.tab_contents,
+                    title="页面加载失败",
+                    message=f"{type(e).__name__}: {e}",
+                    retry_fn=_rebuild_tab_content,
+                )
 
 
 def switch_tab(idx):
@@ -313,7 +302,7 @@ def switch_tab(idx):
         return
     state.active_tab_idx = idx
     state.current_page = state.tabs[idx]["key"]
-    ui.timer(0.05, _rebuild_tabs, once=True)
+    _rebuild_tabs()
     # 同步 sidebar active 类
     ui.run_javascript(f"window.sidebarCtrl&&window.sidebarCtrl.setActiveItem('{state.current_page}')")
 
@@ -341,7 +330,7 @@ def close_tab(idx):
             # 关闭的是当前 tab 前面的 tab，索引前移
             state.active_tab_idx -= 1
         # 关闭的是后面的 tab，不需要调整 active_tab_idx
-    ui.timer(0.05, _rebuild_tabs, once=True)
+    _rebuild_tabs()
     # 同步 sidebar active 类
     ui.run_javascript(f"window.sidebarCtrl&&window.sidebarCtrl.setActiveItem('{state.current_page}')")
 

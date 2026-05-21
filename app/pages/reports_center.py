@@ -59,7 +59,11 @@ def render_reports_center():
     _drill_poll_active = [True]  # 使用 list 以便在闭包中修改
 
     async def _poll_drill():
-        """每 500ms 轮询一次 JS 变量"""
+        """每 500ms 轮询一次 JS 变量（仅当前页面是 reports_center 时运行）"""
+        # 页面离开后自动停止
+        if state.current_page != "reports_center":
+            _drill_poll_active[0] = False
+            return
         if not _drill_poll_active[0]:
             return
         try:
@@ -80,7 +84,8 @@ def render_reports_center():
                 return
         except Exception:
             pass
-        ui.timer(0.5, _poll_drill, once=True)
+        if _drill_poll_active[0]:
+            ui.timer(0.5, _poll_drill, once=True)
 
     ui.add_head_html('''<script>
     window._drillAccountCode = '';
