@@ -275,7 +275,7 @@ def _rebuild_tab_bar():
             else:
                 tab_classes = "tab-item tab-item--inactive"
 
-            with ui.row().classes(tab_classes).on_click(lambda _i=i: switch_tab(_i)):
+            with ui.button(on_click=lambda _i=i: switch_tab(_i)).props("flat no-caps align-left").classes(tab_classes):
                 ui.label(tab_label).classes("tab-label")
                 ui.button(icon="close", on_click=lambda _i=i: close_tab(_i)).props(
                     "flat dense round size=xs"
