@@ -36,7 +36,17 @@ def render_compare():
     with ui.card().classes("w-full"):
         SectionHeader("利润对比", icon="trending_up")
 
-        inc_data = ReportService.get_period_compare_income(lid, state.selected_year, state.selected_month)
+        try:
+            inc_data = ReportService.get_period_compare_income(lid, state.selected_year, state.selected_month)
+        except Exception:
+            inc_data = {"periods": [], "items": [], "summary": {"total_revenue": [], "total_expense": [], "net_profit": []}}
+        # 防御：确保数据结构完整
+        inc_data.setdefault("periods", [])
+        inc_data.setdefault("items", [])
+        inc_data.setdefault("summary", {})
+        inc_data["summary"].setdefault("total_revenue", [])
+        inc_data["summary"].setdefault("total_expense", [])
+        inc_data["summary"].setdefault("net_profit", [])
         if inc_data["items"] or any(v != 0 for v in inc_data["summary"]["total_revenue"]):
             # 汇总表头
             cols = [{"name":"item","label":"项目","field":"item","align":"left","headerClasses":"table-header-cell"}]
@@ -57,15 +67,16 @@ def render_compare():
 
             # 各收入项
             for item in inc_data["items"]:
-                if item["type"] != "revenue":
+                if item.get("type") != "revenue":
                     continue
-                if all(v == 0 for v in item["values"]):
+                if all(v == 0 for v in item.get("values", [])):
                     continue
-                row = {"item": f"    {item['name']}"}
-                for i, v in enumerate(item["values"]):
+                row = {"item": f"    {item.get('name', '')}"}
+                for i, v in enumerate(item.get("values", [])):
                     row[f"p{i}"] = f"¥{v:,.0f}" if v else "-"
-                if item["changes"] and item["changes"][-1] is not None:
-                    row["change"] = f"{item['changes'][-1]:+.1f}%"
+                _changes = item.get("changes", [])
+                if _changes and _changes[-1] is not None:
+                    row["change"] = f"{_changes[-1]:+.1f}%"
                 rows.append(row)
 
             # 费用小计
@@ -79,15 +90,16 @@ def render_compare():
 
             # 各费用项
             for item in inc_data["items"]:
-                if item["type"] != "expense":
+                if item.get("type") != "expense":
                     continue
-                if all(v == 0 for v in item["values"]):
+                if all(v == 0 for v in item.get("values", [])):
                     continue
-                row = {"item": f"    {item['name']}"}
-                for i, v in enumerate(item["values"]):
+                row = {"item": f"    {item.get('name', '')}"}
+                for i, v in enumerate(item.get("values", [])):
                     row[f"p{i}"] = f"¥{v:,.0f}" if v else "-"
-                if item["changes"] and item["changes"][-1] is not None:
-                    row["change"] = f"{item['changes'][-1]:+.1f}%"
+                _changes = item.get("changes", [])
+                if _changes and _changes[-1] is not None:
+                    row["change"] = f"{_changes[-1]:+.1f}%"
                 rows.append(row)
 
             # 净利润
@@ -108,7 +120,14 @@ def render_compare():
     with ui.card().classes("w-full mt-3"):
         SectionHeader("资产负债对比", icon="account_balance")
 
-        bs_data = ReportService.get_period_compare_balance(lid, periods)
+        try:
+            bs_data = ReportService.get_period_compare_balance(lid, state.selected_year, state.selected_month)
+        except Exception:
+            bs_data = {"periods": [], "summary": {"assets": [], "liabilities": [], "equity": []}}
+        bs_data.setdefault("periods", [])
+        bs_data.setdefault("summary", {})
+        for _k in ("assets", "liabilities", "equity"):
+            bs_data["summary"].setdefault(_k, [])
         if bs_data["periods"]:
             cols = [{"name":"item","label":"项目","field":"item","align":"left","headerClasses":"table-header-cell"}]
             for i, p in enumerate(bs_data["periods"]):

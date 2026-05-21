@@ -43,7 +43,7 @@ def render_settings():
                                         with ui.column().classes("gap-0"):
                                             ui.label(lg.get("name","")).classes("text-sm font-medium")
                                             ui.label(lg.get("company","")).classes("text-xs").style("color:var(--c-text-muted)")
-                                        ui.label(f"ID: {lg['id']}").classes("text-xs font-mono").style("color:var(--c-text-muted)")
+                                        ui.label(f"ID: {lg.get('id','')}").classes("text-xs font-mono").style("color:var(--c-text-muted)")
                             else:
                                 ui.label("暂无账套").classes("text-sm").style("color:var(--c-text-muted)")
                             ui.button("➕ 新建账套", color="primary", on_click=show_new_ledger_dialog).props("dense").classes("w-full mt-2")
@@ -205,7 +205,7 @@ def show_add_user_dialog(ledger_id):
             username = ui.input("用户名").props("outlined dense").classes("w-full")
             password = ui.input("密码", password=True).props("outlined dense").classes("w-full")
             role_sel = ui.select(
-                options=[("admin","管理员"),("accountant","制单人"),("reviewer","审核人"),("poster","过账人"),("viewer","查看者")],
+                options={"admin": "管理员", "accountant": "制单人", "reviewer": "审核人", "poster": "过账人", "viewer": "查看者"},
                 label="角色", value="accountant"
             ).props("outlined dense").classes("w-full")
         with ui.card_section():

@@ -125,11 +125,27 @@ def render_dashboard():
     if state._dashboard_cache is not None and state._dashboard_cache_key == cache_key:
         bs, inc, recent_vouchers = state._dashboard_cache
     else:
-        bs = ReportService.get_balance_sheet(lid, state.selected_year, state.selected_month)
-        inc = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
-        recent_vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month, limit=8)
+        try:
+            bs = ReportService.get_balance_sheet(lid, state.selected_year, state.selected_month)
+        except Exception:
+            bs = None
+        try:
+            inc = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
+        except Exception:
+            inc = None
+        try:
+            recent_vouchers = VoucherService.get_all(lid, state.selected_year, state.selected_month, limit=8)
+        except Exception:
+            recent_vouchers = []
         state._dashboard_cache = (bs, inc, recent_vouchers)
         state._dashboard_cache_key = cache_key
+    # 确保 bs/inc 永远不是 None（避免后续 .get() 崩溃）
+    if bs is None:
+        bs = {}
+    if inc is None:
+        inc = {}
+    if recent_vouchers is None:
+        recent_vouchers = []
 
     # 刷新按钮
     with ui.row().classes("w-full justify-end mb-2"):
