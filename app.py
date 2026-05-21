@@ -214,11 +214,12 @@ def index():
 
         def _check_js_nav():
             page = _pending_nav_page[0]
-            if page is not None:
-                _pending_nav_page[0] = None
-                _navigate(page)
+            if page is None:
+                return
+            _pending_nav_page[0] = None
+            _navigate(page)
 
-        ui.timer(0.1, _check_js_nav)
+        ui.timer(0.2, _check_js_nav)
 
 
 # ── 手机端抽屉式侧边栏 + 遮罩层 ──
