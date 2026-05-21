@@ -110,7 +110,7 @@ def _show_add_invoice_dialog(ledger_id: int):
             ui.label("➕ 录入发票").classes("text-lg font-bold")
         with ui.card_section().classes("gap-2"):
             with ui.row().classes("gap-2"):
-                inv_type = ui.select(options=[("input","进项发票"),("output","销项发票")], value="input", label="发票类型").props("outlined dense").classes("w-40")
+                inv_type = ui.select(options={"input": "进项发票", "output": "销项发票"}, value="input", label="发票类型").props("outlined dense").classes("w-40")
                 inv_no = ui.input("发票号码", placeholder="请输入发票号码").props("outlined dense").classes("flex-1")
             inv_date = ui.input("开票日期", placeholder="YYYY-MM-DD").props("outlined dense").classes("w-full")
             seller = ui.input("销售方名称").props("outlined dense").classes("w-full")

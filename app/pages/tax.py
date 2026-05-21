@@ -27,7 +27,7 @@ def render_tax():
                 config = TaxService.get_config(lid)
                 with ui.row().classes("gap-3"):
                     tp_type = ui.select(
-                        options=[("general","一般纳税人"),("small","小规模纳税人")],
+                        options={"general": "一般纳税人", "small": "小规模纳税人"},
                         label="纳税人类型", value=config.get("taxpayer_type","general") if config else "general"
                     ).props("outlined dense").classes("w-48")
                     tp_rate = ui.number(

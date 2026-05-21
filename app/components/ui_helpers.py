@@ -564,8 +564,18 @@ def _build_sidebar_content(sidebar_el):
 
 
 def render_sidebar():
-    """左侧导航菜单 — 创建 sidebar 容器并填充内容"""
+    """左侧导航菜单 — 创建 sidebar 容器并填充内容（幂等：重复调用时刷新而非重建）"""
     _init_sidebar_state()
+    # 若容器仍存活则复用，避免每次页面加载都创建新 DOM 导致菜单翻倍
+    if state._sidebar_container is not None:
+        try:
+            _ = state._sidebar_container.client
+            state._sidebar_container.clear()
+            with state._sidebar_container:
+                _build_sidebar_content(state._sidebar_container)
+            return
+        except RuntimeError:
+            state._sidebar_container = None
     sidebar_classes = "sidebar-nav h-full"
     if state.sidebar_collapsed:
         sidebar_classes += " sidebar-collapsed"

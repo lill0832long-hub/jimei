@@ -149,7 +149,7 @@ def render_cashier():
                         SectionHeader("自动勾对", icon="sync_alt")
                     with ui.card_section().classes("py-1 px-3"):
                         ui.label("按金额+日期匹配银行流水与凭证分录").classes("text-xs").style("color:var(--c-text-muted)")
-                        match_result = ui.label("").classes("text-sm mt-1").styles("color:var(--c-text-secondary)")
+                        match_result = ui.label("").classes("text-sm mt-1").style("color:var(--c-text-secondary)")
                         with ui.row().classes("gap-2 mt-2"):
                             ui.button("开始勾对", color="blue",
                                       on_click=lambda: _do_auto_match(bank_sel, match_result)).props("dense")

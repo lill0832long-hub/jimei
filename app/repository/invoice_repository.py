@@ -8,11 +8,13 @@ from .base import BaseRepository
 class InvoiceRepository(BaseRepository):
     model = Invoice
 
-    async def get_by_ledger(self, ledger_id: int, status: str = None, limit: int = 100):
+    async def get_by_ledger(self, ledger_id: int, status: str = None, invoice_type: str = None, limit: int = 100):
         async with get_db() as session:
             stmt = select(Invoice).where(Invoice.ledger_id == ledger_id)
             if status:
                 stmt = stmt.where(Invoice.status == status)
+            if invoice_type:
+                stmt = stmt.where(Invoice.invoice_type == invoice_type)
             stmt = stmt.order_by(Invoice.invoice_date.desc()).limit(limit)
             result = await session.execute(stmt)
             return result.scalars().all()
