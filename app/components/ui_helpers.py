@@ -105,6 +105,10 @@ def drill_down_to_voucher(voucher_no):
     navigate("journal")
 
 
+# 导航防抖用的全局 timer 引用
+_navigate_timer = None
+
+
 def navigate(page):
     """页面导航 — Tab 架构
 
@@ -139,8 +143,15 @@ def navigate(page):
     if page not in _PAGES_KEEPING_VOUCHER:
         state.selected_voucher_no = None
 
-    # 直接重建（不再用 timer 延迟，避免快速点击时多个 timer 并发冲突）
-    _rebuild_tabs()
+    # 延迟执行渲染，避免在 click handler 中直接 clear() 导致 RuntimeError
+    # 使用防抖：只保留最后一次导航的 timer
+    global _navigate_timer
+    if _navigate_timer is not None:
+        try:
+            _navigate_timer.cancel()
+        except Exception:
+            pass
+    _navigate_timer = ui.timer(0.05, _rebuild_tabs, once=True)
 
     # 同步 sidebar active 类（纯视觉，不触发导航）
     ui.run_javascript(f"window.sidebarCtrl&&window.sidebarCtrl.setActiveItem('{page}')")
@@ -302,7 +313,14 @@ def switch_tab(idx):
         return
     state.active_tab_idx = idx
     state.current_page = state.tabs[idx]["key"]
-    _rebuild_tabs()
+    # 延迟执行渲染，避免在 click handler 中直接 clear() 导致 RuntimeError
+    global _navigate_timer
+    if _navigate_timer is not None:
+        try:
+            _navigate_timer.cancel()
+        except Exception:
+            pass
+    _navigate_timer = ui.timer(0.05, _rebuild_tabs, once=True)
     # 同步 sidebar active 类
     ui.run_javascript(f"window.sidebarCtrl&&window.sidebarCtrl.setActiveItem('{state.current_page}')")
 
@@ -330,7 +348,14 @@ def close_tab(idx):
             # 关闭的是当前 tab 前面的 tab，索引前移
             state.active_tab_idx -= 1
         # 关闭的是后面的 tab，不需要调整 active_tab_idx
-    _rebuild_tabs()
+    # 延迟执行渲染，避免在 click handler 中直接 clear() 导致 RuntimeError
+    global _navigate_timer
+    if _navigate_timer is not None:
+        try:
+            _navigate_timer.cancel()
+        except Exception:
+            pass
+    _navigate_timer = ui.timer(0.05, _rebuild_tabs, once=True)
     # 同步 sidebar active 类
     ui.run_javascript(f"window.sidebarCtrl&&window.sidebarCtrl.setActiveItem('{state.current_page}')")
 
