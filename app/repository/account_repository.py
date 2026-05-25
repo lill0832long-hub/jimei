@@ -286,6 +286,7 @@ class BankAccountRepository(BaseRepository):
                 entry = entry_map.get(key)
                 if entry:
                     s.is_matched = 1
+                    s.matched_journal_id = entry.id
                     matched += 1
             await session.flush()
             return matched
