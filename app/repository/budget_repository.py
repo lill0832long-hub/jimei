@@ -110,7 +110,7 @@ class BudgetRepository(BaseRepository):
             if not budgets:
                 return []
 
-            # 2. Compute actual debit per account from posted vouchers
+            # 2. Compute actual debit per account from posted vouchers — single batch query
             actual_subq = (
                 select(
                     JournalEntry.account_code,
@@ -129,14 +129,18 @@ class BudgetRepository(BaseRepository):
                 .subquery()
             )
 
-            # 3. Build result list
+            # 3. Fetch all actual amounts in one query, build lookup dict
+            all_actual_stmt = select(
+                actual_subq.c.account_code,
+                actual_subq.c.total_debit,
+            )
+            all_actual_result = await session.execute(all_actual_stmt)
+            actual_map = {row.account_code: row.total_debit for row in all_actual_result}
+
+            # 4. Build result list (no per-account DB query)
             results = []
             for b in budgets:
-                actual_stmt = select(actual_subq.c.total_debit).where(
-                    actual_subq.c.account_code == b.account_code
-                )
-                actual_result = await session.execute(actual_stmt)
-                actual = actual_result.scalar() or 0
+                actual = actual_map.get(b.account_code, 0) or 0
 
                 budget_amount = b.budget_amount or 0
                 variance = actual - budget_amount
