@@ -1,4 +1,4 @@
-# CLAUDE.md — V3 财务系统
+# CLAUDE.md — V5.1 AI 财务系统
 
 ## gstack
 
@@ -7,6 +7,132 @@ Use the `/browse` skill from gstack for all web browsing. Do NOT use `mcp__claud
 ### Available gstack skills
 
 `/office-hours`, `/plan-ceo-review`, `/plan-eng-review`, `/plan-design-review`, `/design-consultation`, `/design-shotgun`, `/design-html`, `/review`, `/ship`, `/land-and-deploy`, `/canary`, `/benchmark`, `/browse`, `/connect-chrome`, `/qa`, `/qa-only`, `/design-review`, `/setup-browser-cookies`, `/setup-deploy`, `/setup-gbrain`, `/retro`, `/investigate`, `/document-release`, `/codex`, `/cso`, `/autoplan`, `/plan-devex-review`, `/devex-review`, `/careful`, `/freeze`, `/guard`, `/unfreeze`, `/gstack-upgrade`, `/learn`, `/explore`, `/code-simplifier`
+
+---
+
+## 项目目录树（V5.1）
+
+> 每次 Phase 1 Explore 时对照此树定位文件。
+
+```
+E:\ClaudeCode\my-project/
+├── app.py                          # 入口（VERSION_NAME = "V5.1"）
+├── requirements.txt
+├── app/
+│   ├── config.py                   # 页面路由注册
+│   ├── routes.py                   # API 路由注册
+│   ├── components/
+│   │   ├── state.py                # 全局状态（含钻取通信字段）
+│   │   ├── ui_components.py        # 可复用 UI 组件
+│   │   └── ui_helpers.py           # UI 辅助函数（含报表钻取 JS bridge）
+│   ├── pages/                      # 页面渲染（不直接调数据库）
+│   │   ├── auth.py                 # 登录/认证
+│   │   ├── dashboard.py            # 仪表盘
+│   │   ├── settings.py             # 系统设置
+│   │   ├── setup_wizard.py         # 初始化向导
+│   │   ├── general_ledger.py       # 总分类账（钻取目标页）
+│   │   ├── journal_list.py         # 凭证列表（钻取目标页）
+│   │   ├── journal_form.py         # 凭证表单
+│   │   ├── journal_form_v2.py      # 凭证表单 v2
+│   │   ├── reports_center.py       # 报表中心（钻取来源页，含 tab 系统）
+│   │   ├── reports.py / reports_balance_sheet.py / reports_income_statement.py
+│   │   ├── account_ledger.py       # 科目明细账
+│   │   ├── bank_reconciliation.py  # 银行对账
+│   │   ├── budget.py               # 预算管理
+│   │   ├── cash_flow.py / cash_flow_statement.py  # 现金流
+│   │   ├── fixed_assets.py         # 固定资产
+│   │   ├── invoices.py             # 发票管理
+│   │   ├── tax.py                  # 税务管理
+│   │   ├── auxiliary.py            # 辅助核算
+│   │   ├── multi_currency.py       # 多币种
+│   │   ├── import_export.py        # 导入导出
+│   │   ├── charts.py               # 图表
+│   │   ├── compare.py              # 对比分析
+│   │   ├── close_period.py         # 期末结账
+│   │   ├── trial_balance.py        # 试算平衡表
+│   │   ├── voucher_template.py     # 凭证模板
+│   │   ├── scheduled_vouchers.py   # 计划凭证
+│   │   ├── ai_assistant.py         # AI 助手
+│   │   └── ...
+│   ├── repository/                 # 仓库层（数据库查询封装）
+│   │   ├── base.py                 # 基础仓库
+│   │   ├── account_repository.py
+│   │   ├── budget_repository.py
+│   │   ├── fixed_asset_repository.py
+│   │   ├── invoice_repository.py
+│   │   ├── ledger_repository.py
+│   │   ├── period_repository.py
+│   │   ├── report_repository.py
+│   │   ├── tax_repository.py
+│   │   ├── voucher_repository.py
+│   │   └── ...
+│   ├── services/                   # 服务层（封装仓库，供页面调用）
+│   │   ├── account_service.py
+│   │   ├── budget_service.py
+│   │   ├── fixed_asset_service.py
+│   │   ├── ledger_service.py
+│   │   ├── report_service.py
+│   │   ├── tax_service.py
+│   │   ├── voucher_service.py
+│   │   └── ...
+│   ├── models/                     # ORM 模型
+│   │   ├── base.py / mixins.py
+│   │   ├── account.py / voucher.py / ledger.py
+│   │   ├── invoice.py / tax.py / fixed_asset.py
+│   │   ├── budget.py / cash_flow_category.py
+│   │   └── ...
+│   ├── static/
+│   │   ├── script.js               # 前端主脚本（导航桥接等）
+│   │   ├── annotation.js           # 页面标注工具
+│   │   └── style/                  # CSS 模块化（11文件）
+│   │       ├── index.css           # CSS 入口（@import 其他模块）
+│   │       ├── tokens.css          # CSS 变量（设计令牌）
+│   │       ├── base.css            # 基础重置
+│   │       ├── header.css          # 顶部导航栏
+│   │       ├── sidebar.css         # 左侧边栏
+│   │       ├── components.css      # 通用组件
+│   │       ├── dashboard.css       # 仪表盘
+│   │       ├── journal.css         # 凭证表格
+│   │       ├── reports.css         # 报表
+│   │       ├── login.css           # 登录页
+│   │       └── responsive.css      # 响应式
+│   └── utils/
+│       ├── pdf.py                  # PDF 导出
+│       └── period.py               # 会计期间工具
+├── database/                       # 数据库子模块（底层 SQL 操作）
+│   ├── connection.py               # 数据库连接
+│   ├── init_data.py                # 初始化数据
+│   ├── account.py / voucher.py / ledger.py
+│   ├── invoice.py / tax.py / fixed_asset.py
+│   ├── budget.py / cash_flow.py / report.py
+│   └── ...
+└── tests/                          # 测试
+    ├── conftest.py
+    ├── run_all.py                  # 一键验证入口
+    ├── test_render.py              # 渲染测试
+    ├── test_browser_ui.py          # 浏览器 UI 测试
+    └── test_css_modules.py         # CSS 模块测试
+```
+
+### 调用链路速查
+
+```
+用户点击 → pages/xx.py → services/xx_service.py → repository/xx_repository.py → database/xx.py → DB
+                ↑ 返回值             ↑ 返回值               ↑ SQL 查询
+```
+
+### 关键文件速查
+
+| 需求 | 入口文件 |
+|------|---------|
+| 新增页面 | `app/pages/` + `app/config.py` + `app/routes.py` |
+| 新增 API | `app/routes.py` |
+| 数据查询逻辑 | `app/repository/` |
+| 业务逻辑 | `app/services/` |
+| 页面样式 | `app/static/style/` 对应模块 CSS |
+| JS 交互 | `app/static/script.js` |
+| 报表钻取 | `state.py` + `ui_helpers.py` + `reports_center.py` + `general_ledger.py` |
+| 全局状态 | `app/components/state.py` |
 
 ---
 
@@ -345,9 +471,10 @@ type: `feat` | `fix` | `refactor` | `test` | `docs` | `chore`
 
 ### 架构模式
 
-- **服务层模式**：页面不直接调用 `database_v3`，通过 `app/services/` 下的服务类
+- **服务层模式**：页面不直接调用 `database/`，通过 `app/services/` → `app/repository/` 访问数据
 - **统一 UI 组件**：使用 `app/components/ui_helpers.py` 中的共享组件
-- **CSS 变量**：使用 `app/static/style.css` 中定义的 CSS 变量
+- **CSS 变量**：使用 `app/static/style/tokens.css` 中定义的设计令牌（index.css 为入口）
+- **版本**：V5.1，入口 `app.py` 中 `VERSION_NAME = "V5.1"`
 
 ### Python 规范
 
@@ -360,11 +487,17 @@ type: `feat` | `fix` | `refactor` | `test` | `docs` | `chore`
 
 ```
 app/
-├── components/       # 共享 UI 组件（ui_helpers.py, state.py）
+├── components/       # 共享 UI 组件（state.py, ui_helpers.py, ui_components.py）
 ├── config.py         # 页面路由注册
 ├── pages/            # 页面渲染函数（不直接调数据库）
-├── routes/           # API 路由注册
-├── services/         # 服务层（封装数据库调用）
-├── static/           # CSS / JS
-database/             # 数据库子模块（从 database_v3.py 拆分）
+├── routes.py         # API 路由注册
+├── repository/       # 仓库层（数据库查询封装）
+├── services/         # 服务层（封装仓库，供页面调用）
+├── models/           # ORM 模型
+├── static/           # CSS / JS（style/ 下 11 个 CSS 模块）
+│   ├── script.js     # 前端主脚本
+│   ├── annotation.js # 标注工具
+│   └── style/        # CSS 模块化
+└── utils/            # 工具函数（pdf, period）
+database/             # 数据库子模块（底层 SQL 操作）
 ```
