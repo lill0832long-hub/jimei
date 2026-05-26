@@ -38,21 +38,15 @@ from nicegui import ui, app
 
 # ── 注册静态文件路由 ──
 import os as _os
+from starlette.staticfiles import StaticFiles
 _STATIC_DIR = _os.path.join(_os.path.dirname(__file__), "app", "static")
-app.add_static_files("/static", _STATIC_DIR)
+# NiceGUI 3.12.0 的 add_static_files 不服务子目录（style/ 下 CSS 全部 404）
+# 改用 Starlette StaticFiles mount，递归服务整个 static 目录
+app.mount("/static", StaticFiles(directory=_STATIC_DIR, html=False))
 
 # ── 注册 API 路由 ──
 from app.routes import register_routes
 register_routes(app)
-
-# ── JS → Python 导航桥接（底部导航栏/抽屉菜单用）──
-# JS 通过 fetch 写入目标页面到 app.storage，Python 端轮询检测并执行导航
-_pending_nav_page = [None]  # 用 list 实现可变闭包
-
-@app.post("/api/navigate/{page}")
-async def api_navigate(page: str):
-    """JS 导航入口：写入待导航页面（由 index() 中的 timer 消费）"""
-    _pending_nav_page[0] = page
 
 # ── 自动备份 ──
 from app.services.backup import start_auto_backup
@@ -147,8 +141,8 @@ def render_page():
 
 @ui.page("/")
 def index():
-    # 注入全局 CSS & JS（内联到 head，确保每次页面加载都生效）
     import os as _os, time as _time
+    # 注入全局 CSS & JS（内联到 head，确保每次页面加载都生效）
     _static_dir = _os.path.join(_os.path.dirname(__file__), "app", "static")
     _css_dir = _os.path.join(_static_dir, "style")
     _css_path = _os.path.join(_css_dir, "index.css")
@@ -175,8 +169,8 @@ def index():
 
     # 从 cookie 恢复 session（登录后页面刷新，Python 内存状态丢失）
     import json as _json
+    from nicegui import context
     try:
-        from nicegui import context
         session_cookie = context.client.cookies.get("sess")
         if session_cookie:
             data = _json.loads(session_cookie)
@@ -187,6 +181,15 @@ def index():
             }
     except Exception:
         pass
+
+    # 从 URL query parameter 读取导航目标（底部导航栏/抽屉菜单点击后页面重载）
+    if state.current_user is not None:
+        try:
+            _page_param = context.client.request.query_params.get("page")
+            if _page_param:
+                state.current_page = _page_param
+        except Exception:
+            pass
 
     if state.current_user is None:
         render_login()
@@ -209,21 +212,9 @@ def index():
                 with ui.column().classes("w-full flex-grow") as state._tab_contents:
                     render_page()
 
-        # ── JS 导航桥接轮询（消费底部导航栏/抽屉菜单的导航请求）──
-        from app.components.ui_helpers import navigate as _navigate
-
-        def _check_js_nav():
-            page = _pending_nav_page[0]
-            if page is None:
-                return
-            _pending_nav_page[0] = None
-            _navigate(page)
-
-        ui.timer(0.2, _check_js_nav)
 
 
 # ── 手机端抽屉式侧边栏 + 遮罩层 ──
-
 
 # ── 启动 ──
 if __name__ == "__main__":

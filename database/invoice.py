@@ -74,64 +74,70 @@ def extract_invoice_info(text: str) -> dict:
 def get_invoices(ledger_id: int, invoice_type: str = None, status: str = None) -> list:
     """获取发票列表"""
     conn = get_conn()
-    query = "SELECT * FROM invoices WHERE ledger_id = ?"
-    params = [ledger_id]
-    if invoice_type:
-        query += " AND invoice_type = ?"
-        params.append(invoice_type)
-    if status:
-        query += " AND status = ?"
-        params.append(status)
-    query += " ORDER BY invoice_date DESC, created_at DESC"
-    rows = conn.execute(query, params).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+    try:
+        query = "SELECT * FROM invoices WHERE ledger_id = ?"
+        params = [ledger_id]
+        if invoice_type:
+            query += " AND invoice_type = ?"
+            params.append(invoice_type)
+        if status:
+            query += " AND status = ?"
+            params.append(status)
+        query += " ORDER BY invoice_date DESC, created_at DESC"
+        rows = conn.execute(query, params).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
 
 def add_invoice(ledger_id: int, invoice_type: str, invoice_no: str, **kwargs) -> int:
     """添加发票"""
     conn = get_conn()
-    fields = ["ledger_id", "invoice_type", "invoice_no"]
-    values = [ledger_id, invoice_type, invoice_no]
-    for k, v in kwargs.items():
-        if k in ("invoice_date", "seller_name", "seller_tax_no", "buyer_name", "buyer_tax_no",
-                 "total_amount", "tax_amount", "total_with_tax", "status", "ocr_data", "file_path", "remark"):
-            fields.append(k)
-            values.append(v)
-    placeholders = ",".join(["?"] * len(fields))
-    conn.execute(f"INSERT INTO invoices ({','.join(fields)}) VALUES ({placeholders})", values)
-    conn.commit()
-    iid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-    conn.close()
-    return iid
+    try:
+        fields = ["ledger_id", "invoice_type", "invoice_no"]
+        values = [ledger_id, invoice_type, invoice_no]
+        for k, v in kwargs.items():
+            if k in ("invoice_date", "seller_name", "seller_tax_no", "buyer_name", "buyer_tax_no",
+                     "total_amount", "tax_amount", "total_with_tax", "status", "ocr_data", "file_path", "remark"):
+                fields.append(k)
+                values.append(v)
+        placeholders = ",".join(["?"] * len(fields))
+        conn.execute(f"INSERT INTO invoices ({','.join(fields)}) VALUES ({placeholders})", values)
+        conn.commit()
+        iid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+        return iid
+    finally:
+        conn.close()
 
 def get_invoice_summary(ledger_id: int) -> dict:
     """获取发票汇总统计"""
     conn = get_conn()
-    # 进项发票
-    input_count = conn.execute(
-        "SELECT COUNT(*) as cnt, COALESCE(SUM(total_with_tax), 0) as total "
-        "FROM invoices WHERE ledger_id = ? AND invoice_type = 'input'",
-        (ledger_id,)
-    ).fetchone()
-    # 销项发票
-    output_count = conn.execute(
-        "SELECT COUNT(*) as cnt, COALESCE(SUM(total_with_tax), 0) as total "
-        "FROM invoices WHERE ledger_id = ? AND invoice_type = 'output'",
-        (ledger_id,)
-    ).fetchone()
-    # 未核验
-    unverified = conn.execute(
-        "SELECT COUNT(*) as cnt FROM invoices WHERE ledger_id = ? AND status = 'unverified'",
-        (ledger_id,)
-    ).fetchone()["cnt"]
-    conn.close()
-    return {
-        "input_count": input_count["cnt"],
-        "input_total": input_count["total"],
-        "output_count": output_count["cnt"],
-        "output_total": output_count["total"],
-        "unverified_count": unverified,
-    }
+    try:
+        # 进项发票
+        input_count = conn.execute(
+            "SELECT COUNT(*) as cnt, COALESCE(SUM(total_with_tax), 0) as total "
+            "FROM invoices WHERE ledger_id = ? AND invoice_type = 'input'",
+            (ledger_id,)
+        ).fetchone()
+        # 销项发票
+        output_count = conn.execute(
+            "SELECT COUNT(*) as cnt, COALESCE(SUM(total_with_tax), 0) as total "
+            "FROM invoices WHERE ledger_id = ? AND invoice_type = 'output'",
+            (ledger_id,)
+        ).fetchone()
+        # 未核验
+        unverified = conn.execute(
+            "SELECT COUNT(*) as cnt FROM invoices WHERE ledger_id = ? AND status = 'unverified'",
+            (ledger_id,)
+        ).fetchone()["cnt"]
+        return {
+            "input_count": input_count["cnt"],
+            "input_total": input_count["total"],
+            "output_count": output_count["cnt"],
+            "output_total": output_count["total"],
+            "unverified_count": unverified,
+        }
+    finally:
+        conn.close()
 
 def ocr_recognize_invoice(file_path: str) -> dict:
     """

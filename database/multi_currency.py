@@ -57,12 +57,14 @@ def set_exchange_rate(from_currency: str, to_currency: str, rate: float, date: s
     if date is None:
         date = datetime.now().strftime("%Y-%m-%d")
     conn = get_conn()
-    conn.execute("""
-        INSERT OR REPLACE INTO exchange_rates (from_currency, to_currency, rate, date)
-        VALUES (?,?,?,?)
-    """, (from_currency.upper(), to_currency.upper(), rate, date))
-    conn.commit()
-    release_conn(conn)
+    try:
+        conn.execute("""
+            INSERT OR REPLACE INTO exchange_rates (from_currency, to_currency, rate, date)
+            VALUES (?,?,?,?)
+        """, (from_currency.upper(), to_currency.upper(), rate, date))
+        conn.commit()
+    finally:
+        release_conn(conn)
     clear_query_cache()
 
 def get_exchange_rate(from_currency: str, to_currency: str, date: str = None) -> float:
@@ -72,13 +74,15 @@ def get_exchange_rate(from_currency: str, to_currency: str, date: str = None) ->
     if date is None:
         date = datetime.now().strftime("%Y-%m-%d")
     conn = get_conn()
-    row = conn.execute("""
-        SELECT rate FROM exchange_rates
-        WHERE from_currency = ? AND to_currency = ?
-          AND date <= ?
-        ORDER BY date DESC LIMIT 1
-    """, (from_currency.upper(), to_currency.upper(), date)).fetchone()
-    release_conn(conn)
+    try:
+        row = conn.execute("""
+            SELECT rate FROM exchange_rates
+            WHERE from_currency = ? AND to_currency = ?
+              AND date <= ?
+            ORDER BY date DESC LIMIT 1
+        """, (from_currency.upper(), to_currency.upper(), date)).fetchone()
+    finally:
+        release_conn(conn)
     if not row:
         logger.warning("No exchange rate found for %s->%s on %s, using 1.0", from_currency, to_currency, date)
         return 1.0

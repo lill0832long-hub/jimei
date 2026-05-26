@@ -15,11 +15,13 @@ def backup_database(ledger_id: int, backup_dir: str) -> str:
         raise ValueError("账套不存在")
 
     conn = get_conn()
-    vouchers = conn.execute("SELECT * FROM vouchers WHERE ledger_id = ?", (ledger_id,)).fetchall()
-    entries = conn.execute("SELECT * FROM journal_entries WHERE ledger_id = ?", (ledger_id,)).fetchall()
-    ob = conn.execute("SELECT * FROM opening_balances WHERE ledger_id = ?", (ledger_id,)).fetchall()
-    audit = conn.execute("SELECT * FROM audit_logs WHERE ledger_id = ?", (ledger_id,)).fetchall()
-    conn.close()
+    try:
+        vouchers = conn.execute("SELECT * FROM vouchers WHERE ledger_id = ?", (ledger_id,)).fetchall()
+        entries = conn.execute("SELECT * FROM journal_entries WHERE ledger_id = ?", (ledger_id,)).fetchall()
+        ob = conn.execute("SELECT * FROM opening_balances WHERE ledger_id = ?", (ledger_id,)).fetchall()
+        audit = conn.execute("SELECT * FROM audit_logs WHERE ledger_id = ?", (ledger_id,)).fetchall()
+    finally:
+        conn.close()
 
     data = {
         "version": "2.0",
@@ -89,25 +91,27 @@ def restore_database(backup_dir: str, target_ledger_id: int = None) -> dict:
     restored = 0
     skipped = 0
     conn = get_conn()
-    for v in vouchers:
-        existing = conn.execute("SELECT id FROM vouchers WHERE voucher_no = ?", (v["voucher_no"],)).fetchone()
-        if existing:
-            skipped += 1
-            continue
-        v_entries = [e for e in entries if e.get("voucher_id") == v["id"]]
-        try:
-            create_voucher(
-                target_ledger_id,
-                v["date"],
-                v["description"],
-                [{"account_code": e["account_code"], "account_name": e["account_name"],
-                  "debit": e["debit"], "credit": e["credit"], "summary": e.get("summary", "")}
-                 for e in v_entries],
-                status=v.get("status", "posted")
-            )
-            restored += 1
-        except Exception:
-            skipped += 1
-    conn.close()
+    try:
+        for v in vouchers:
+            existing = conn.execute("SELECT id FROM vouchers WHERE voucher_no = ?", (v["voucher_no"],)).fetchone()
+            if existing:
+                skipped += 1
+                continue
+            v_entries = [e for e in entries if e.get("voucher_id") == v["id"]]
+            try:
+                create_voucher(
+                    target_ledger_id,
+                    v["date"],
+                    v["description"],
+                    [{"account_code": e["account_code"], "account_name": e["account_name"],
+                      "debit": e["debit"], "credit": e["credit"], "summary": e.get("summary", "")}
+                     for e in v_entries],
+                    status=v.get("status", "posted")
+                )
+                restored += 1
+            except Exception:
+                skipped += 1
+    finally:
+        conn.close()
 
     return {"ledger_id": target_ledger_id, "vouchers_restored": restored, "skipped": skipped}

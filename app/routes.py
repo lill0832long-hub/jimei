@@ -116,6 +116,8 @@ def _validate_aux_type(aux_type):
 
 def register_routes(app):
     """注册所有 GET + POST API 路由"""
+    import sys
+    print(f"REGISTER_ROUTES CALLED", file=sys.stderr, flush=True)
 
     # ── 请求日志中间件 ──
     @app.middleware("http")

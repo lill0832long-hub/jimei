@@ -1,12 +1,18 @@
 """凭证服务层 — 使用 Repository 模式"""
 import logging
 from app.services._utils import run_async, to_dict
-from app.repository.voucher_repository import VoucherRepository
+from app.repository.voucher_repository import (
+    VoucherRepository, VoucherTemplateRepository,
+    ScheduledVoucherRepository, InvoiceVoucherRepository,
+)
 
 logger = logging.getLogger(__name__)
 
 
 _voucher_repo = VoucherRepository()
+_template_repo = VoucherTemplateRepository()
+_scheduled_repo = ScheduledVoucherRepository()
+_invoice_voucher_repo = InvoiceVoucherRepository()
 
 
 class VoucherService:
@@ -205,61 +211,64 @@ class VoucherService:
             return []
         return to_dict(run_async(_voucher_repo.get_workflow_history(voucher_id)))
 
-    # ── 凭证模板（暂保留旧实现，待后续迁移） ──
+    # ── 凭证模板 ──
     @staticmethod
     def get_templates(ledger_id, include_inactive=False):
-        from database.voucher import get_voucher_templates
-        return get_voucher_templates(ledger_id, include_inactive)
+        return to_dict(run_async(_template_repo.get_all(ledger_id, include_inactive=include_inactive)))
 
     @staticmethod
     def create_template(ledger_id, name, description="", entries=None, category="general"):
-        from database.voucher import create_voucher_template
-        return create_voucher_template(ledger_id, name, description, entries, category)
+        return to_dict(run_async(_template_repo.create(
+            ledger_id=ledger_id, name=name, description=description,
+            entries=entries or [], category=category,
+        )))
 
     @staticmethod
     def update_template(template_id, ledger_id=None, **kwargs):
-        from database.voucher import update_voucher_template
-        return update_voucher_template(template_id, ledger_id, **kwargs)
+        return to_dict(run_async(_template_repo.update(template_id, ledger_id=ledger_id, **kwargs)))
 
     @staticmethod
     def delete_template(template_id, ledger_id=None):
-        from database.voucher import delete_voucher_template
-        return delete_voucher_template(template_id, ledger_id)
+        return run_async(_template_repo.delete(template_id, ledger_id=ledger_id))
 
     @staticmethod
     def save_template(ledger_id, name, entries, description="", voucher_type="记"):
-        from database.voucher import save_voucher_template
-        return save_voucher_template(ledger_id, name, entries, description, voucher_type)
+        return to_dict(run_async(_template_repo.save(
+            ledger_id=ledger_id, name=name, entries=entries,
+            description=description, voucher_type=voucher_type,
+        )))
 
-    # ── 计划凭证（暂保留旧实现） ──
+    # ── 计划凭证 ──
     @staticmethod
     def get_scheduled(ledger_id):
-        from database.voucher import get_scheduled_vouchers
-        return get_scheduled_vouchers(ledger_id)
+        return to_dict(run_async(_scheduled_repo.get_all(ledger_id)))
 
     @staticmethod
     def add_scheduled(ledger_id, **kwargs):
-        from database.voucher import add_scheduled_voucher
-        return add_scheduled_voucher(ledger_id, **kwargs)
+        return to_dict(run_async(_scheduled_repo.create(ledger_id=ledger_id, **kwargs)))
 
     @staticmethod
     def run_scheduled(scheduled_id):
+        """执行定时凭证 — 涉及模板解析和凭证创建，保留旧实现"""
         from database.voucher import run_scheduled_voucher
         return run_scheduled_voucher(scheduled_id)
 
-    # ── 辅助方法（暂保留旧实现） ──
+    # ── 辅助方法 ──
     @staticmethod
     def import_from_excel(ledger_id, file_path):
+        """Excel导入 — 涉及文件解析和批量凭证创建，保留旧实现"""
         from database.voucher import import_vouchers_from_excel
         return import_vouchers_from_excel(ledger_id, file_path)
 
     @staticmethod
     def generate_from_text(ledger_id, text):
+        """AI文本生成凭证 — 涉及复杂规则引擎，保留旧实现"""
         from database.voucher import generate_voucher_from_text
         return generate_voucher_from_text(ledger_id, text)
 
     @staticmethod
     def search_by_auxiliary(ledger_id, aux_filters):
-        """多维度辅助核算查询"""
-        from database.auxiliary import multi_aux_search
-        return multi_aux_search(ledger_id, aux_filters)
+        """多维度辅助核算查询 — 使用 Repository 模式"""
+        from app.repository.account_repository import AuxiliaryRepository
+        _aux_repo = AuxiliaryRepository()
+        return run_async(_aux_repo.multi_aux_search(ledger_id, aux_filters))

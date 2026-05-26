@@ -1,7 +1,11 @@
 """Voucher repository."""
+import json
 from sqlalchemy import select, and_, or_, func
 from app.models.voucher import Voucher, JournalEntry
 from app.models.voucher_workflow import VoucherWorkflow
+from app.models.voucher_template import VoucherTemplate
+from app.models.scheduled_voucher import ScheduledVoucher
+from app.models.invoice import InvoiceVoucher
 from app.models.base import get_db
 from .base import BaseRepository
 
@@ -216,5 +220,143 @@ class VoucherRepository(BaseRepository):
             stmt = select(VoucherWorkflow).where(
                 VoucherWorkflow.voucher_id == voucher_id
             ).order_by(VoucherWorkflow.created_at.asc())
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+
+class VoucherTemplateRepository(BaseRepository):
+    """凭证模板管理"""
+
+    model = VoucherTemplate
+
+    async def get_all(self, ledger_id: int, include_inactive: bool = False):
+        async with get_db() as session:
+            stmt = select(VoucherTemplate).where(VoucherTemplate.ledger_id == ledger_id)
+            if not include_inactive:
+                stmt = stmt.where(VoucherTemplate.is_active == 1)
+            stmt = stmt.order_by(VoucherTemplate.name)
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    async def create(self, ledger_id: int, name: str, description: str, entries: list,
+                     category: str = "general", is_system: int = 0):
+        async with get_db() as session:
+            import json as _json
+            tpl = VoucherTemplate(
+                ledger_id=ledger_id,
+                name=name,
+                description=description,
+                category=category,
+                entries=_json.dumps(entries, ensure_ascii=False),
+                is_system=is_system,
+            )
+            session.add(tpl)
+            await session.flush()
+            await session.refresh(tpl)
+            return tpl
+
+    async def update(self, template_id: int, ledger_id: int, **kwargs):
+        async with get_db() as session:
+            stmt = select(VoucherTemplate).where(
+                and_(VoucherTemplate.id == template_id, VoucherTemplate.ledger_id == ledger_id)
+            )
+            result = await session.execute(stmt)
+            tpl = result.scalar_one_or_none()
+            if tpl:
+                import json as _json
+                if "entries" in kwargs and kwargs["entries"] is not None:
+                    kwargs["entries"] = _json.dumps(kwargs["entries"], ensure_ascii=False)
+                if "is_active" in kwargs:
+                    kwargs["is_active"] = 1 if kwargs["is_active"] else 0
+                for k, v in kwargs.items():
+                    if v is not None:
+                        setattr(tpl, k, v)
+            return tpl
+
+    async def delete(self, template_id: int, ledger_id: int) -> bool:
+        async with get_db() as session:
+            stmt = select(VoucherTemplate).where(
+                and_(
+                    VoucherTemplate.id == template_id,
+                    VoucherTemplate.ledger_id == ledger_id,
+                    VoucherTemplate.is_system == 0,
+                )
+            )
+            result = await session.execute(stmt)
+            tpl = result.scalar_one_or_none()
+            if tpl:
+                await session.delete(tpl)
+                return True
+            return False
+
+    async def save(self, ledger_id: int, name: str, entries: list,
+                   description: str = "", voucher_type: str = "记"):
+        """保存凭证模板（简化版创建）"""
+        async with get_db() as session:
+            import json as _json
+            tpl = VoucherTemplate(
+                ledger_id=ledger_id,
+                name=name,
+                description=description,
+                voucher_type=voucher_type,
+                entries=_json.dumps(entries, ensure_ascii=False),
+            )
+            session.add(tpl)
+            await session.flush()
+            await session.refresh(tpl)
+            return tpl
+
+
+class ScheduledVoucherRepository(BaseRepository):
+    """定时凭证任务管理"""
+
+    model = ScheduledVoucher
+
+    async def get_all(self, ledger_id: int):
+        async with get_db() as session:
+            stmt = select(ScheduledVoucher).where(
+                and_(ScheduledVoucher.ledger_id == ledger_id, ScheduledVoucher.is_active == 1)
+            ).order_by(ScheduledVoucher.next_run_at)
+            result = await session.execute(stmt)
+            return result.scalars().all()
+
+    async def create(self, ledger_id: int, name: str, cron_expression: str,
+                     template_id: int = None, next_run_at: str = None):
+        async with get_db() as session:
+            sv = ScheduledVoucher(
+                ledger_id=ledger_id,
+                template_id=template_id,
+                name=name,
+                cron_expression=cron_expression,
+                next_run_at=next_run_at,
+            )
+            session.add(sv)
+            await session.flush()
+            await session.refresh(sv)
+            return sv
+
+
+class InvoiceVoucherRepository(BaseRepository):
+    """发票-凭证关联"""
+
+    async def link(self, invoice_id: int, voucher_id: int, ledger_id: int):
+        async with get_db() as session:
+            link = InvoiceVoucher(
+                invoice_id=invoice_id,
+                voucher_id=voucher_id,
+                ledger_id=ledger_id,
+            )
+            session.add(link)
+            await session.flush()
+            return link
+
+    async def get_vouchers(self, invoice_id: int):
+        async with get_db() as session:
+            from app.models.voucher import Voucher
+            stmt = select(Voucher).join(
+                InvoiceVoucher, InvoiceVoucher.voucher_id == Voucher.id
+            ).where(
+                InvoiceVoucher.invoice_id == invoice_id
+            ).order_by(Voucher.date.desc())
             result = await session.execute(stmt)
             return result.scalars().all()

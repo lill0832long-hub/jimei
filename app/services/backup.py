@@ -1,7 +1,11 @@
 """自动备份服务"""
 import os, threading, logging, json as _json
 from datetime import datetime
-from database.ledger import get_ledgers, backup_ledger_to_json
+from app.repository.ledger_repository import LedgerRepository
+from app.services._utils import run_async
+from database.ledger import backup_ledger_to_json  # TODO: migrate to repository pattern
+
+_ledger_repo = LedgerRepository()
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +27,7 @@ def _auto_backup_worker():
     while not _stop_event.is_set():
         try:
             with _BACKUP_LOCK:
-                ledgers = get_ledgers()
+                ledgers = run_async(_ledger_repo.get_all())
                 for ledger in ledgers:
                     try:
                         fpath = backup_ledger_to_json(ledger["id"], _AUTO_BACKUP_DIR)

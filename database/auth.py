@@ -54,11 +54,13 @@ def create_user(username: str, password: str, role: str = "user", ledger_id: int
 def authenticate(username: str, password: str) -> dict:
     """验证用户登录，返回用户信息（bcrypt 验证）"""
     conn = get_conn()
-    row = conn.execute(
-        "SELECT * FROM users WHERE username = ? AND is_active = 1",
-        (username,)
-    ).fetchone()
-    conn.close()
+    try:
+        row = conn.execute(
+            "SELECT * FROM users WHERE username = ? AND is_active = 1",
+            (username,)
+        ).fetchone()
+    finally:
+        conn.close()
     if row and verify_password(password, row["password_hash"]):
         return dict(row)
     return None
@@ -66,11 +68,13 @@ def authenticate(username: str, password: str) -> dict:
 def get_users(ledger_id: int = None) -> list:
     """获取用户列表"""
     conn = get_conn()
-    if ledger_id:
-        rows = conn.execute("SELECT id, username, role, ledger_id, is_active, created_at FROM users WHERE ledger_id = ? ORDER BY created_at", (ledger_id,)).fetchall()
-    else:
-        rows = conn.execute("SELECT id, username, role, ledger_id, is_active, created_at FROM users ORDER BY created_at").fetchall()
-    conn.close()
+    try:
+        if ledger_id:
+            rows = conn.execute("SELECT id, username, role, ledger_id, is_active, created_at FROM users WHERE ledger_id = ? ORDER BY created_at", (ledger_id,)).fetchall()
+        else:
+            rows = conn.execute("SELECT id, username, role, ledger_id, is_active, created_at FROM users ORDER BY created_at").fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 def update_user(user_id: int, **kwargs):
@@ -81,27 +85,33 @@ def update_user(user_id: int, **kwargs):
         return
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     conn = get_conn()
-    conn.execute(f"UPDATE users SET {set_clause}, updated_at = datetime('now','localtime') WHERE id = ?",
-                 list(updates.values()) + [user_id])
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(f"UPDATE users SET {set_clause}, updated_at = datetime('now','localtime') WHERE id = ?",
+                     list(updates.values()) + [user_id])
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
 
 def delete_user(user_id: int):
     """删除用户"""
     conn = get_conn()
-    conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("DELETE FROM users WHERE id = ?", (user_id,))
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
 
 def change_password(user_id: int, new_password: str):
     """修改密码"""
     conn = get_conn()
-    conn.execute("UPDATE users SET password_hash = ?, updated_at = datetime('now','localtime') WHERE id = ?",
-                 (hash_password(new_password), user_id))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("UPDATE users SET password_hash = ?, updated_at = datetime('now','localtime') WHERE id = ?",
+                     (hash_password(new_password), user_id))
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
 
 def check_permission(user: dict, permission: str) -> bool:

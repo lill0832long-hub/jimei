@@ -3,7 +3,7 @@ from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast, refresh_main
 from app.services import LedgerService, AccountService, VoucherService
-from database.ai import query_db  # TODO: migrate complex queries to repository
+from app.repository.ai_repository import AiRepository
 
 # 辅助核算类型
 _AUX_TYPES = ["客户", "供应商", "产品线", "地区", "部门", "项目"]
@@ -119,7 +119,7 @@ def _do_query_multi_dim(cust_sel, prod_sel, region_sel, result_table):
         LIMIT 100
     """
     try:
-        rows = query_db(sql, tuple(params))
+        rows = AiRepository.query_db(sql, tuple(params))
         result_table.rows = rows
         result_table.update()
         show_toast(f"查询完成，共 {len(rows)} 条", "success")
@@ -218,7 +218,7 @@ def render_auxiliary():
                                 for aux in aux_data.get(atype, []):
                                     # 查询每个维度的余额
                                     try:
-                                        bal = query_db("""
+                                        bal = AiRepository.query_db("""
                                             SELECT COALESCE(SUM(e.debit),0) as total_dr,
                                                    COALESCE(SUM(e.credit),0) as total_cr
                                             FROM entry_auxiliary ea

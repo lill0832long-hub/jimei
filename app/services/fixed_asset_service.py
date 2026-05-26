@@ -34,13 +34,9 @@ class FixedAssetService:
     @staticmethod
     def calculate_depreciation(asset_id, year, month):
         """计算单资产月折旧额"""
-        # TODO: migrate to repository pattern
-        from database.fixed_asset import calculate_depreciation
-        return calculate_depreciation(asset_id, year, month)
+        return run_async(_fa_repo.calculate_depreciation(asset_id, year, month))
 
     @staticmethod
     def batch_calculate_depreciation(ledger_id, year, month):
         """批量计提折旧"""
-        # TODO: migrate to repository pattern
-        from database.fixed_asset import batch_calculate_depreciation
-        return batch_calculate_depreciation(ledger_id, year, month)
+        return run_async(_fa_repo.batch_calculate_depreciation(ledger_id, year, month))

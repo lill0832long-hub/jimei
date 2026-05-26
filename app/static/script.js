@@ -53,14 +53,13 @@
     };
 
     // ── 手机端导航函数 ──
-    // 统一调用 Python navigate()，不再全页刷新
+    // 使用 URL query parameter 传递导航目标，页面重载后 Python 端读取
     window.navigateTo = function(page) {
         document.querySelectorAll('.bottom-nav-item').forEach(function(el) {
             el.classList.toggle('active', el.dataset.page === page);
         });
         window.sidebarCtrl.closeDrawer();
-        // 调用 Python navigate() API（SPA，不刷新页面）
-        fetch('/api/navigate/' + page, {method: 'POST'});
+        window.location.href = '/?page=' + page;
     };
 
     // ── DOMContentLoaded 初始化 ──
@@ -129,7 +128,7 @@
                 var page = btn.dataset.page;
                 if (!page) return;
                 window.sidebarCtrl.closeDrawer();
-                fetch('/api/navigate/' + page, {method: 'POST'});
+                window.location.href = '/?page=' + page;
             });
         }
 

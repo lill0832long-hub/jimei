@@ -6,31 +6,37 @@ def create_ledger(name, company="默认公司", currency="CNY", fiscal_start=Non
     """创建新账套"""
     import json
     conn = get_conn()
-    cur = conn.execute(
-        "INSERT INTO ledgers (name, company, currency, fiscal_year_start, fiscal_year_end, settings) VALUES (?,?,?,?,?,?)",
-        (name, company, currency,
-         fiscal_start or f"{datetime.now().year}-01-01",
-         fiscal_end or f"{datetime.now().year}-12-31",
-         json.dumps(settings) if settings else None)
-    )
-    ledger_id = cur.lastrowid
-    conn.commit()
-    conn.close()
+    try:
+        cur = conn.execute(
+            "INSERT INTO ledgers (name, company, currency, fiscal_year_start, fiscal_year_end, settings) VALUES (?,?,?,?,?,?)",
+            (name, company, currency,
+             fiscal_start or f"{datetime.now().year}-01-01",
+             fiscal_end or f"{datetime.now().year}-12-31",
+             json.dumps(settings) if settings else None)
+        )
+        ledger_id = cur.lastrowid
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
     return ledger_id
 
 def get_ledgers():
     """获取所有账套"""
     conn = get_conn()
-    rows = conn.execute("SELECT * FROM ledgers ORDER BY created_at DESC").fetchall()
-    conn.close()
+    try:
+        rows = conn.execute("SELECT * FROM ledgers ORDER BY created_at DESC").fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 def get_ledger(ledger_id):
     """获取单个账套"""
     conn = get_conn()
-    row = conn.execute("SELECT * FROM ledgers WHERE id = ?", (ledger_id,)).fetchone()
-    conn.close()
+    try:
+        row = conn.execute("SELECT * FROM ledgers WHERE id = ?", (ledger_id,)).fetchone()
+    finally:
+        conn.close()
     return dict(row) if row else None
 
 def update_ledger(ledger_id, **kwargs):
@@ -44,23 +50,27 @@ def update_ledger(ledger_id, **kwargs):
         return
     set_clause = ", ".join(f"{k} = ?" for k in updates)
     conn = get_conn()
-    conn.execute(f"UPDATE ledgers SET {set_clause}, updated_at = datetime('now','localtime') WHERE id = ?",
-                 list(updates.values()) + [ledger_id])
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(f"UPDATE ledgers SET {set_clause}, updated_at = datetime('now','localtime') WHERE id = ?",
+                     list(updates.values()) + [ledger_id])
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
 
 def delete_ledger(ledger_id):
     """删除账套（级联删除所有相关数据）"""
     conn = get_conn()
-    conn.execute("DELETE FROM audit_logs WHERE ledger_id = ?", (ledger_id,))
-    conn.execute("DELETE FROM journal_entries WHERE ledger_id = ?", (ledger_id,))
-    conn.execute("DELETE FROM vouchers WHERE ledger_id = ?", (ledger_id,))
-    conn.execute("DELETE FROM opening_balances WHERE ledger_id = ?", (ledger_id,))
-    conn.execute("DELETE FROM documents WHERE ledger_id = ?", (ledger_id,))
-    conn.execute("DELETE FROM ledgers WHERE id = ?", (ledger_id,))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("DELETE FROM audit_logs WHERE ledger_id = ?", (ledger_id,))
+        conn.execute("DELETE FROM journal_entries WHERE ledger_id = ?", (ledger_id,))
+        conn.execute("DELETE FROM vouchers WHERE ledger_id = ?", (ledger_id,))
+        conn.execute("DELETE FROM opening_balances WHERE ledger_id = ?", (ledger_id,))
+        conn.execute("DELETE FROM documents WHERE ledger_id = ?", (ledger_id,))
+        conn.execute("DELETE FROM ledgers WHERE id = ?", (ledger_id,))
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
 
 def backup_ledger_to_json(ledger_id: int, backup_dir: str) -> str:
@@ -72,16 +82,18 @@ def backup_ledger_to_json(ledger_id: int, backup_dir: str) -> str:
     fpath = os.path.join(backup_dir, fname)
 
     conn = get_conn()
-    ledger = conn.execute("SELECT * FROM ledgers WHERE id = ?", (ledger_id,)).fetchone()
-    if not ledger:
-        conn.close()
-        raise ValueError("账套不存在")
+    try:
+        ledger = conn.execute("SELECT * FROM ledgers WHERE id = ?", (ledger_id,)).fetchone()
+        if not ledger:
+            conn.close()
+            raise ValueError("账套不存在")
 
-    vouchers = conn.execute("SELECT * FROM vouchers WHERE ledger_id = ?", (ledger_id,)).fetchall()
-    entries = conn.execute("SELECT * FROM journal_entries WHERE ledger_id = ?", (ledger_id,)).fetchall()
-    openings = conn.execute("SELECT * FROM opening_balances WHERE ledger_id = ?", (ledger_id,)).fetchall()
-    audits = conn.execute("SELECT * FROM audit_logs WHERE ledger_id = ?", (ledger_id,)).fetchall()
-    conn.close()
+        vouchers = conn.execute("SELECT * FROM vouchers WHERE ledger_id = ?", (ledger_id,)).fetchall()
+        entries = conn.execute("SELECT * FROM journal_entries WHERE ledger_id = ?", (ledger_id,)).fetchall()
+        openings = conn.execute("SELECT * FROM opening_balances WHERE ledger_id = ?", (ledger_id,)).fetchall()
+        audits = conn.execute("SELECT * FROM audit_logs WHERE ledger_id = ?", (ledger_id,)).fetchall()
+    finally:
+        conn.close()
 
     data = {
         "version": "2.0",
@@ -180,78 +192,84 @@ def restore_ledger_from_json(fpath: str, target_ledger_id: int = None, user_id: 
 def get_general_ledger(ledger_id, account_code=None, year=None, month=None):
     """获取总分类账：所有科目（或指定科目）在期间内的凭证分录明细，按日期排序"""
     conn = get_conn()
-    date_filter = ""
-    params = [ledger_id]
+    try:
+        date_filter = ""
+        params = [ledger_id]
 
-    if account_code:
-        date_filter += " AND je.account_code = ?"
-        params.append(account_code)
-    if year:
-        date_filter += " AND strftime('%Y', v.date) = ?"
-        params.append(str(year))
-    if month:
-        date_filter += " AND strftime('%m', v.date) = ?"
-        params.append(f"{month:02d}")
+        if account_code:
+            date_filter += " AND je.account_code = ?"
+            params.append(account_code)
+        if year:
+            date_filter += " AND strftime('%Y', v.date) = ?"
+            params.append(str(year))
+        if month:
+            date_filter += " AND strftime('%m', v.date) = ?"
+            params.append(f"{month:02d}")
 
-    rows = conn.execute("""
-        SELECT je.id, je.debit, je.credit, je.summary,
-               je.account_code, je.account_name,
-               v.voucher_no, v.date, v.description as voucher_desc, v.status
-        FROM journal_entries je
-        JOIN vouchers v ON je.voucher_id = v.id
-        WHERE je.ledger_id = ? """ + date_filter + """
-          AND v.status = 'posted'
-        ORDER BY v.date, v.voucher_no, je.id
-    """, params).fetchall()
-    conn.close()
+        rows = conn.execute("""
+            SELECT je.id, je.debit, je.credit, je.summary,
+                   je.account_code, je.account_name,
+                   v.voucher_no, v.date, v.description as voucher_desc, v.status
+            FROM journal_entries je
+            JOIN vouchers v ON je.voucher_id = v.id
+            WHERE je.ledger_id = ? """ + date_filter + """
+              AND v.status = 'posted'
+            ORDER BY v.date, v.voucher_no, je.id
+        """, params).fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 
 def get_aux_ledger(ledger_id, aux_type, aux_id, year=None, month=None):
     """辅助核算明细账：按辅助核算项查看凭证分录"""
     conn = get_conn()
-    date_filter = ""
-    params = [aux_id, aux_type, ledger_id]
-    if year:
-        date_filter += " AND strftime('%Y', v.date) = ?"
-        params.append(str(year))
-    if month:
-        date_filter += " AND strftime('%m', v.date) = ?"
-        params.append(f"{month:02d}")
+    try:
+        date_filter = ""
+        params = [aux_id, aux_type, ledger_id]
+        if year:
+            date_filter += " AND strftime('%Y', v.date) = ?"
+            params.append(str(year))
+        if month:
+            date_filter += " AND strftime('%m', v.date) = ?"
+            params.append(f"{month:02d}")
 
-    rows = conn.execute(
-        "SELECT v.voucher_no, v.date, v.summary as voucher_summary, "
-        "je.account_code, je.account_name, je.amount, je.summary as entry_summary, "
-        "vea.aux_type, vea.aux_name, v.status "
-        "FROM voucher_entry_auxiliaries vea "
-        "INNER JOIN journal_entries je ON je.id = vea.entry_id "
-        "INNER JOIN vouchers v ON v.voucher_no = je.voucher_no "
-        "WHERE vea.aux_id = ? AND vea.aux_type = ? AND v.ledger_id = ? " + date_filter + " "
-        "ORDER BY v.date, v.voucher_no",
-        params).fetchall()
-    conn.close()
+        rows = conn.execute(
+            "SELECT v.voucher_no, v.date, v.summary as voucher_summary, "
+            "je.account_code, je.account_name, je.amount, je.summary as entry_summary, "
+            "vea.aux_type, vea.aux_name, v.status "
+            "FROM voucher_entry_auxiliaries vea "
+            "INNER JOIN journal_entries je ON je.id = vea.entry_id "
+            "INNER JOIN vouchers v ON v.voucher_no = je.voucher_no "
+            "WHERE vea.aux_id = ? AND vea.aux_type = ? AND v.ledger_id = ? " + date_filter + " "
+            "ORDER BY v.date, v.voucher_no",
+            params).fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 def get_account_ledger(ledger_id, account_code, year, month):
     """获取科目明细账：返回指定科目在期间内的所有凭证分录及余额"""
     conn = get_conn()
-    acct = conn.execute("SELECT code, name, category FROM accounts WHERE code=? AND is_active=1", (account_code,)).fetchone()
-    if not acct:
+    try:
+        acct = conn.execute("SELECT code, name, category FROM accounts WHERE code=? AND is_active=1", (account_code,)).fetchone()
+        if not acct:
+            conn.close()
+            return None
+        acct = dict(acct)
+        opening = get_opening_balance(ledger_id, account_code, year, month)
+        entries = conn.execute("""
+            SELECT je.id, je.debit, je.credit, je.summary,
+                   v.voucher_no, v.date, v.description as voucher_desc, v.status
+            FROM journal_entries je
+            JOIN vouchers v ON je.voucher_id = v.id
+            WHERE je.ledger_id = ? AND je.account_code = ?
+              AND strftime('%Y', v.date) = ? AND CAST(strftime('%m', v.date) AS INTEGER) <= ?
+              AND v.status = 'posted'
+            ORDER BY v.date, v.voucher_no, je.id
+        """, (ledger_id, account_code, str(year), month)).fetchall()
+    finally:
         conn.close()
-        return None
-    acct = dict(acct)
-    opening = get_opening_balance(ledger_id, account_code, year, month)
-    entries = conn.execute("""
-        SELECT je.id, je.debit, je.credit, je.summary,
-               v.voucher_no, v.date, v.description as voucher_desc, v.status
-        FROM journal_entries je
-        JOIN vouchers v ON je.voucher_id = v.id
-        WHERE je.ledger_id = ? AND je.account_code = ?
-          AND strftime('%Y', v.date) = ? AND CAST(strftime('%m', v.date) AS INTEGER) <= ?
-          AND v.status = 'posted'
-        ORDER BY v.date, v.voucher_no, je.id
-    """, (ledger_id, account_code, str(year), month)).fetchall()
-    conn.close()
     bal = opening
     rows = []
     for e in entries:

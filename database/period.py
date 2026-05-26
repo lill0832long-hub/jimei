@@ -5,43 +5,45 @@ from .connection import get_conn, release_conn, transaction, DB_PATH, clear_quer
 def get_close_period_checklist(ledger_id, year, month) -> list:
     """获取期末结转检查清单（每项含名称/状态/描述）"""
     conn = get_conn()
-    items = []
+    try:
+        items = []
 
-    # 1. 检查是否有未过账凭证
-    unposted = conn.execute(
-        "SELECT COUNT(*) as cnt FROM vouchers WHERE ledger_id=? AND status!='posted'",
-        (ledger_id,)
-    ).fetchone()["cnt"]
-    items.append({"name": "所有凭证已过账", "ok": unposted == 0,
-                  "desc": f"有 {unposted} 张凭证未过账" if unposted else "所有凭证已过账"})
+        # 1. 检查是否有未过账凭证
+        unposted = conn.execute(
+            "SELECT COUNT(*) as cnt FROM vouchers WHERE ledger_id=? AND status!='posted'",
+            (ledger_id,)
+        ).fetchone()["cnt"]
+        items.append({"name": "所有凭证已过账", "ok": unposted == 0,
+                      "desc": f"有 {unposted} 张凭证未过账" if unposted else "所有凭证已过账"})
 
-    # 2. 检查借贷平衡
-    imbalance = conn.execute(
-        "SELECT v.id, v.voucher_no, v.total_debit, v.total_credit "
-        "FROM vouchers v WHERE v.ledger_id=? AND v.status='posted' "
-        "AND ABS(v.total_debit - v.total_credit) > 0.01",
-        (ledger_id,)
-    ).fetchall()
-    items.append({"name": "借贷平衡检查", "ok": len(imbalance) == 0,
-                  "desc": f"{len(imbalance)} 张凭证借贷不平衡" if imbalance else "全部平衡"})
+        # 2. 检查借贷平衡
+        imbalance = conn.execute(
+            "SELECT v.id, v.voucher_no, v.total_debit, v.total_credit "
+            "FROM vouchers v WHERE v.ledger_id=? AND v.status='posted' "
+            "AND ABS(v.total_debit - v.total_credit) > 0.01",
+            (ledger_id,)
+        ).fetchall()
+        items.append({"name": "借贷平衡检查", "ok": len(imbalance) == 0,
+                      "desc": f"{len(imbalance)} 张凭证借贷不平衡" if imbalance else "全部平衡"})
 
-    # 3. 检查损益科目余额
-    revenue = conn.execute(
-        "SELECT COALESCE(SUM(je.credit - je.debit), 0) as bal "
-        "FROM journal_entries je JOIN vouchers v ON je.voucher_id=v.id "
-        "WHERE v.ledger_id=? AND v.status='posted' "
-        "AND je.account_code LIKE '6%' AND strftime('%Y-%m', v.date) <= ?",
-        (ledger_id, f"{year}-{month:02d}")
-    ).fetchone()["bal"]
-    items.append({"name": "损益科目余额", "ok": True,
-                  "desc": f"收入类余额 ¥{revenue:,.2f}，将结转至本年利润"})
+        # 3. 检查损益科目余额
+        revenue = conn.execute(
+            "SELECT COALESCE(SUM(je.credit - je.debit), 0) as bal "
+            "FROM journal_entries je JOIN vouchers v ON je.voucher_id=v.id "
+            "WHERE v.ledger_id=? AND v.status='posted' "
+            "AND je.account_code LIKE '6%' AND strftime('%Y-%m', v.date) <= ?",
+            (ledger_id, f"{year}-{month:02d}")
+        ).fetchone()["bal"]
+        items.append({"name": "损益科目余额", "ok": True,
+                      "desc": f"收入类余额 ¥{revenue:,.2f}，将结转至本年利润"})
 
-    # 4. 检查期间状态
-    period_status = get_period_status(ledger_id, year, month)
-    items.append({"name": "期间状态", "ok": period_status != "closed",
-                  "desc": f"当前状态: {period_status}"})
+        # 4. 检查期间状态
+        period_status = get_period_status(ledger_id, year, month)
+        items.append({"name": "期间状态", "ok": period_status != "closed",
+                      "desc": f"当前状态: {period_status}"})
 
-    release_conn(conn)
+    finally:
+        release_conn(conn)
     return items
 
 def close_period(ledger_id, year, month, user_id=None, operator_name=None):
@@ -192,11 +194,13 @@ def close_period(ledger_id, year, month, user_id=None, operator_name=None):
 def get_period_status(ledger_id, year, month):
     """获取会计期间状态（是否已结转）"""
     conn = get_conn()
-    row = conn.execute(
-        "SELECT voucher_no, created_at FROM vouchers WHERE ledger_id = ? AND description LIKE ? AND status = 'posted' ORDER BY date DESC LIMIT 1",
-        (ledger_id, f"%结转{year}年{month}月损益%")
-    ).fetchone()
-    release_conn(conn)
+    try:
+        row = conn.execute(
+            "SELECT voucher_no, created_at FROM vouchers WHERE ledger_id = ? AND description LIKE ? AND status = 'posted' ORDER BY date DESC LIMIT 1",
+            (ledger_id, f"%结转{year}年{month}月损益%")
+        ).fetchone()
+    finally:
+        release_conn(conn)
     if row:
         return {"closed": True, "voucher_no": row["voucher_no"], "closed_at": row["created_at"]}
     return {"closed": False, "voucher_no": None, "closed_at": None}
@@ -205,59 +209,65 @@ def reverse_close_period(ledger_id, year, month):
     """反结账"""
     period = f"{year}-{month:02d}"
     conn = get_conn()
+    try:
     
-    # 检查下一期间是否已结账
-    if month < 12:
-        next_period = f"{year}-{month+1:02d}"
-    else:
-        next_period = f"{year+1}-01"
+        # 检查下一期间是否已结账
+        if month < 12:
+            next_period = f"{year}-{month+1:02d}"
+        else:
+            next_period = f"{year+1}-01"
     
-    next_closed = conn.execute("""
-        SELECT COUNT(*) as cnt FROM closing_entries
-        WHERE ledger_id = ? AND period = ? AND status = 'completed'
-    """, (ledger_id, next_period)).fetchone()['cnt']
+        next_closed = conn.execute("""
+            SELECT COUNT(*) as cnt FROM closing_entries
+            WHERE ledger_id = ? AND period = ? AND status = 'completed'
+        """, (ledger_id, next_period)).fetchone()['cnt']
     
-    if next_closed > 0:
+        if next_closed > 0:
+            release_conn(conn)
+            return {'success': False, 'message': f'下一期间 {next_period} 已结账，无法反结账'}
+    
+        # 查找并删除结转凭证（通过 description 匹配）
+        rows = conn.execute(
+            "SELECT id FROM vouchers WHERE ledger_id = ? AND description LIKE ? AND status = 'posted'",
+            (ledger_id, f"%结转{year}年{month}月损益%")
+        ).fetchall()
+        for r in rows:
+            conn.execute("DELETE FROM journal_entries WHERE voucher_id = ?", (r["id"],))
+            conn.execute("DELETE FROM vouchers WHERE id = ?", (r["id"],))
+
+        # 删除结转记录
+        conn.execute("DELETE FROM closing_entries WHERE ledger_id = ? AND period = ?",
+                     (ledger_id, period))
+
+        conn.commit()
+    finally:
         release_conn(conn)
-        return {'success': False, 'message': f'下一期间 {next_period} 已结账，无法反结账'}
-    
-    # 查找并删除结转凭证（通过 description 匹配）
-    rows = conn.execute(
-        "SELECT id FROM vouchers WHERE ledger_id = ? AND description LIKE ? AND status = 'posted'",
-        (ledger_id, f"%结转{year}年{month}月损益%")
-    ).fetchall()
-    for r in rows:
-        conn.execute("DELETE FROM journal_entries WHERE voucher_id = ?", (r["id"],))
-        conn.execute("DELETE FROM vouchers WHERE id = ?", (r["id"],))
-
-    # 删除结转记录
-    conn.execute("DELETE FROM closing_entries WHERE ledger_id = ? AND period = ?",
-                 (ledger_id, period))
-
-    conn.commit()
-    release_conn(conn)
     clear_query_cache()
 
 def set_opening_balance(ledger_id, account_code, year, month, balance):
     """设置科目期初余额"""
     conn = get_conn()
-    conn.execute("""
-        INSERT OR REPLACE INTO opening_balances (ledger_id, account_code, year, month, balance)
-        VALUES (?,?,?,?,?)
-    """, (ledger_id, account_code, year, month, balance))
-    conn.commit()
-    release_conn(conn)
+    try:
+        conn.execute("""
+            INSERT OR REPLACE INTO opening_balances (ledger_id, account_code, year, month, balance)
+            VALUES (?,?,?,?,?)
+        """, (ledger_id, account_code, year, month, balance))
+        conn.commit()
+    finally:
+        release_conn(conn)
     clear_query_cache()
 
 def get_opening_balance(ledger_id, account_code, year, month):
     """获取科目期初余额：返回小于等于查询月份的最近一条期初余额"""
     conn = get_conn()
-    row = conn.execute("""
-        SELECT balance FROM opening_balances
-        WHERE ledger_id = ? AND account_code = ?
-          AND (year < ? OR (year = ? AND month <= ?))
-        ORDER BY year DESC, month DESC
-        LIMIT 1
-    """, (ledger_id, account_code, year, year, month)).fetchone()
-    release_conn(conn)
+    try:
+        row = conn.execute("""
+            SELECT balance FROM opening_balances
+            WHERE ledger_id = ? AND account_code = ?
+              AND (year < ? OR (year = ? AND month <= ?))
+            ORDER BY year DESC, month DESC
+            LIMIT 1
+        """, (ledger_id, account_code, year, year, month)).fetchone()
+    finally:
+        release_conn(conn)
     return row["balance"] if row else 0

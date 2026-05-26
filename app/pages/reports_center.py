@@ -131,8 +131,8 @@ def _switch_report(idx, key):
     """切换到指定子报表"""
     state._reports_active_idx = idx
     # 重绘整个报表中心（标签栏高亮 + 内容区）
-    from app.components.ui_helpers import _rebuild_content
-    _rebuild_content()
+    from app.components.ui_helpers import refresh_main
+    refresh_main()
 
 
 def _render_current_report():
@@ -182,8 +182,8 @@ def _render_minimal(page_key):
 
 def _refresh_all():
     """刷新当前报表"""
-    from app.components.ui_helpers import _rebuild_content
-    _rebuild_content()
+    from app.components.ui_helpers import refresh_main
+    refresh_main()
 
 
 # ── 各报表纯内容渲染（无头部期间选择器）──

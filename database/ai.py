@@ -5,12 +5,14 @@ from .connection import get_conn, transaction, DB_PATH, clear_query_cache
 def get_ai_rules_complex(active_only=True) -> list:
     """获取所有复合业务规则"""
     conn = get_conn()
-    sql = "SELECT * FROM ai_rules_complex"
-    if active_only:
-        sql += " WHERE is_active = 1"
-    sql += " ORDER BY priority DESC, id"
-    rows = conn.execute(sql).fetchall()
-    conn.close()
+    try:
+        sql = "SELECT * FROM ai_rules_complex"
+        if active_only:
+            sql += " WHERE is_active = 1"
+        sql += " ORDER BY priority DESC, id"
+        rows = conn.execute(sql).fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 def add_ai_rules_complex(name, pattern, description, entries_json, priority=50):
@@ -29,17 +31,21 @@ def add_ai_rules_complex(name, pattern, description, entries_json, priority=50):
 def delete_ai_rules_complex(rule_id):
     """删除复合业务规则"""
     conn = get_conn()
-    conn.execute("DELETE FROM ai_rules_complex WHERE id = ?", (rule_id,))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("DELETE FROM ai_rules_complex WHERE id = ?", (rule_id,))
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
 
 def toggle_ai_rules_complex(rule_id):
     """启用/禁用复合业务规则"""
     conn = get_conn()
-    conn.execute("UPDATE ai_rules_complex SET is_active = 1 - is_active, updated_at = datetime('now','localtime') WHERE id = ?", (rule_id,))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("UPDATE ai_rules_complex SET is_active = 1 - is_active, updated_at = datetime('now','localtime') WHERE id = ?", (rule_id,))
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
 
 def query_db(sql, params=()):

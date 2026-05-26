@@ -50,37 +50,41 @@ def classify_transaction(ledger_id, summary, amount, direction, counterparty="")
 def _match_history(ledger_id, summary, amount):
     """根据摘要关键词匹配历史凭证科目"""
     conn = get_conn()
-    keywords = summary[:10] if len(summary) >= 3 else summary
-    rows = conn.execute("""
-        SELECT je.account_code, je.account_name, COUNT(*) as freq
-        FROM journal_entries je
-        JOIN vouchers v ON je.voucher_id = v.id
-        WHERE je.ledger_id = ? AND v.status = 'posted'
-          AND je.summary LIKE ?
-        GROUP BY je.account_code
-        ORDER BY freq DESC LIMIT 1
-    """, (ledger_id, f"%{keywords}%")).fetchall()
-    conn.close()
-    if rows:
-        return {"account_code": rows[0]["account_code"], "account_name": rows[0]["account_name"]}
-    return None
+    try:
+        keywords = summary[:10] if len(summary) >= 3 else summary
+        rows = conn.execute("""
+            SELECT je.account_code, je.account_name, COUNT(*) as freq
+            FROM journal_entries je
+            JOIN vouchers v ON je.voucher_id = v.id
+            WHERE je.ledger_id = ? AND v.status = 'posted'
+              AND je.summary LIKE ?
+            GROUP BY je.account_code
+            ORDER BY freq DESC LIMIT 1
+        """, (ledger_id, f"%{keywords}%")).fetchall()
+        if rows:
+            return {"account_code": rows[0]["account_code"], "account_name": rows[0]["account_name"]}
+        return None
+    finally:
+        conn.close()
 
 def _detect_anomaly(ledger_id, amount):
     """异常交易检测"""
     conn = get_conn()
-    stats = conn.execute("""
-        SELECT COALESCE(AVG(ABS(debit) + ABS(credit)), 0) as avg_amt,
-               COUNT(*) as cnt
-        FROM journal_entries je
-        JOIN vouchers v ON je.voucher_id = v.id
-        WHERE je.ledger_id = ? AND v.status = 'posted'
-    """, (ledger_id,)).fetchone()
-    avg = stats["avg_amt"] if stats else 0
-    cnt = stats["cnt"] if stats else 0
-    conn.close()
-    if cnt >= 10 and abs(amount) > avg * 3 and avg > 0:
-        return True, f"金额 ¥{abs(amount):,.2f} 超过平均值 ¥{avg:,.2f} 的3倍"
-    return False, ""
+    try:
+        stats = conn.execute("""
+            SELECT COALESCE(AVG(ABS(debit) + ABS(credit)), 0) as avg_amt,
+                   COUNT(*) as cnt
+            FROM journal_entries je
+            JOIN vouchers v ON je.voucher_id = v.id
+            WHERE je.ledger_id = ? AND v.status = 'posted'
+        """, (ledger_id,)).fetchone()
+        avg = stats["avg_amt"] if stats else 0
+        cnt = stats["cnt"] if stats else 0
+        if cnt >= 10 and abs(amount) > avg * 3 and avg > 0:
+            return True, f"金额 ¥{abs(amount):,.2f} 超过平均值 ¥{avg:,.2f} 的3倍"
+        return False, ""
+    finally:
+        conn.close()
 
 def batch_classify(ledger_id, transactions):
     """批量分类银行流水"""
@@ -99,17 +103,19 @@ def batch_classify(ledger_id, transactions):
 def get_classification_rules(ledger_id):
     """获取用户历史分类规则"""
     conn = get_conn()
-    rows = conn.execute("""
-        SELECT je.account_code, je.account_name, je.summary, COUNT(*) as freq
-        FROM journal_entries je
-        JOIN vouchers v ON je.voucher_id = v.id
-        WHERE je.ledger_id = ? AND v.status = 'posted'
-        GROUP BY je.account_code, je.summary
-        HAVING freq >= 2
-        ORDER BY freq DESC LIMIT 50
-    """, (ledger_id,)).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+    try:
+        rows = conn.execute("""
+            SELECT je.account_code, je.account_name, je.summary, COUNT(*) as freq
+            FROM journal_entries je
+            JOIN vouchers v ON je.voucher_id = v.id
+            WHERE je.ledger_id = ? AND v.status = 'posted'
+            GROUP BY je.account_code, je.summary
+            HAVING freq >= 2
+            ORDER BY freq DESC LIMIT 50
+        """, (ledger_id,)).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
 
 def parse_bank_csv(file_content, encoding="utf-8"):
     """解析银行流水 CSV 文件，支持常见银行格式"""

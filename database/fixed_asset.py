@@ -11,43 +11,49 @@ def create_fixed_asset(ledger_id, asset_code, asset_name, original_value,
     residual_value = int(original_value * residual_rate)
     net_value = original_value
     conn = get_conn()
-    cur = conn.execute("""
-        INSERT INTO fixed_assets 
-        (ledger_id, asset_code, asset_name, category_id, purchase_date,
-         original_value, residual_rate, residual_value, useful_life_months,
-         depreciation_method, accumulated_depreciation, net_value,
-         department, employee, location, source_type, status)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-    """, (ledger_id, asset_code, asset_name, category_id, purchase_date,
-          original_value, residual_rate, residual_value, useful_life_months,
-          depreciation_method, 0, net_value,
-          department, employee, location, source_type, 'in_use'))
-    asset_id = cur.lastrowid
-    conn.commit()
-    conn.close()
+    try:
+        cur = conn.execute("""
+            INSERT INTO fixed_assets
+            (ledger_id, asset_code, asset_name, category_id, purchase_date,
+             original_value, residual_rate, residual_value, useful_life_months,
+             depreciation_method, accumulated_depreciation, net_value,
+             department, employee, location, source_type, status)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        """, (ledger_id, asset_code, asset_name, category_id, purchase_date,
+              original_value, residual_rate, residual_value, useful_life_months,
+              depreciation_method, 0, net_value,
+              department, employee, location, source_type, 'in_use'))
+        asset_id = cur.lastrowid
+        conn.commit()
+        return asset_id
+    finally:
+        conn.close()
     clear_query_cache()
-    return asset_id
 
 def get_fixed_assets(ledger_id, status=None):
     """获取固定资产列表"""
     conn = get_conn()
-    if status:
-        rows = conn.execute(
-            "SELECT * FROM fixed_assets WHERE ledger_id = ? AND status = ? ORDER BY asset_code",
-            (ledger_id, status)).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT * FROM fixed_assets WHERE ledger_id = ? ORDER BY asset_code",
-            (ledger_id,)).fetchall()
-    conn.close()
-    return [dict(r) for r in rows]
+    try:
+        if status:
+            rows = conn.execute(
+                "SELECT * FROM fixed_assets WHERE ledger_id = ? AND status = ? ORDER BY asset_code",
+                (ledger_id, status)).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM fixed_assets WHERE ledger_id = ? ORDER BY asset_code",
+                (ledger_id,)).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
 
 def get_fixed_asset(asset_id):
     """获取单个资产"""
     conn = get_conn()
-    row = conn.execute("SELECT * FROM fixed_assets WHERE id = ?", (asset_id,)).fetchone()
-    conn.close()
-    return dict(row) if row else None
+    try:
+        row = conn.execute("SELECT * FROM fixed_assets WHERE id = ?", (asset_id,)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
 
 def calculate_depreciation(asset_id, year, month):
     """计算单资产月折旧额（返回分值）"""
@@ -107,25 +113,27 @@ def dispose_asset(asset_id, dispose_type, proceeds=0):
     asset = get_fixed_asset(asset_id)
     if not asset:
         return None
-    
+
     net_value = asset['original_value'] - asset['accumulated_depreciation']
     gain_loss = proceeds - net_value  # 正数=收益，负数=损失
-    
+
     conn = get_conn()
-    conn.execute("""
-        UPDATE fixed_assets SET status = 'disposed', net_value = 0, updated_at = datetime('now','localtime')
-        WHERE id = ?
-    """, (asset_id,))
-    conn.execute("""
-        INSERT INTO fa_changes (asset_id, change_type, change_date, old_value, new_value, reason)
-        VALUES (?, ?, ?, ?, 0, ?)
-    """, (asset_id, f'dispose_{dispose_type}', 
-          f"{year}-{month:02d}-01" if 'year' in dir() else None,
-          net_value, f"处置方式:{dispose_type}, 收入:{proceeds}"))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("""
+            UPDATE fixed_assets SET status = 'disposed', net_value = 0, updated_at = datetime('now','localtime')
+            WHERE id = ?
+        """, (asset_id,))
+        conn.execute("""
+            INSERT INTO fa_changes (asset_id, change_type, change_date, old_value, new_value, reason)
+            VALUES (?, ?, ?, ?, 0, ?)
+        """, (asset_id, f'dispose_{dispose_type}',
+              f"{year}-{month:02d}-01" if 'year' in dir() else None,
+              net_value, f"处置方式:{dispose_type}, 收入:{proceeds}"))
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
-    
+
     return {
         'asset_id': asset_id,
         'original_value': asset['original_value'],

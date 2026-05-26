@@ -50,39 +50,43 @@ def add_audit_log(ledger_id, action, detail, voucher_id=None, user_id=None,
 def get_audit_logs(ledger_id, limit=50, module=None, action=None, start_date=None, end_date=None):
     """查询审计日志（支持多维度筛选）"""
     conn = get_conn()
-    conditions = ["ledger_id = ?"]
-    params = [ledger_id]
-    if module:
-        conditions.append("module = ?")
-        params.append(module)
-    if action:
-        conditions.append("action = ?")
-        params.append(action)
-    if start_date:
-        conditions.append("created_at >= ?")
-        params.append(start_date)
-    if end_date:
-        conditions.append("created_at <= ?")
-        params.append(end_date)
-    params.append(limit)
-    # SECURITY: conditions are all hardcoded strings, user input goes through parameterized query
-    # No SQL injection risk. Do not modify conditions to include user input directly.
-    where = " AND ".join(conditions)
-    rows = conn.execute(
-        f"SELECT * FROM audit_logs WHERE {where} ORDER BY created_at DESC LIMIT ?",
-        params
-    ).fetchall()
-    conn.close()
+    try:
+        conditions = ["ledger_id = ?"]
+        params = [ledger_id]
+        if module:
+            conditions.append("module = ?")
+            params.append(module)
+        if action:
+            conditions.append("action = ?")
+            params.append(action)
+        if start_date:
+            conditions.append("created_at >= ?")
+            params.append(start_date)
+        if end_date:
+            conditions.append("created_at <= ?")
+            params.append(end_date)
+        params.append(limit)
+        # SECURITY: conditions are all hardcoded strings, user input goes through parameterized query
+        # No SQL injection risk. Do not modify conditions to include user input directly.
+        where = " AND ".join(conditions)
+        rows = conn.execute(
+            f"SELECT * FROM audit_logs WHERE {where} ORDER BY created_at DESC LIMIT ?",
+            params
+        ).fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 def add_workflow_log(ledger_id, voucher_id, action, from_status, to_status, user_id=None, comment=None):
     """记录审核工作流日志"""
     conn = get_conn()
-    conn.execute(
-        "INSERT INTO voucher_workflow (voucher_id, ledger_id, action, from_status, to_status, user_id, comment) "
-        "VALUES (?,?,?,?,?,?,?)",
-        (voucher_id, ledger_id, action, from_status, to_status, user_id, comment)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            "INSERT INTO voucher_workflow (voucher_id, ledger_id, action, from_status, to_status, user_id, comment) "
+            "VALUES (?,?,?,?,?,?,?)",
+            (voucher_id, ledger_id, action, from_status, to_status, user_id, comment)
+        )
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()

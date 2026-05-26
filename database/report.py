@@ -5,343 +5,345 @@ from .connection import get_conn, transaction, DB_PATH
 def get_balance_sheet(ledger_id, year, month) -> dict:
     """资产负债表 — 中国会计准则格式，支持年初数"""
     conn = get_conn()
+    try:
 
-    def _opening_bal(code):
-        # 取该科目本年期初余额（支持年中初始化：取最小月份的期初）
-        row = conn.execute(
-            """SELECT balance FROM opening_balances
-               WHERE ledger_id=? AND account_code=? AND year=?
-               AND month = (SELECT MIN(month) FROM opening_balances
-                            WHERE ledger_id=? AND account_code=? AND year=?)""",
-            (ledger_id, code, year, ledger_id, code, year)
-        ).fetchone()
-        if row:
-            bal = row["balance"]
-            acc = conn.execute("SELECT category FROM accounts WHERE code=? AND is_active=1", (code,)).fetchone()
-            cat = acc["category"] if acc else "资产"
-            if cat in ("资产", "费用"):
-                return (round(bal, 2), 0.0) if bal >= 0 else (0.0, round(-bal, 2))
-            else:
-                return (0.0, round(bal, 2)) if bal >= 0 else (round(-bal, 2), 0.0)
-        return (0.0, 0.0)
+        def _opening_bal(code):
+            # 取该科目本年期初余额（支持年中初始化：取最小月份的期初）
+            row = conn.execute(
+                """SELECT balance FROM opening_balances
+                   WHERE ledger_id=? AND account_code=? AND year=?
+                   AND month = (SELECT MIN(month) FROM opening_balances
+                                WHERE ledger_id=? AND account_code=? AND year=?)""",
+                (ledger_id, code, year, ledger_id, code, year)
+            ).fetchone()
+            if row:
+                bal = row["balance"]
+                acc = conn.execute("SELECT category FROM accounts WHERE code=? AND is_active=1", (code,)).fetchone()
+                cat = acc["category"] if acc else "资产"
+                if cat in ("资产", "费用"):
+                    return (round(bal, 2), 0.0) if bal >= 0 else (0.0, round(-bal, 2))
+                else:
+                    return (0.0, round(bal, 2)) if bal >= 0 else (round(-bal, 2), 0.0)
+            return (0.0, 0.0)
 
-    def _year_activity(code):
-        row = conn.execute(
-            """SELECT COALESCE(SUM(je.debit),0) AS dr, COALESCE(SUM(je.credit),0) AS cr
-            FROM journal_entries je
-            JOIN vouchers v ON je.voucher_id=v.id AND v.status='posted'
-            WHERE je.ledger_id=? AND je.account_code=?
-            AND strftime('%Y',v.date)=? AND CAST(strftime('%m',v.date) AS INTEGER)<=?
-            AND (v.description IS NULL OR v.description NOT LIKE '%结转%')""",
-            (ledger_id, code, str(year), month)
-        ).fetchone()
-        return (round(row["dr"], 2), round(row["cr"], 2))
-
-    def _end_bal(code, cat):
-        o_dr, o_cr = _opening_bal(code)
-        y_dr, y_cr = _year_activity(code)
-        if cat in ("资产", "费用"):
-            return (o_dr - o_cr) + (y_dr - y_cr)
-        else:
-            return (o_cr - o_dr) + (y_cr - y_dr)
-
-    def _open_bal_signed(code, cat):
-        o_dr, o_cr = _opening_bal(code)
-        if cat in ("资产", "费用"):
-            return o_dr - o_cr
-        else:
-            return o_cr - o_dr
-
-    def _get_cat(code):
-        row = conn.execute("SELECT category FROM accounts WHERE code=? AND is_active=1", (code,)).fetchone()
-        return row["category"] if row else "资产"
-
-    def _add(target, code, name, level, end_val, open_val, cat, is_parent=False):
-        target.append({"code": code, "name": name, "level": level,
-                       "end": round(end_val, 2), "open": round(open_val, 2),
-                       "cat": cat, **({"is_parent": True} if is_parent else {})})
-
-    def _net_bal(code):
-        """返回科目期末净值 (dr-cr for 资产/费用, cr-dr for 负债/权益/收入)"""
-        cat = _get_cat(code)
-        return _end_bal(code, cat)
-
-    def _net_open(code):
-        """返回科目期初净值"""
-        cat = _get_cat(code)
-        return _open_bal_signed(code, cat)
-
-    # ── 重分类辅助函数 ──
-    # _end_bal 对资产/费用返回 dr-cr（正=借方余额，负=贷方余额）
-    # _end_bal 对负债/权益/收入返回 cr-dr（正=贷方余额，负=借方余额）
-    # 统一规则：
-    #   借方余额 = 科目在借方的净额（资产类=正数部分，负债类=负数取反）
-    #   贷方余额 = 科目在贷方的净额（资产类=负数取反，负债类=正数部分）
-
-    def _dr_bal(code):
-        """科目借方余额（正数）"""
-        cat = _get_cat(code)
-        bal = _net_bal(code)
-        if cat == "资产":
-            return max(bal, 0)    # 资产类：dr-cr > 0 → 借方余额
-        else:
-            return max(-bal, 0)   # 负债类：cr-dr < 0 → 借方余额（取反）
-
-    def _cr_bal(code):
-        """科目贷方余额（正数）"""
-        cat = _get_cat(code)
-        bal = _net_bal(code)
-        if cat == "资产":
-            return max(-bal, 0)   # 资产类：dr-cr < 0 → 贷方余额（取反）
-        else:
-            return max(bal, 0)    # 负债类：cr-dr > 0 → 贷方余额
-
-    def _dr_open(code):
-        cat = _get_cat(code)
-        bal = _net_open(code)
-        if cat == "资产":
-            return max(bal, 0)
-        else:
-            return max(-bal, 0)
-
-    def _cr_open(code):
-        cat = _get_cat(code)
-        bal = _net_open(code)
-        if cat == "资产":
-            return max(-bal, 0)
-        else:
-            return max(bal, 0)
-
-    # ── 资产 ──
-    assets = []
-    ca_end, ca_open = 0.0, 0.0
-
-    # 货币资金 = 库存现金 + 银行存款(含子科目) + 其他货币资金
-    cash_codes = [c for c, _ in [("1001","库存现金"),("1002","银行存款"),("1012","其他货币资金")]]
-    cash_end = sum(max(_net_bal(c), 0) for c in cash_codes)
-    cash_open = sum(max(_net_open(c), 0) for c in cash_codes)
-    if cash_end or cash_open:
-        _add(assets, "1000", "货币资金", 1, cash_end, cash_open, "流动资产", is_parent=True)
-        for c, n in [("1001","库存现金"),("1002","银行存款"),("1012","其他货币资金")]:
-            ev, ov = max(_net_bal(c), 0), max(_net_open(c), 0)
-            if ev or ov:
-                _add(assets, c, n, 2, ev, ov, "流动资产")
-        ca_end += cash_end; ca_open += cash_open
-
-    # 应收票据
-    for code, name in [("1121","应收票据")]:
-        ev, ov = max(_net_bal(code), 0), max(_net_open(code), 0)
-        if ev or ov:
-            _add(assets, code, name, 1, ev, ov, "流动资产")
-            ca_end += ev; ca_open += ov
-
-    # 应收账款 = 应收账款(借方) + 预收账款(借方余额重分类)
-    ar_end = _dr_bal("1122") + _dr_bal("2203")
-    ar_open = _dr_open("1122") + _dr_open("2203")
-    if ar_end or ar_open:
-        _add(assets, "1122", "应收账款", 1, ar_end, ar_open, "流动资产", is_parent=True)
-        for c, n in [("1122","应收账款"),("2203","预收账款重分类")]:
-            ev, ov = _dr_bal(c), _dr_open(c)
-            if ev or ov:
-                _add(assets, c, n, 2, ev, ov, "流动资产")
-        ca_end += ar_end; ca_open += ar_open
-
-    # 预付款项 = 预付账款(借方) + 应付账款(借方余额重分类)
-    prepay_end = _dr_bal("1123") + _dr_bal("2202")
-    prepay_open = _dr_open("1123") + _dr_open("2202")
-    if prepay_end or prepay_open:
-        _add(assets, "1123", "预付款项", 1, prepay_end, prepay_open, "流动资产", is_parent=True)
-        for c, n in [("1123","预付账款"),("2202","应付账款重分类")]:
-            ev, ov = _dr_bal(c), _dr_open(c)
-            if ev or ov:
-                _add(assets, c, n, 2, ev, ov, "流动资产")
-        ca_end += prepay_end; ca_open += prepay_open
-
-    # 其他应收款
-    for code, name in [("1221","其他应收款")]:
-        ev, ov = max(_net_bal(code), 0), max(_net_open(code), 0)
-        if ev or ov:
-            _add(assets, code, name, 1, ev, ov, "流动资产")
-            ca_end += ev; ca_open += ov
-    # 存货 = 材料采购+原材料+在途物资+周转材料+库存商品+发出商品+委托加工物资
-    # 注意：5101生产成本(成本类)余额在借方表示在产品，应计入存货；4001为权益类科目不计入
-    inv_codes = [
-        ("1401","材料采购"), ("1403","原材料"), ("1402","在途物资"),
-        ("1411","周转材料"), ("1405","库存商品"), ("1406","发出商品"),
-        ("5101","生产成本"), ("1408","委托加工物资"),
-    ]
-    inv_end = sum(max(_end_bal(c, "资产"), 0) for c, _ in inv_codes)
-    inv_open = sum(max(_open_bal_signed(c, "资产"), 0) for c, _ in inv_codes)
-    if inv_end or inv_open:
-        _add(assets, "1400", "存货", 1, inv_end, inv_open, "流动资产", is_parent=True)
-        for c, n in inv_codes:
-            ev, ov = max(_end_bal(c, "资产"), 0), max(_open_bal_signed(c, "资产"), 0)
-            if ev or ov:
-                _add(assets, c, n, 2, ev, ov, "流动资产")
-        ca_end += inv_end; ca_open += inv_open
-    _add(assets, "", "流动资产合计", 0, ca_end, ca_open, "流动资产_total")
-
-    # 非流动资产
-    nca_end, nca_open = 0.0, 0.0
-    # 固定资产 = 原值 - 累计折旧 - 减值准备
-    fv_g, fv_g_open = _end_bal("1601","资产"), _open_bal_signed("1601","资产")
-    fv_d, fv_d_open = _end_bal("1602","资产"), _open_bal_signed("1602","资产")
-    fv_imp, fv_imp_open = _end_bal("1603","资产"), _open_bal_signed("1603","资产")
-    # 资产类科目：_end_bal返回(dr-cr)，累计折旧余额在贷方(负数)，减值准备同理
-    # 账面价值 = 原价 + 累计折旧 + 减值准备（后两者为负值）
-    fv_net = fv_g + fv_d + fv_imp
-    fv_net_open = fv_g_open + fv_d_open + fv_imp_open
-    if fv_g or fv_g_open or fv_d or fv_d_open or fv_imp or fv_imp_open:
-        _add(assets, "1601", "固定资产原价", 1, fv_g, fv_g_open, "非流动资产", is_parent=True)
-        _add(assets, "1602", "减：累计折旧", 2, -fv_d, -fv_d_open, "非流动资产")
-        _add(assets, "1603", "减：固定资产减值准备", 2, -fv_imp, -fv_imp_open, "非流动资产")
-        _add(assets, "1601N", "固定资产账面价值", 2, fv_net, fv_net_open, "非流动资产")
-        nca_end += fv_net; nca_open += fv_net_open
-
-    # 无形资产 = 原值 - 累计摊销 - 减值准备
-    ia_g, ia_g_open = _end_bal("1701","资产"), _open_bal_signed("1701","资产")
-    ia_a, ia_a_open = _end_bal("1702","资产"), _open_bal_signed("1702","资产")
-    ia_imp, ia_imp_open = _end_bal("1703","资产"), _open_bal_signed("1703","资产")
-    ia_net = ia_g + ia_a + ia_imp
-    ia_net_open = ia_g_open + ia_a_open + ia_imp_open
-    if ia_g or ia_g_open or ia_a or ia_a_open or ia_imp or ia_imp_open:
-        _add(assets, "1701", "无形资产原价", 1, ia_g, ia_g_open, "非流动资产", is_parent=True)
-        _add(assets, "1702", "减：累计摊销", 2, -ia_a, -ia_a_open, "非流动资产")
-        _add(assets, "1703", "减：无形资产减值准备", 2, -ia_imp, -ia_imp_open, "非流动资产")
-        _add(assets, "1701N", "无形资产账面价值", 2, ia_net, ia_net_open, "非流动资产")
-        nca_end += ia_net; nca_open += ia_net_open
-
-    for code, name in [("1501","长期债券投资"),("1511","长期股权投资"),("1521","投资性房地产"),
-                        ("1604","在建工程"),("1605","工程物资"),("1606","固定资产清理"),
-                        ("1801","长期待摊费用"),("1811","递延所得税资产"),
-                        ("1901","待处理财产损溢")]:
-        ev, ov = max(_net_bal(code), 0), max(_net_open(code), 0)
-        if ev or ov:
-            _add(assets, code, name, 1, ev, ov, "非流动资产")
-            nca_end += ev; nca_open += ov
-    _add(assets, "", "非流动资产合计", 0, nca_end, nca_open, "非流动资产_total")
-
-    total_assets = ca_end + nca_end
-    total_assets_open = ca_open + nca_open
-    _add(assets, "", "资产总计", 0, total_assets, total_assets_open, "total")
-
-    # ── 负债 ──
-    liabilities = []
-    cl_end, cl_open = 0.0, 0.0
-
-    # 短期借款、应付票据（无需重分类）
-    for code, name in [("2001","短期借款"),("2201","应付票据")]:
-        ev, ov = max(_net_bal(code), 0), max(_net_open(code), 0)
-        if ev or ov:
-            _add(liabilities, code, name, 1, ev, ov, "流动负债")
-            cl_end += ev; cl_open += ov
-
-    # 应付账款 = 应付账款(贷方) + 预付账款(贷方余额重分类)
-    ap_end = _cr_bal("2202") + _cr_bal("1123")
-    ap_open = _cr_open("2202") + _cr_open("1123")
-    if ap_end or ap_open:
-        _add(liabilities, "2202", "应付账款", 1, ap_end, ap_open, "流动负债", is_parent=True)
-        for c, n in [("2202","应付账款"),("1123","预付账款重分类")]:
-            ev, ov = _cr_bal(c), _cr_open(c)
-            if ev or ov:
-                _add(liabilities, c, n, 2, ev, ov, "流动负债")
-        cl_end += ap_end; cl_open += ap_open
-
-    # 预收款项 = 预收账款(贷方) + 应收账款(贷方余额重分类)
-    unearned_end = _cr_bal("2203") + _cr_bal("1122")
-    unearned_open = _cr_open("2203") + _cr_open("1122")
-    if unearned_end or unearned_open:
-        _add(liabilities, "2203", "预收款项", 1, unearned_end, unearned_open, "流动负债", is_parent=True)
-        for c, n in [("2203","预收账款"),("1122","应收账款重分类")]:
-            ev, ov = _cr_bal(c), _cr_open(c)
-            if ev or ov:
-                _add(liabilities, c, n, 2, ev, ov, "流动负债")
-        cl_end += unearned_end; cl_open += unearned_open
-
-    # 其他流动负债（无需重分类）
-    for code, name in [("2211","应付职工薪酬"),("2221","应交税费"),
-                        ("2231","应付利息"),("2232","应付股利"),("2241","其他应付款")]:
-        ev, ov = max(_net_bal(code), 0), max(_net_open(code), 0)
-        if ev or ov:
-            _add(liabilities, code, name, 1, ev, ov, "流动负债")
-            cl_end += ev; cl_open += ov
-
-    _add(liabilities, "", "流动负债合计", 0, cl_end, cl_open, "流动负债_total")
-
-    # 非流动负债
-    ncl_end, ncl_open = 0.0, 0.0
-    for code, name in [("2501","长期借款"),("2502","应付债券"),("2701","长期应付款"),
-                        ("2801","预计负债"),("2401","递延收益"),("2901","递延所得税负债")]:
-        ev, ov = max(_net_bal(code), 0), max(_net_open(code), 0)
-        if ev or ov:
-            _add(liabilities, code, name, 1, ev, ov, "非流动负债")
-            ncl_end += ev; ncl_open += ov
-    _add(liabilities, "", "非流动负债合计", 0, ncl_end, ncl_open, "非流动负债_total")
-    total_liab, total_liab_open = cl_end + ncl_end, cl_open + ncl_open
-    _add(liabilities, "", "负债合计", 0, total_liab, total_liab_open, "liab_total")
-
-    # ── 所有者权益 ──
-    equity = []
-    eq_end, eq_open = 0.0, 0.0
-    for code, name in [("4001","实收资本"),("4002","资本公积"),("4101","盈余公积")]:
-        ev, ov = _net_bal(code), _net_open(code)
-        if ev or ov:
-            _add(equity, code, name, 1, ev, ov, "权益")
-            eq_end += ev; eq_open += ov
-
-    # 未分配利润 = 利润分配(4104)期末余额 + 本年利润(4103)期末余额
-    # 直接查询4103/4104的期末余额（不过滤结转凭证，因为4103的结转凭证是其正常业务）
-    def _raw_end_bal(code):
-        """查询科目期末余额（含所有已过账凭证，不过滤结转）"""
-        row = conn.execute("""
-            SELECT COALESCE(ob.balance, 0) as ob,
-                   COALESCE(SUM(je.debit), 0) as dr,
-                   COALESCE(SUM(je.credit), 0) as cr
-            FROM accounts a
-            LEFT JOIN opening_balances ob ON ob.account_code=a.code AND ob.ledger_id=? AND ob.year=?
-            LEFT JOIN journal_entries je ON je.account_code=a.code AND je.ledger_id=?
-            LEFT JOIN vouchers v ON je.voucher_id=v.id AND v.status='posted'
+        def _year_activity(code):
+            row = conn.execute(
+                """SELECT COALESCE(SUM(je.debit),0) AS dr, COALESCE(SUM(je.credit),0) AS cr
+                FROM journal_entries je
+                JOIN vouchers v ON je.voucher_id=v.id AND v.status='posted'
+                WHERE je.ledger_id=? AND je.account_code=?
                 AND strftime('%Y',v.date)=? AND CAST(strftime('%m',v.date) AS INTEGER)<=?
-            WHERE a.code=?
-        """, (ledger_id, year, ledger_id, str(year), month, code)).fetchone()
-        cat = _get_cat(code)
-        ob = row["ob"] or 0
-        dr = row["dr"] or 0
-        cr = row["cr"] or 0
-        if cat in ("资产", "费用"):
-            # 资产类：借方正，贷方负
-            o_dr = max(ob, 0)
-            o_cr = max(-ob, 0)
-            return (o_dr - o_cr) + (dr - cr)
-        else:
-            # 负债/权益类：贷方正，借方负
-            o_cr = max(ob, 0)
-            o_dr = max(-ob, 0)
-            return (o_cr - o_dr) + (cr - dr)
+                AND (v.description IS NULL OR v.description NOT LIKE '%结转%')""",
+                (ledger_id, code, str(year), month)
+            ).fetchone()
+            return (round(row["dr"], 2), round(row["cr"], 2))
 
-    def _raw_open_bal(code):
-        row = conn.execute(
-            "SELECT balance FROM opening_balances WHERE ledger_id=? AND account_code=? AND year=?",
-            (ledger_id, code, year)
-        ).fetchone()
-        return row[0] if row else 0
+        def _end_bal(code, cat):
+            o_dr, o_cr = _opening_bal(code)
+            y_dr, y_cr = _year_activity(code)
+            if cat in ("资产", "费用"):
+                return (o_dr - o_cr) + (y_dr - y_cr)
+            else:
+                return (o_cr - o_dr) + (y_cr - y_dr)
 
-    rp4104_end = _raw_end_bal("4104")
-    rp4103_end = _raw_end_bal("4103")
-    rp4104_open = _raw_open_bal("4104")
-    rp4103_open = _raw_open_bal("4103")
+        def _open_bal_signed(code, cat):
+            o_dr, o_cr = _opening_bal(code)
+            if cat in ("资产", "费用"):
+                return o_dr - o_cr
+            else:
+                return o_cr - o_dr
 
-    rp_end = max(rp4104_end, 0) + rp4103_end
-    rp_open = max(rp4104_open, 0) + rp4103_open
-    if rp_end or rp_open:
-        _add(equity, "4104N", "未分配利润", 1, rp_end, rp_open, "权益")
-        eq_end += rp_end; eq_open += rp_open
+        def _get_cat(code):
+            row = conn.execute("SELECT category FROM accounts WHERE code=? AND is_active=1", (code,)).fetchone()
+            return row["category"] if row else "资产"
 
-    total_equity, total_equity_open = eq_end, eq_open
-    _add(equity, "", "所有者权益合计", 0, total_equity, total_equity_open, "eq_total")
-    _add(equity, "", "负债和所有者权益总计", 0, total_liab + total_equity, total_liab_open + total_equity_open, "grand_total")
+        def _add(target, code, name, level, end_val, open_val, cat, is_parent=False):
+            target.append({"code": code, "name": name, "level": level,
+                           "end": round(end_val, 2), "open": round(open_val, 2),
+                           "cat": cat, **({"is_parent": True} if is_parent else {})})
 
-    conn.close()
+        def _net_bal(code):
+            """返回科目期末净值 (dr-cr for 资产/费用, cr-dr for 负债/权益/收入)"""
+            cat = _get_cat(code)
+            return _end_bal(code, cat)
+
+        def _net_open(code):
+            """返回科目期初净值"""
+            cat = _get_cat(code)
+            return _open_bal_signed(code, cat)
+
+        # ── 重分类辅助函数 ──
+        # _end_bal 对资产/费用返回 dr-cr（正=借方余额，负=贷方余额）
+        # _end_bal 对负债/权益/收入返回 cr-dr（正=贷方余额，负=借方余额）
+        # 统一规则：
+        #   借方余额 = 科目在借方的净额（资产类=正数部分，负债类=负数取反）
+        #   贷方余额 = 科目在贷方的净额（资产类=负数取反，负债类=正数部分）
+
+        def _dr_bal(code):
+            """科目借方余额（正数）"""
+            cat = _get_cat(code)
+            bal = _net_bal(code)
+            if cat == "资产":
+                return max(bal, 0)    # 资产类：dr-cr > 0 → 借方余额
+            else:
+                return max(-bal, 0)   # 负债类：cr-dr < 0 → 借方余额（取反）
+
+        def _cr_bal(code):
+            """科目贷方余额（正数）"""
+            cat = _get_cat(code)
+            bal = _net_bal(code)
+            if cat == "资产":
+                return max(-bal, 0)   # 资产类：dr-cr < 0 → 贷方余额（取反）
+            else:
+                return max(bal, 0)    # 负债类：cr-dr > 0 → 贷方余额
+
+        def _dr_open(code):
+            cat = _get_cat(code)
+            bal = _net_open(code)
+            if cat == "资产":
+                return max(bal, 0)
+            else:
+                return max(-bal, 0)
+
+        def _cr_open(code):
+            cat = _get_cat(code)
+            bal = _net_open(code)
+            if cat == "资产":
+                return max(-bal, 0)
+            else:
+                return max(bal, 0)
+
+        # ── 资产 ──
+        assets = []
+        ca_end, ca_open = 0.0, 0.0
+
+        # 货币资金 = 库存现金 + 银行存款(含子科目) + 其他货币资金
+        cash_codes = [c for c, _ in [("1001","库存现金"),("1002","银行存款"),("1012","其他货币资金")]]
+        cash_end = sum(max(_net_bal(c), 0) for c in cash_codes)
+        cash_open = sum(max(_net_open(c), 0) for c in cash_codes)
+        if cash_end or cash_open:
+            _add(assets, "1000", "货币资金", 1, cash_end, cash_open, "流动资产", is_parent=True)
+            for c, n in [("1001","库存现金"),("1002","银行存款"),("1012","其他货币资金")]:
+                ev, ov = max(_net_bal(c), 0), max(_net_open(c), 0)
+                if ev or ov:
+                    _add(assets, c, n, 2, ev, ov, "流动资产")
+            ca_end += cash_end; ca_open += cash_open
+
+        # 应收票据
+        for code, name in [("1121","应收票据")]:
+            ev, ov = max(_net_bal(code), 0), max(_net_open(code), 0)
+            if ev or ov:
+                _add(assets, code, name, 1, ev, ov, "流动资产")
+                ca_end += ev; ca_open += ov
+
+        # 应收账款 = 应收账款(借方) + 预收账款(借方余额重分类)
+        ar_end = _dr_bal("1122") + _dr_bal("2203")
+        ar_open = _dr_open("1122") + _dr_open("2203")
+        if ar_end or ar_open:
+            _add(assets, "1122", "应收账款", 1, ar_end, ar_open, "流动资产", is_parent=True)
+            for c, n in [("1122","应收账款"),("2203","预收账款重分类")]:
+                ev, ov = _dr_bal(c), _dr_open(c)
+                if ev or ov:
+                    _add(assets, c, n, 2, ev, ov, "流动资产")
+            ca_end += ar_end; ca_open += ar_open
+
+        # 预付款项 = 预付账款(借方) + 应付账款(借方余额重分类)
+        prepay_end = _dr_bal("1123") + _dr_bal("2202")
+        prepay_open = _dr_open("1123") + _dr_open("2202")
+        if prepay_end or prepay_open:
+            _add(assets, "1123", "预付款项", 1, prepay_end, prepay_open, "流动资产", is_parent=True)
+            for c, n in [("1123","预付账款"),("2202","应付账款重分类")]:
+                ev, ov = _dr_bal(c), _dr_open(c)
+                if ev or ov:
+                    _add(assets, c, n, 2, ev, ov, "流动资产")
+            ca_end += prepay_end; ca_open += prepay_open
+
+        # 其他应收款
+        for code, name in [("1221","其他应收款")]:
+            ev, ov = max(_net_bal(code), 0), max(_net_open(code), 0)
+            if ev or ov:
+                _add(assets, code, name, 1, ev, ov, "流动资产")
+                ca_end += ev; ca_open += ov
+        # 存货 = 材料采购+原材料+在途物资+周转材料+库存商品+发出商品+委托加工物资
+        # 注意：5101生产成本(成本类)余额在借方表示在产品，应计入存货；4001为权益类科目不计入
+        inv_codes = [
+            ("1401","材料采购"), ("1403","原材料"), ("1402","在途物资"),
+            ("1411","周转材料"), ("1405","库存商品"), ("1406","发出商品"),
+            ("5101","生产成本"), ("1408","委托加工物资"),
+        ]
+        inv_end = sum(max(_end_bal(c, "资产"), 0) for c, _ in inv_codes)
+        inv_open = sum(max(_open_bal_signed(c, "资产"), 0) for c, _ in inv_codes)
+        if inv_end or inv_open:
+            _add(assets, "1400", "存货", 1, inv_end, inv_open, "流动资产", is_parent=True)
+            for c, n in inv_codes:
+                ev, ov = max(_end_bal(c, "资产"), 0), max(_open_bal_signed(c, "资产"), 0)
+                if ev or ov:
+                    _add(assets, c, n, 2, ev, ov, "流动资产")
+            ca_end += inv_end; ca_open += inv_open
+        _add(assets, "", "流动资产合计", 0, ca_end, ca_open, "流动资产_total")
+
+        # 非流动资产
+        nca_end, nca_open = 0.0, 0.0
+        # 固定资产 = 原值 - 累计折旧 - 减值准备
+        fv_g, fv_g_open = _end_bal("1601","资产"), _open_bal_signed("1601","资产")
+        fv_d, fv_d_open = _end_bal("1602","资产"), _open_bal_signed("1602","资产")
+        fv_imp, fv_imp_open = _end_bal("1603","资产"), _open_bal_signed("1603","资产")
+        # 资产类科目：_end_bal返回(dr-cr)，累计折旧余额在贷方(负数)，减值准备同理
+        # 账面价值 = 原价 + 累计折旧 + 减值准备（后两者为负值）
+        fv_net = fv_g + fv_d + fv_imp
+        fv_net_open = fv_g_open + fv_d_open + fv_imp_open
+        if fv_g or fv_g_open or fv_d or fv_d_open or fv_imp or fv_imp_open:
+            _add(assets, "1601", "固定资产原价", 1, fv_g, fv_g_open, "非流动资产", is_parent=True)
+            _add(assets, "1602", "减：累计折旧", 2, -fv_d, -fv_d_open, "非流动资产")
+            _add(assets, "1603", "减：固定资产减值准备", 2, -fv_imp, -fv_imp_open, "非流动资产")
+            _add(assets, "1601N", "固定资产账面价值", 2, fv_net, fv_net_open, "非流动资产")
+            nca_end += fv_net; nca_open += fv_net_open
+
+        # 无形资产 = 原值 - 累计摊销 - 减值准备
+        ia_g, ia_g_open = _end_bal("1701","资产"), _open_bal_signed("1701","资产")
+        ia_a, ia_a_open = _end_bal("1702","资产"), _open_bal_signed("1702","资产")
+        ia_imp, ia_imp_open = _end_bal("1703","资产"), _open_bal_signed("1703","资产")
+        ia_net = ia_g + ia_a + ia_imp
+        ia_net_open = ia_g_open + ia_a_open + ia_imp_open
+        if ia_g or ia_g_open or ia_a or ia_a_open or ia_imp or ia_imp_open:
+            _add(assets, "1701", "无形资产原价", 1, ia_g, ia_g_open, "非流动资产", is_parent=True)
+            _add(assets, "1702", "减：累计摊销", 2, -ia_a, -ia_a_open, "非流动资产")
+            _add(assets, "1703", "减：无形资产减值准备", 2, -ia_imp, -ia_imp_open, "非流动资产")
+            _add(assets, "1701N", "无形资产账面价值", 2, ia_net, ia_net_open, "非流动资产")
+            nca_end += ia_net; nca_open += ia_net_open
+
+        for code, name in [("1501","长期债券投资"),("1511","长期股权投资"),("1521","投资性房地产"),
+                            ("1604","在建工程"),("1605","工程物资"),("1606","固定资产清理"),
+                            ("1801","长期待摊费用"),("1811","递延所得税资产"),
+                            ("1901","待处理财产损溢")]:
+            ev, ov = max(_net_bal(code), 0), max(_net_open(code), 0)
+            if ev or ov:
+                _add(assets, code, name, 1, ev, ov, "非流动资产")
+                nca_end += ev; nca_open += ov
+        _add(assets, "", "非流动资产合计", 0, nca_end, nca_open, "非流动资产_total")
+
+        total_assets = ca_end + nca_end
+        total_assets_open = ca_open + nca_open
+        _add(assets, "", "资产总计", 0, total_assets, total_assets_open, "total")
+
+        # ── 负债 ──
+        liabilities = []
+        cl_end, cl_open = 0.0, 0.0
+
+        # 短期借款、应付票据（无需重分类）
+        for code, name in [("2001","短期借款"),("2201","应付票据")]:
+            ev, ov = max(_net_bal(code), 0), max(_net_open(code), 0)
+            if ev or ov:
+                _add(liabilities, code, name, 1, ev, ov, "流动负债")
+                cl_end += ev; cl_open += ov
+
+        # 应付账款 = 应付账款(贷方) + 预付账款(贷方余额重分类)
+        ap_end = _cr_bal("2202") + _cr_bal("1123")
+        ap_open = _cr_open("2202") + _cr_open("1123")
+        if ap_end or ap_open:
+            _add(liabilities, "2202", "应付账款", 1, ap_end, ap_open, "流动负债", is_parent=True)
+            for c, n in [("2202","应付账款"),("1123","预付账款重分类")]:
+                ev, ov = _cr_bal(c), _cr_open(c)
+                if ev or ov:
+                    _add(liabilities, c, n, 2, ev, ov, "流动负债")
+            cl_end += ap_end; cl_open += ap_open
+
+        # 预收款项 = 预收账款(贷方) + 应收账款(贷方余额重分类)
+        unearned_end = _cr_bal("2203") + _cr_bal("1122")
+        unearned_open = _cr_open("2203") + _cr_open("1122")
+        if unearned_end or unearned_open:
+            _add(liabilities, "2203", "预收款项", 1, unearned_end, unearned_open, "流动负债", is_parent=True)
+            for c, n in [("2203","预收账款"),("1122","应收账款重分类")]:
+                ev, ov = _cr_bal(c), _cr_open(c)
+                if ev or ov:
+                    _add(liabilities, c, n, 2, ev, ov, "流动负债")
+            cl_end += unearned_end; cl_open += unearned_open
+
+        # 其他流动负债（无需重分类）
+        for code, name in [("2211","应付职工薪酬"),("2221","应交税费"),
+                            ("2231","应付利息"),("2232","应付股利"),("2241","其他应付款")]:
+            ev, ov = max(_net_bal(code), 0), max(_net_open(code), 0)
+            if ev or ov:
+                _add(liabilities, code, name, 1, ev, ov, "流动负债")
+                cl_end += ev; cl_open += ov
+
+        _add(liabilities, "", "流动负债合计", 0, cl_end, cl_open, "流动负债_total")
+
+        # 非流动负债
+        ncl_end, ncl_open = 0.0, 0.0
+        for code, name in [("2501","长期借款"),("2502","应付债券"),("2701","长期应付款"),
+                            ("2801","预计负债"),("2401","递延收益"),("2901","递延所得税负债")]:
+            ev, ov = max(_net_bal(code), 0), max(_net_open(code), 0)
+            if ev or ov:
+                _add(liabilities, code, name, 1, ev, ov, "非流动负债")
+                ncl_end += ev; ncl_open += ov
+        _add(liabilities, "", "非流动负债合计", 0, ncl_end, ncl_open, "非流动负债_total")
+        total_liab, total_liab_open = cl_end + ncl_end, cl_open + ncl_open
+        _add(liabilities, "", "负债合计", 0, total_liab, total_liab_open, "liab_total")
+
+        # ── 所有者权益 ──
+        equity = []
+        eq_end, eq_open = 0.0, 0.0
+        for code, name in [("4001","实收资本"),("4002","资本公积"),("4101","盈余公积")]:
+            ev, ov = _net_bal(code), _net_open(code)
+            if ev or ov:
+                _add(equity, code, name, 1, ev, ov, "权益")
+                eq_end += ev; eq_open += ov
+
+        # 未分配利润 = 利润分配(4104)期末余额 + 本年利润(4103)期末余额
+        # 直接查询4103/4104的期末余额（不过滤结转凭证，因为4103的结转凭证是其正常业务）
+        def _raw_end_bal(code):
+            """查询科目期末余额（含所有已过账凭证，不过滤结转）"""
+            row = conn.execute("""
+                SELECT COALESCE(ob.balance, 0) as ob,
+                       COALESCE(SUM(je.debit), 0) as dr,
+                       COALESCE(SUM(je.credit), 0) as cr
+                FROM accounts a
+                LEFT JOIN opening_balances ob ON ob.account_code=a.code AND ob.ledger_id=? AND ob.year=?
+                LEFT JOIN journal_entries je ON je.account_code=a.code AND je.ledger_id=?
+                LEFT JOIN vouchers v ON je.voucher_id=v.id AND v.status='posted'
+                    AND strftime('%Y',v.date)=? AND CAST(strftime('%m',v.date) AS INTEGER)<=?
+                WHERE a.code=?
+            """, (ledger_id, year, ledger_id, str(year), month, code)).fetchone()
+            cat = _get_cat(code)
+            ob = row["ob"] or 0
+            dr = row["dr"] or 0
+            cr = row["cr"] or 0
+            if cat in ("资产", "费用"):
+                # 资产类：借方正，贷方负
+                o_dr = max(ob, 0)
+                o_cr = max(-ob, 0)
+                return (o_dr - o_cr) + (dr - cr)
+            else:
+                # 负债/权益类：贷方正，借方负
+                o_cr = max(ob, 0)
+                o_dr = max(-ob, 0)
+                return (o_cr - o_dr) + (cr - dr)
+
+        def _raw_open_bal(code):
+            row = conn.execute(
+                "SELECT balance FROM opening_balances WHERE ledger_id=? AND account_code=? AND year=?",
+                (ledger_id, code, year)
+            ).fetchone()
+            return row[0] if row else 0
+
+        rp4104_end = _raw_end_bal("4104")
+        rp4103_end = _raw_end_bal("4103")
+        rp4104_open = _raw_open_bal("4104")
+        rp4103_open = _raw_open_bal("4103")
+
+        rp_end = max(rp4104_end, 0) + rp4103_end
+        rp_open = max(rp4104_open, 0) + rp4103_open
+        if rp_end or rp_open:
+            _add(equity, "4104N", "未分配利润", 1, rp_end, rp_open, "权益")
+            eq_end += rp_end; eq_open += rp_open
+
+        total_equity, total_equity_open = eq_end, eq_open
+        _add(equity, "", "所有者权益合计", 0, total_equity, total_equity_open, "eq_total")
+        _add(equity, "", "负债和所有者权益总计", 0, total_liab + total_equity, total_liab_open + total_equity_open, "grand_total")
+
+    finally:
+        conn.close()
     return {
         "date": f"{year}-{month:02d}",
         "assets": assets, "liabilities": liabilities, "equity": equity,
@@ -355,258 +357,260 @@ def get_income_statement(ledger_id, year, month) -> dict:
     列：项目 | 行次 | 本年累计金额 | 本月金额
     """
     conn = get_conn()
+    try:
 
-    def _period_clause(table="v"):
-        # 只排除结转类凭证，不过滤含"年月"的摘要（避免误杀正常凭证）
-        return f"strftime('%Y', {table}.date) = ? AND CAST(strftime('%m', {table}.date) AS INTEGER) = ? AND ({table}.description IS NULL OR {table}.description NOT LIKE '%结转%')"
+        def _period_clause(table="v"):
+            # 只排除结转类凭证，不过滤含"年月"的摘要（避免误杀正常凭证）
+            return f"strftime('%Y', {table}.date) = ? AND CAST(strftime('%m', {table}.date) AS INTEGER) = ? AND ({table}.description IS NULL OR {table}.description NOT LIKE '%结转%')"
 
-    def _ytd_clause(table="v"):
-        return f"strftime('%Y', {table}.date) = ? AND CAST(strftime('%m', {table}.date) AS INTEGER) <= ? AND ({table}.description IS NULL OR {table}.description NOT LIKE '%结转%')"
+        def _ytd_clause(table="v"):
+            return f"strftime('%Y', {table}.date) = ? AND CAST(strftime('%m', {table}.date) AS INTEGER) <= ? AND ({table}.description IS NULL OR {table}.description NOT LIKE '%结转%')"
 
-    def _expense_month(code=None, sub=None):
-        where = "a.category = '费用' AND a.is_active = 1"
-        params = []
-        if code:
-            where += " AND a.code = ?"
-            params.append(code)
-        if sub:
-            where += " AND a.sub_category = ?"
-            params.append(sub)
-        p = [ledger_id, str(year), month] + params
-        row = conn.execute(f"""
-            SELECT COALESCE(SUM(je.debit) - SUM(je.credit), 0) AS amt
-            FROM accounts a
-            LEFT JOIN journal_entries je ON je.account_code = a.code AND je.ledger_id = ?
-            INNER JOIN vouchers v ON je.voucher_id = v.id AND v.status = 'posted' AND {_period_clause()}
-            WHERE {where}
-        """, p).fetchone()
-        return round(row["amt"], 2) if row else 0
+        def _expense_month(code=None, sub=None):
+            where = "a.category = '费用' AND a.is_active = 1"
+            params = []
+            if code:
+                where += " AND a.code = ?"
+                params.append(code)
+            if sub:
+                where += " AND a.sub_category = ?"
+                params.append(sub)
+            p = [ledger_id, str(year), month] + params
+            row = conn.execute(f"""
+                SELECT COALESCE(SUM(je.debit) - SUM(je.credit), 0) AS amt
+                FROM accounts a
+                LEFT JOIN journal_entries je ON je.account_code = a.code AND je.ledger_id = ?
+                INNER JOIN vouchers v ON je.voucher_id = v.id AND v.status = 'posted' AND {_period_clause()}
+                WHERE {where}
+            """, p).fetchone()
+            return round(row["amt"], 2) if row else 0
 
-    def _expense_ytd(code=None, sub=None):
-        where = "a.category = '费用' AND a.is_active = 1"
-        params = []
-        if code:
-            where += " AND a.code = ?"
-            params.append(code)
-        if sub:
-            where += " AND a.sub_category = ?"
-            params.append(sub)
-        p = [ledger_id, str(year), month] + params
-        row = conn.execute(f"""
-            SELECT COALESCE(SUM(je.debit) - SUM(je.credit), 0) AS amt
-            FROM accounts a
-            LEFT JOIN journal_entries je ON je.account_code = a.code AND je.ledger_id = ?
-            INNER JOIN vouchers v ON je.voucher_id = v.id AND v.status = 'posted' AND {_ytd_clause()}
-            WHERE {where}
-        """, p).fetchone()
-        return round(row["amt"], 2) if row else 0
+        def _expense_ytd(code=None, sub=None):
+            where = "a.category = '费用' AND a.is_active = 1"
+            params = []
+            if code:
+                where += " AND a.code = ?"
+                params.append(code)
+            if sub:
+                where += " AND a.sub_category = ?"
+                params.append(sub)
+            p = [ledger_id, str(year), month] + params
+            row = conn.execute(f"""
+                SELECT COALESCE(SUM(je.debit) - SUM(je.credit), 0) AS amt
+                FROM accounts a
+                LEFT JOIN journal_entries je ON je.account_code = a.code AND je.ledger_id = ?
+                INNER JOIN vouchers v ON je.voucher_id = v.id AND v.status = 'posted' AND {_ytd_clause()}
+                WHERE {where}
+            """, p).fetchone()
+            return round(row["amt"], 2) if row else 0
 
-    def _revenue_month(code=None, sub=None):
-        where = "a.category = '收入' AND a.is_active = 1"
-        params = []
-        if code:
-            where += " AND a.code = ?"
-            params.append(code)
-        if sub:
-            where += " AND a.sub_category = ?"
-            params.append(sub)
-        p = [ledger_id, str(year), month] + params
-        row = conn.execute(f"""
-            SELECT COALESCE(SUM(je.credit) - SUM(je.debit), 0) AS amt
-            FROM accounts a
-            LEFT JOIN journal_entries je ON je.account_code = a.code AND je.ledger_id = ?
-            INNER JOIN vouchers v ON je.voucher_id = v.id AND v.status = 'posted' AND {_period_clause()}
-            WHERE {where}
-        """, p).fetchone()
-        return round(row["amt"], 2) if row else 0
+        def _revenue_month(code=None, sub=None):
+            where = "a.category = '收入' AND a.is_active = 1"
+            params = []
+            if code:
+                where += " AND a.code = ?"
+                params.append(code)
+            if sub:
+                where += " AND a.sub_category = ?"
+                params.append(sub)
+            p = [ledger_id, str(year), month] + params
+            row = conn.execute(f"""
+                SELECT COALESCE(SUM(je.credit) - SUM(je.debit), 0) AS amt
+                FROM accounts a
+                LEFT JOIN journal_entries je ON je.account_code = a.code AND je.ledger_id = ?
+                INNER JOIN vouchers v ON je.voucher_id = v.id AND v.status = 'posted' AND {_period_clause()}
+                WHERE {where}
+            """, p).fetchone()
+            return round(row["amt"], 2) if row else 0
 
-    def _revenue_ytd(code=None, sub=None):
-        where = "a.category = '收入' AND a.is_active = 1"
-        params = []
-        if code:
-            where += " AND a.code = ?"
-            params.append(code)
-        if sub:
-            where += " AND a.sub_category = ?"
-            params.append(sub)
-        p = [ledger_id, str(year), month] + params
-        row = conn.execute(f"""
-            SELECT COALESCE(SUM(je.credit) - SUM(je.debit), 0) AS amt
-            FROM accounts a
-            LEFT JOIN journal_entries je ON je.account_code = a.code AND je.ledger_id = ?
-            INNER JOIN vouchers v ON je.voucher_id = v.id AND v.status = 'posted' AND {_ytd_clause()}
-            WHERE {where}
-        """, p).fetchone()
-        return round(row["amt"], 2) if row else 0
+        def _revenue_ytd(code=None, sub=None):
+            where = "a.category = '收入' AND a.is_active = 1"
+            params = []
+            if code:
+                where += " AND a.code = ?"
+                params.append(code)
+            if sub:
+                where += " AND a.sub_category = ?"
+                params.append(sub)
+            p = [ledger_id, str(year), month] + params
+            row = conn.execute(f"""
+                SELECT COALESCE(SUM(je.credit) - SUM(je.debit), 0) AS amt
+                FROM accounts a
+                LEFT JOIN journal_entries je ON je.account_code = a.code AND je.ledger_id = ?
+                INNER JOIN vouchers v ON je.voucher_id = v.id AND v.status = 'posted' AND {_ytd_clause()}
+                WHERE {where}
+            """, p).fetchone()
+            return round(row["amt"], 2) if row else 0
 
-    def _child_accounts(parent_code):
-        if not parent_code:
-            return []
-        rows = conn.execute(
-            "SELECT code, name FROM accounts WHERE parent_code = ? AND is_active = 1 ORDER BY code",
-            (parent_code,)
+        def _child_accounts(parent_code):
+            if not parent_code:
+                return []
+            rows = conn.execute(
+                "SELECT code, name FROM accounts WHERE parent_code = ? AND is_active = 1 ORDER BY code",
+                (parent_code,)
+            ).fetchall()
+            return [dict(r) for r in rows]
+
+        rows = []
+
+        # 一、营业收入
+        rows.append({"name": "一、营业收入", "code": "", "level": 0, "month": None, "ytd": None, "type": "header"})
+        rev_codes = conn.execute(
+            "SELECT code, name FROM accounts WHERE category='收入' AND sub_category='营业收入' AND parent_code IS NULL AND is_active=1 ORDER BY code"
         ).fetchall()
-        return [dict(r) for r in rows]
+        total_rev_month = 0
+        total_rev_ytd = 0
+        for r in rev_codes:
+            children = _child_accounts(r["code"])
+            # 先查父科目本身的数据（即使有子科目，父科目也可能有直接凭证）
+            m_parent = _revenue_month(code=r["code"])
+            y_parent = _revenue_ytd(code=r["code"])
+            if m_parent or y_parent:
+                rows.append({"name": r["name"], "code": r["code"], "level": 1, "month": m_parent, "ytd": y_parent, "type": "revenue_item"})
+                total_rev_month += m_parent
+                total_rev_ytd += y_parent
+            # 再查子科目
+            if children:
+                for ch in children:
+                    m = _revenue_month(code=ch["code"])
+                    y = _revenue_ytd(code=ch["code"])
+                    if m or y:
+                        rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "revenue_item"})
+                        total_rev_month += m
+                        total_rev_ytd += y
+        rows.append({"name": "营业收入合计", "code": "", "level": 0, "month": total_rev_month, "ytd": total_rev_ytd, "type": "rev_total"})
 
-    rows = []
+        # 减：营业成本
+        cogs_month = _expense_month(code="6401")
+        cogs_ytd = _expense_ytd(code="6401")
+        cogs_children = _child_accounts("6401")
+        for ch in cogs_children:
+            m = _expense_month(code=ch["code"])
+            y = _expense_ytd(code=ch["code"])
+            if m or y:
+                rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
+        rows.append({"name": "减：营业成本", "code": "", "level": 0, "month": cogs_month, "ytd": cogs_ytd, "type": "expense_header"})
 
-    # 一、营业收入
-    rows.append({"name": "一、营业收入", "code": "", "level": 0, "month": None, "ytd": None, "type": "header"})
-    rev_codes = conn.execute(
-        "SELECT code, name FROM accounts WHERE category='收入' AND sub_category='营业收入' AND parent_code IS NULL AND is_active=1 ORDER BY code"
-    ).fetchall()
-    total_rev_month = 0
-    total_rev_ytd = 0
-    for r in rev_codes:
-        children = _child_accounts(r["code"])
-        # 先查父科目本身的数据（即使有子科目，父科目也可能有直接凭证）
-        m_parent = _revenue_month(code=r["code"])
-        y_parent = _revenue_ytd(code=r["code"])
-        if m_parent or y_parent:
-            rows.append({"name": r["name"], "code": r["code"], "level": 1, "month": m_parent, "ytd": y_parent, "type": "revenue_item"})
-            total_rev_month += m_parent
-            total_rev_ytd += y_parent
-        # 再查子科目
-        if children:
-            for ch in children:
-                m = _revenue_month(code=ch["code"])
-                y = _revenue_ytd(code=ch["code"])
-                if m or y:
-                    rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "revenue_item"})
-                    total_rev_month += m
-                    total_rev_ytd += y
-    rows.append({"name": "营业收入合计", "code": "", "level": 0, "month": total_rev_month, "ytd": total_rev_ytd, "type": "rev_total"})
+        # 税金及附加（含子项）
+        tax_month = _expense_month(code="6403")
+        tax_ytd = _expense_ytd(code="6403")
+        rows.append({"name": "税金及附加", "code": "6403", "level": 0, "month": tax_month, "ytd": tax_ytd, "type": "expense_header"})
+        for ch in _child_accounts("6403"):
+            m = _expense_month(code=ch["code"])
+            y = _expense_ytd(code=ch["code"])
+            if m or y:
+                rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
 
-    # 减：营业成本
-    cogs_month = _expense_month(code="6401")
-    cogs_ytd = _expense_ytd(code="6401")
-    cogs_children = _child_accounts("6401")
-    for ch in cogs_children:
-        m = _expense_month(code=ch["code"])
-        y = _expense_ytd(code=ch["code"])
-        if m or y:
-            rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
-    rows.append({"name": "减：营业成本", "code": "", "level": 0, "month": cogs_month, "ytd": cogs_ytd, "type": "expense_header"})
+        # 销售费用（含子项）
+        sfa_month = _expense_month(code="6601")
+        sfa_ytd = _expense_ytd(code="6601")
+        rows.append({"name": "销售费用", "code": "6601", "level": 0, "month": sfa_month, "ytd": sfa_ytd, "type": "expense_header"})
+        for ch in _child_accounts("6601"):
+            m = _expense_month(code=ch["code"])
+            y = _expense_ytd(code=ch["code"])
+            if m or y:
+                rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
 
-    # 税金及附加（含子项）
-    tax_month = _expense_month(code="6403")
-    tax_ytd = _expense_ytd(code="6403")
-    rows.append({"name": "税金及附加", "code": "6403", "level": 0, "month": tax_month, "ytd": tax_ytd, "type": "expense_header"})
-    for ch in _child_accounts("6403"):
-        m = _expense_month(code=ch["code"])
-        y = _expense_ytd(code=ch["code"])
-        if m or y:
-            rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
+        # 管理费用（含子项）
+        ma_month = _expense_month(code="6602")
+        ma_ytd = _expense_ytd(code="6602")
+        rows.append({"name": "管理费用", "code": "6602", "level": 0, "month": ma_month, "ytd": ma_ytd, "type": "expense_header"})
+        for ch in _child_accounts("6602"):
+            m = _expense_month(code=ch["code"])
+            y = _expense_ytd(code=ch["code"])
+            if m or y:
+                rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
 
-    # 销售费用（含子项）
-    sfa_month = _expense_month(code="6601")
-    sfa_ytd = _expense_ytd(code="6601")
-    rows.append({"name": "销售费用", "code": "6601", "level": 0, "month": sfa_month, "ytd": sfa_ytd, "type": "expense_header"})
-    for ch in _child_accounts("6601"):
-        m = _expense_month(code=ch["code"])
-        y = _expense_ytd(code=ch["code"])
-        if m or y:
-            rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
+        # 研发费用（5001研发支出转入）
+        rd_month = _expense_month(code="5001")
+        rd_ytd = _expense_ytd(code="5001")
+        rows.append({"name": "研发费用", "code": "5001", "level": 0, "month": rd_month, "ytd": rd_ytd, "type": "expense_header"})
 
-    # 管理费用（含子项）
-    ma_month = _expense_month(code="6602")
-    ma_ytd = _expense_ytd(code="6602")
-    rows.append({"name": "管理费用", "code": "6602", "level": 0, "month": ma_month, "ytd": ma_ytd, "type": "expense_header"})
-    for ch in _child_accounts("6602"):
-        m = _expense_month(code=ch["code"])
-        y = _expense_ytd(code=ch["code"])
-        if m or y:
-            rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
+        # 财务费用（含子项）
+        fa_month = _expense_month(code="6603")
+        fa_ytd = _expense_ytd(code="6603")
+        rows.append({"name": "财务费用", "code": "6603", "level": 0, "month": fa_month, "ytd": fa_ytd, "type": "expense_header"})
+        for ch in _child_accounts("6603"):
+            m = _expense_month(code=ch["code"])
+            y = _expense_ytd(code=ch["code"])
+            if m or y:
+                rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
 
-    # 研发费用（5001研发支出转入）
-    rd_month = _expense_month(code="5001")
-    rd_ytd = _expense_ytd(code="5001")
-    rows.append({"name": "研发费用", "code": "5001", "level": 0, "month": rd_month, "ytd": rd_ytd, "type": "expense_header"})
+        # 加：投资收益
+        inv_month = _revenue_month(code="6111")
+        inv_ytd = _revenue_ytd(code="6111")
+        rows.append({"name": "加：投资收益", "code": "6111", "level": 1, "month": inv_month, "ytd": inv_ytd, "type": "revenue_item"})
 
-    # 财务费用（含子项）
-    fa_month = _expense_month(code="6603")
-    fa_ytd = _expense_ytd(code="6603")
-    rows.append({"name": "财务费用", "code": "6603", "level": 0, "month": fa_month, "ytd": fa_ytd, "type": "expense_header"})
-    for ch in _child_accounts("6603"):
-        m = _expense_month(code=ch["code"])
-        y = _expense_ytd(code=ch["code"])
-        if m or y:
-            rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
+        # 加：公允价值变动收益
+        fv_month = _revenue_month(code="6101")
+        fv_ytd = _revenue_ytd(code="6101")
+        rows.append({"name": "加：公允价值变动收益", "code": "6101", "level": 1, "month": fv_month, "ytd": fv_ytd, "type": "revenue_item"})
 
-    # 加：投资收益
-    inv_month = _revenue_month(code="6111")
-    inv_ytd = _revenue_ytd(code="6111")
-    rows.append({"name": "加：投资收益", "code": "6111", "level": 1, "month": inv_month, "ytd": inv_ytd, "type": "revenue_item"})
+        # 加：其他收益（营业外收入中的政府补助等）
+        # 暂从6301营业外收入中拆分
+        oth_rev_month = 0  # 暂缺独立科目，后续可增设6311
+        oth_rev_ytd = 0
+        rows.append({"name": "加：其他收益", "code": "", "level": 1, "month": oth_rev_month, "ytd": oth_rev_ytd, "type": "revenue_item"})
 
-    # 加：公允价值变动收益
-    fv_month = _revenue_month(code="6101")
-    fv_ytd = _revenue_ytd(code="6101")
-    rows.append({"name": "加：公允价值变动收益", "code": "6101", "level": 1, "month": fv_month, "ytd": fv_ytd, "type": "revenue_item"})
+        # 减：信用减值损失
+        cl_month = _expense_month(code="6702")
+        cl_ytd = _expense_ytd(code="6702")
+        rows.append({"name": "减：信用减值损失", "code": "6702", "level": 0, "month": cl_month, "ytd": cl_ytd, "type": "expense_header"})
 
-    # 加：其他收益（营业外收入中的政府补助等）
-    # 暂从6301营业外收入中拆分
-    oth_rev_month = 0  # 暂缺独立科目，后续可增设6311
-    oth_rev_ytd = 0
-    rows.append({"name": "加：其他收益", "code": "", "level": 1, "month": oth_rev_month, "ytd": oth_rev_ytd, "type": "revenue_item"})
+        # 减：资产减值损失
+        imp_month = _expense_month(code="6701")
+        imp_ytd = _expense_ytd(code="6701")
+        rows.append({"name": "减：资产减值损失", "code": "6701", "level": 0, "month": imp_month, "ytd": imp_ytd, "type": "expense_header"})
 
-    # 减：信用减值损失
-    cl_month = _expense_month(code="6702")
-    cl_ytd = _expense_ytd(code="6702")
-    rows.append({"name": "减：信用减值损失", "code": "6702", "level": 0, "month": cl_month, "ytd": cl_ytd, "type": "expense_header"})
+        # 加：资产处置收益（暂缺独立科目6001）
+        dp_month = 0
+        dp_ytd = 0
+        rows.append({"name": "加：资产处置收益", "code": "", "level": 1, "month": dp_month, "ytd": dp_ytd, "type": "revenue_item"})
 
-    # 减：资产减值损失
-    imp_month = _expense_month(code="6701")
-    imp_ytd = _expense_ytd(code="6701")
-    rows.append({"name": "减：资产减值损失", "code": "6701", "level": 0, "month": imp_month, "ytd": imp_ytd, "type": "expense_header"})
+        # 二、营业利润
+        total_expense_month = cogs_month + tax_month + sfa_month + ma_month + rd_month + fa_month + cl_month + imp_month
+        total_expense_ytd = cogs_ytd + tax_ytd + sfa_ytd + ma_ytd + rd_ytd + fa_ytd + cl_ytd + imp_ytd
+        op_month = total_rev_month - total_expense_month + inv_month + fv_month + oth_rev_month + dp_month
+        op_ytd = total_rev_ytd - total_expense_ytd + inv_ytd + fv_ytd + oth_rev_ytd + dp_ytd
+        rows.append({"name": "二、营业利润", "code": "", "level": 0, "month": op_month, "ytd": op_ytd, "type": "subtotal"})
 
-    # 加：资产处置收益（暂缺独立科目6001）
-    dp_month = 0
-    dp_ytd = 0
-    rows.append({"name": "加：资产处置收益", "code": "", "level": 1, "month": dp_month, "ytd": dp_ytd, "type": "revenue_item"})
+        # 加：营业外收入（含子项：政府补助）
+        oi_month = _revenue_month(code="6301")
+        oi_ytd = _revenue_ytd(code="6301")
+        rows.append({"name": "加：营业外收入", "code": "6301", "level": 0, "month": oi_month, "ytd": oi_ytd, "type": "revenue_header"})
+        for ch in _child_accounts("6301"):
+            m = _revenue_month(code=ch["code"])
+            y = _revenue_ytd(code=ch["code"])
+            if m or y:
+                rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "revenue_item"})
 
-    # 二、营业利润
-    total_expense_month = cogs_month + tax_month + sfa_month + ma_month + rd_month + fa_month + cl_month + imp_month
-    total_expense_ytd = cogs_ytd + tax_ytd + sfa_ytd + ma_ytd + rd_ytd + fa_ytd + cl_ytd + imp_ytd
-    op_month = total_rev_month - total_expense_month + inv_month + fv_month + oth_rev_month + dp_month
-    op_ytd = total_rev_ytd - total_expense_ytd + inv_ytd + fv_ytd + oth_rev_ytd + dp_ytd
-    rows.append({"name": "二、营业利润", "code": "", "level": 0, "month": op_month, "ytd": op_ytd, "type": "subtotal"})
+        # 减：营业外支出（含子项）
+        oe_month = _expense_month(code="6711")
+        oe_ytd = _expense_ytd(code="6711")
+        rows.append({"name": "减：营业外支出", "code": "6711", "level": 0, "month": oe_month, "ytd": oe_ytd, "type": "expense_header"})
+        for ch in _child_accounts("6711"):
+            m = _expense_month(code=ch["code"])
+            y = _expense_ytd(code=ch["code"])
+            if m or y:
+                rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
 
-    # 加：营业外收入（含子项：政府补助）
-    oi_month = _revenue_month(code="6301")
-    oi_ytd = _revenue_ytd(code="6301")
-    rows.append({"name": "加：营业外收入", "code": "6301", "level": 0, "month": oi_month, "ytd": oi_ytd, "type": "revenue_header"})
-    for ch in _child_accounts("6301"):
-        m = _revenue_month(code=ch["code"])
-        y = _revenue_ytd(code=ch["code"])
-        if m or y:
-            rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "revenue_item"})
+        # 三、利润总额
+        bt_month = op_month + oi_month - oe_month
+        bt_ytd = op_ytd + oi_ytd - oe_ytd
+        rows.append({"name": "三、利润总额", "code": "", "level": 0, "month": bt_month, "ytd": bt_ytd, "type": "subtotal"})
 
-    # 减：营业外支出（含子项）
-    oe_month = _expense_month(code="6711")
-    oe_ytd = _expense_ytd(code="6711")
-    rows.append({"name": "减：营业外支出", "code": "6711", "level": 0, "month": oe_month, "ytd": oe_ytd, "type": "expense_header"})
-    for ch in _child_accounts("6711"):
-        m = _expense_month(code=ch["code"])
-        y = _expense_ytd(code=ch["code"])
-        if m or y:
-            rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
+        # 减：所得税费用
+        tax_exp_month = _expense_month(code="6801")
+        tax_exp_ytd = _expense_ytd(code="6801")
+        rows.append({"name": "减：所得税费用", "code": "6801", "level": 1, "month": tax_exp_month, "ytd": tax_exp_ytd, "type": "expense_item"})
 
-    # 三、利润总额
-    bt_month = op_month + oi_month - oe_month
-    bt_ytd = op_ytd + oi_ytd - oe_ytd
-    rows.append({"name": "三、利润总额", "code": "", "level": 0, "month": bt_month, "ytd": bt_ytd, "type": "subtotal"})
+        # 四、净利润
+        np_month = bt_month - tax_exp_month
+        np_ytd = bt_ytd - tax_exp_ytd
+        rows.append({"name": "四、净利润", "code": "", "level": 0, "month": np_month, "ytd": np_ytd, "type": "total"})
 
-    # 减：所得税费用
-    tax_exp_month = _expense_month(code="6801")
-    tax_exp_ytd = _expense_ytd(code="6801")
-    rows.append({"name": "减：所得税费用", "code": "6801", "level": 1, "month": tax_exp_month, "ytd": tax_exp_ytd, "type": "expense_item"})
-
-    # 四、净利润
-    np_month = bt_month - tax_exp_month
-    np_ytd = bt_ytd - tax_exp_ytd
-    rows.append({"name": "四、净利润", "code": "", "level": 0, "month": np_month, "ytd": np_ytd, "type": "total"})
-
-    conn.close()
+    finally:
+        conn.close()
 
     return {
         "date": f"{year}-{month:02d}",

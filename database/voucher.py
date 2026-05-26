@@ -128,152 +128,160 @@ def post_voucher(ledger_id, voucher_no=None, user_id=None, operator_name=None):
         ledger_id = None
 
     conn = get_conn()
-    if ledger_id is not None:
-        v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ? AND ledger_id = ?", (voucher_no, ledger_id)).fetchone()
-    else:
-        v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ?", (voucher_no,)).fetchone()
-    if not v:
+    try:
+        if ledger_id is not None:
+            v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ? AND ledger_id = ?", (voucher_no, ledger_id)).fetchone()
+        else:
+            v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ?", (voucher_no,)).fetchone()
+        if not v:
+            conn.close()
+            raise ValueError("凭证不存在或不属于该账套")
+        if v["status"] == "posted":
+            conn.close()
+            return  # 已过账
+        conn.execute("UPDATE vouchers SET status = 'posted', updated_at = datetime('now','localtime') WHERE id = ?", (v["id"],))
+        add_audit_log(
+            ledger_id=v["ledger_id"],
+            action="post_voucher",
+            detail=f"过账凭证 {voucher_no}",
+            voucher_id=v["id"],
+            module="voucher",
+            target_table="vouchers",
+            target_id=v["id"],
+            user_id=user_id,
+            operator_name=operator_name,
+            remark=f"凭证号:{voucher_no}",
+            conn=conn,
+        )
+        conn.commit()
+    finally:
         conn.close()
-        raise ValueError("凭证不存在或不属于该账套")
-    if v["status"] == "posted":
-        conn.close()
-        return  # 已过账
-    conn.execute("UPDATE vouchers SET status = 'posted', updated_at = datetime('now','localtime') WHERE id = ?", (v["id"],))
-    add_audit_log(
-        ledger_id=v["ledger_id"],
-        action="post_voucher",
-        detail=f"过账凭证 {voucher_no}",
-        voucher_id=v["id"],
-        module="voucher",
-        target_table="vouchers",
-        target_id=v["id"],
-        user_id=user_id,
-        operator_name=operator_name,
-        remark=f"凭证号:{voucher_no}",
-        conn=conn,
-    )
-    conn.commit()
-    conn.close()
     clear_query_cache()
 
 def approve_voucher(ledger_id, voucher_no, user_id=None, operator_name=None):
     """approve_voucher: pending_review -> posted"""
     conn = get_conn()
-    v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ? AND ledger_id = ?", (voucher_no, ledger_id)).fetchone()
-    if not v:
+    try:
+        v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ? AND ledger_id = ?", (voucher_no, ledger_id)).fetchone()
+        if not v:
+            conn.close()
+            raise ValueError("voucher not found")
+        if v["status"] != "pending_review":
+            conn.close()
+            raise ValueError("only pending_review can approve")
+        conn.execute("UPDATE vouchers SET status = 'posted', updated_at = datetime('now','localtime') WHERE id = ?", (v["id"],))
+        add_audit_log(
+            ledger_id=ledger_id,
+            action="approve_voucher",
+            detail="审核通过 " + voucher_no,
+            voucher_id=v["id"],
+            user_id=user_id,
+            operator_name=operator_name,
+            module="voucher",
+            target_table="vouchers",
+            target_id=v["id"],
+            remark=f"凭证号:{voucher_no}",
+            conn=conn,
+        )
+        conn.commit()
+    finally:
         conn.close()
-        raise ValueError("voucher not found")
-    if v["status"] != "pending_review":
-        conn.close()
-        raise ValueError("only pending_review can approve")
-    conn.execute("UPDATE vouchers SET status = 'posted', updated_at = datetime('now','localtime') WHERE id = ?", (v["id"],))
-    add_audit_log(
-        ledger_id=ledger_id,
-        action="approve_voucher",
-        detail="审核通过 " + voucher_no,
-        voucher_id=v["id"],
-        user_id=user_id,
-        operator_name=operator_name,
-        module="voucher",
-        target_table="vouchers",
-        target_id=v["id"],
-        remark=f"凭证号:{voucher_no}",
-        conn=conn,
-    )
-    conn.commit()
-    conn.close()
     clear_query_cache()
     add_workflow_log(ledger_id, v["id"], "approve", "pending_review", "posted", user_id)
 
 def reject_voucher(ledger_id, voucher_no, reason="", user_id=None, operator_name=None):
     """reject_voucher: pending_review -> draft"""
     conn = get_conn()
-    v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ? AND ledger_id = ?", (voucher_no, ledger_id)).fetchone()
-    if not v:
+    try:
+        v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ? AND ledger_id = ?", (voucher_no, ledger_id)).fetchone()
+        if not v:
+            conn.close()
+            raise ValueError("voucher not found")
+        if v["status"] != "pending_review":
+            conn.close()
+            raise ValueError("only pending_review can reject")
+        conn.execute("UPDATE vouchers SET status = 'draft', updated_at = datetime('now','localtime') WHERE id = ?", (v["id"],))
+        add_audit_log(
+            ledger_id=ledger_id,
+            action="reject_voucher",
+            detail="驳回 " + voucher_no + " 原因:" + reason,
+            voucher_id=v["id"],
+            user_id=user_id,
+            operator_name=operator_name,
+            module="voucher",
+            target_table="vouchers",
+            target_id=v["id"],
+            remark=reason,
+            conn=conn,
+        )
+        conn.commit()
+    finally:
         conn.close()
-        raise ValueError("voucher not found")
-    if v["status"] != "pending_review":
-        conn.close()
-        raise ValueError("only pending_review can reject")
-    conn.execute("UPDATE vouchers SET status = 'draft', updated_at = datetime('now','localtime') WHERE id = ?", (v["id"],))
-    add_audit_log(
-        ledger_id=ledger_id,
-        action="reject_voucher",
-        detail="驳回 " + voucher_no + " 原因:" + reason,
-        voucher_id=v["id"],
-        user_id=user_id,
-        operator_name=operator_name,
-        module="voucher",
-        target_table="vouchers",
-        target_id=v["id"],
-        remark=reason,
-        conn=conn,
-    )
-    conn.commit()
-    conn.close()
     clear_query_cache()
     add_workflow_log(ledger_id, v["id"], "reject", "pending_review", "draft", user_id, reason)
 
 def reverse_voucher(voucher_no, reason="", user_id=None, operator_name=None):
     """reverse_voucher"""
     conn = get_conn()
-    v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ?", (voucher_no,)).fetchone()
-    if not v:
-        raise ValueError("凭证不存在")
-    if v["status"] != "posted":
-        raise ValueError("只能冲销已过账的凭证")
+    try:
+        v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ?", (voucher_no,)).fetchone()
+        if not v:
+            raise ValueError("凭证不存在")
+        if v["status"] != "posted":
+            raise ValueError("只能冲销已过账的凭证")
 
-    # 创建冲销凭证号
-    prefix = f"CH{v['date'].replace('-', '')}"
-    count = conn.execute("SELECT COUNT(*) FROM vouchers WHERE voucher_no LIKE ? AND ledger_id = ?",
-                         (prefix + "%", v["ledger_id"])).fetchone()[0]
-    reverse_no = f"{prefix}{count+1:04d}"
+        # 创建冲销凭证号
+        prefix = f"CH{v['date'].replace('-', '')}"
+        count = conn.execute("SELECT COUNT(*) FROM vouchers WHERE voucher_no LIKE ? AND ledger_id = ?",
+                             (prefix + "%", v["ledger_id"])).fetchone()[0]
+        reverse_no = f"{prefix}{count+1:04d}"
 
-    entries = conn.execute("SELECT * FROM journal_entries WHERE voucher_id = ?", (v["id"],)).fetchall()
+        entries = conn.execute("SELECT * FROM journal_entries WHERE voucher_id = ?", (v["id"],)).fetchall()
 
-    # 红字冲销：借贷方向互换，金额取正数（会计规范：红字冲销=反向等额分录）
-    reverse_entries = [{
-        "account_code": e["account_code"],
-        "account_name": e["account_name"],
-        "debit": round(e["credit"], 2),   # 原贷方 → 冲销借方
-        "credit": round(e["debit"], 2),   # 原借方 → 冲销贷方
-        "summary": f"红字冲销{voucher_no}: {e['summary']}",
-    } for e in entries]
+        # 红字冲销：借贷方向互换，金额取正数（会计规范：红字冲销=反向等额分录）
+        reverse_entries = [{
+            "account_code": e["account_code"],
+            "account_name": e["account_name"],
+            "debit": round(e["credit"], 2),   # 原贷方 → 冲销借方
+            "credit": round(e["debit"], 2),   # 原借方 → 冲销贷方
+            "summary": f"红字冲销{voucher_no}: {e['summary']}",
+        } for e in entries]
 
-    total_dr = sum(e["debit"] for e in reverse_entries)
-    total_cr = sum(e["credit"] for e in reverse_entries)
+        total_dr = sum(e["debit"] for e in reverse_entries)
+        total_cr = sum(e["credit"] for e in reverse_entries)
 
-    cur = conn.execute(
-        "INSERT INTO vouchers (ledger_id, voucher_no, date, description, total_debit, total_credit, status, currency) VALUES (?,?,?,?,?,?,?,?)",
-        (v["ledger_id"], reverse_no, date.today().isoformat(),
-         f"红字冲销 {voucher_no}" + (f" - {reason}" if reason else ""),
-         total_dr, total_cr, "posted", v.get("currency", "CNY"))
-    )
-    reverse_id = cur.lastrowid
-
-    for e in reverse_entries:
-        conn.execute(
-            "INSERT INTO journal_entries (ledger_id, voucher_id, account_code, account_name, debit, credit, summary, foreign_currency, foreign_amount, exchange_rate) VALUES (?,?,?,?,?,?,?,?,?,?)",
-            (v["ledger_id"], reverse_id, e["account_code"], e["account_name"], e["debit"], e["credit"], e["summary"],
-             e.get("foreign_currency", ""), e.get("foreign_amount", 0), e.get("exchange_rate", 1))
+        cur = conn.execute(
+            "INSERT INTO vouchers (ledger_id, voucher_no, date, description, total_debit, total_credit, status, currency) VALUES (?,?,?,?,?,?,?,?)",
+            (v["ledger_id"], reverse_no, date.today().isoformat(),
+             f"红字冲销 {voucher_no}" + (f" - {reason}" if reason else ""),
+             total_dr, total_cr, "posted", v.get("currency", "CNY"))
         )
+        reverse_id = cur.lastrowid
 
-    conn.execute("UPDATE vouchers SET status = 'reversed', updated_at = datetime('now','localtime') WHERE id = ?", (v["id"],))
-    add_audit_log(
-        ledger_id=v["ledger_id"],
-        action="reverse_voucher",
-        detail=f"冲销凭证 {voucher_no} -> {reverse_no}: {reason}",
-        voucher_id=v["id"],
-        module="voucher",
-        target_table="vouchers",
-        target_id=v["id"],
-        user_id=user_id,
-        operator_name=operator_name,
-        remark=f"原凭证:{voucher_no} 冲销:{reverse_no}",
-        conn=conn,
-    )
-    conn.commit()
-    conn.close()
+        for e in reverse_entries:
+            conn.execute(
+                "INSERT INTO journal_entries (ledger_id, voucher_id, account_code, account_name, debit, credit, summary, foreign_currency, foreign_amount, exchange_rate) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                (v["ledger_id"], reverse_id, e["account_code"], e["account_name"], e["debit"], e["credit"], e["summary"],
+                 e.get("foreign_currency", ""), e.get("foreign_amount", 0), e.get("exchange_rate", 1))
+            )
+
+        conn.execute("UPDATE vouchers SET status = 'reversed', updated_at = datetime('now','localtime') WHERE id = ?", (v["id"],))
+        add_audit_log(
+            ledger_id=v["ledger_id"],
+            action="reverse_voucher",
+            detail=f"冲销凭证 {voucher_no} -> {reverse_no}: {reason}",
+            voucher_id=v["id"],
+            module="voucher",
+            target_table="vouchers",
+            target_id=v["id"],
+            user_id=user_id,
+            operator_name=operator_name,
+            remark=f"原凭证:{voucher_no} 冲销:{reverse_no}",
+            conn=conn,
+        )
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
     return reverse_no
 
@@ -313,35 +321,39 @@ def delete_voucher(voucher_no, ledger_id=None, user_id=None, operator_name=None)
 def get_vouchers(ledger_id, year=None, month=None, status=None, limit=100):
     """查询凭证列表"""
     conn = get_conn()
-    sql = "SELECT * FROM vouchers WHERE ledger_id = ?"
-    params = [ledger_id]
-    if year:
-        sql += " AND strftime('%Y', date) = ?"
-        params.append(str(year))
-    if month:
-        sql += " AND strftime('%m', date) = ?"
-        params.append(f"{month:02d}")
-    if status:
-        sql += " AND status = ?"
-        params.append(status)
-    sql += " ORDER BY date DESC, voucher_no DESC LIMIT ?"
-    params.append(limit)
-    rows = conn.execute(sql, params).fetchall()
-    result = [dict(r) for r in rows]
-    conn.close()
+    try:
+        sql = "SELECT * FROM vouchers WHERE ledger_id = ?"
+        params = [ledger_id]
+        if year:
+            sql += " AND strftime('%Y', date) = ?"
+            params.append(str(year))
+        if month:
+            sql += " AND strftime('%m', date) = ?"
+            params.append(f"{month:02d}")
+        if status:
+            sql += " AND status = ?"
+            params.append(status)
+        sql += " ORDER BY date DESC, voucher_no DESC LIMIT ?"
+        params.append(limit)
+        rows = conn.execute(sql, params).fetchall()
+        result = [dict(r) for r in rows]
+    finally:
+        conn.close()
     return result
 
 def get_voucher_detail(ledger_id, voucher_no):
     """获取凭证详情（验证凭证属于指定账套）"""
     conn = get_conn()
-    v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ? AND ledger_id = ?", (voucher_no, ledger_id)).fetchone()
-    if not v:
+    try:
+        v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ? AND ledger_id = ?", (voucher_no, ledger_id)).fetchone()
+        if not v:
+            conn.close()
+            return None
+        entries = conn.execute("SELECT * FROM journal_entries WHERE voucher_id = ?", (v["id"],)).fetchall()
+        result = dict(v)
+        result["entries"] = [dict(e) for e in entries]
+    finally:
         conn.close()
-        return None
-    entries = conn.execute("SELECT * FROM journal_entries WHERE voucher_id = ?", (v["id"],)).fetchall()
-    result = dict(v)
-    result["entries"] = [dict(e) for e in entries]
-    conn.close()
     return result
 
 def generate_voucher_from_text(ledger_id: int, text: str) -> dict:
@@ -807,17 +819,19 @@ def generate_voucher_from_text(ledger_id: int, text: str) -> dict:
 def get_voucher_templates(ledger_id: int, include_inactive: bool = False) -> list:
     """获取凭证模板列表"""
     conn = get_conn()
-    if include_inactive:
-        rows = conn.execute(
-            "SELECT * FROM voucher_templates WHERE ledger_id = ? ORDER BY name",
-            (ledger_id,)
-        ).fetchall()
-    else:
-        rows = conn.execute(
-            "SELECT * FROM voucher_templates WHERE ledger_id = ? AND is_active = 1 ORDER BY name",
-            (ledger_id,)
-        ).fetchall()
-    conn.close()
+    try:
+        if include_inactive:
+            rows = conn.execute(
+                "SELECT * FROM voucher_templates WHERE ledger_id = ? ORDER BY name",
+                (ledger_id,)
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM voucher_templates WHERE ledger_id = ? AND is_active = 1 ORDER BY name",
+                (ledger_id,)
+            ).fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 def create_voucher_template(ledger_id, name, description, entries, category='general', is_system=0):
@@ -840,173 +854,191 @@ def update_voucher_template(template_id, ledger_id, name=None, description=None,
     """更新凭证模板"""
     import json
     conn = get_conn()
-    updates = {}
-    if name is not None:
-        updates["name"] = name
-    if description is not None:
-        updates["description"] = description
-    if entries is not None:
-        updates["entries"] = json.dumps(entries, ensure_ascii=False)
-    if category is not None:
-        updates["category"] = category
-    if is_active is not None:
-        updates["is_active"] = 1 if is_active else 0
-    if not updates:
+    try:
+        updates = {}
+        if name is not None:
+            updates["name"] = name
+        if description is not None:
+            updates["description"] = description
+        if entries is not None:
+            updates["entries"] = json.dumps(entries, ensure_ascii=False)
+        if category is not None:
+            updates["category"] = category
+        if is_active is not None:
+            updates["is_active"] = 1 if is_active else 0
+        if not updates:
+            conn.close()
+            return
+        updates["updated_at"] = "datetime('now','localtime')"
+        # 手动构建 SET 子句，因为 updated_at 是 SQL 表达式
+        set_parts = []
+        params = []
+        for k, v in updates.items():
+            if k == "updated_at":
+                set_parts.append(f"{k} = {v}")
+            else:
+                set_parts.append(f"{k} = ?")
+                params.append(v)
+        params.extend([template_id, ledger_id])
+        conn.execute(
+            f"UPDATE voucher_templates SET {', '.join(set_parts)} WHERE id = ? AND ledger_id = ? AND is_system = 0",
+            params
+        )
+        conn.commit()
+    finally:
         conn.close()
-        return
-    updates["updated_at"] = "datetime('now','localtime')"
-    # 手动构建 SET 子句，因为 updated_at 是 SQL 表达式
-    set_parts = []
-    params = []
-    for k, v in updates.items():
-        if k == "updated_at":
-            set_parts.append(f"{k} = {v}")
-        else:
-            set_parts.append(f"{k} = ?")
-            params.append(v)
-    params.extend([template_id, ledger_id])
-    conn.execute(
-        f"UPDATE voucher_templates SET {', '.join(set_parts)} WHERE id = ? AND ledger_id = ? AND is_system = 0",
-        params
-    )
-    conn.commit()
-    conn.close()
     clear_query_cache()
 
 def delete_voucher_template(template_id, ledger_id):
     """删除凭证模板（不能删除系统模板）"""
     conn = get_conn()
-    conn.execute(
-        "DELETE FROM voucher_templates WHERE id = ? AND ledger_id = ? AND is_system = 0",
-        (template_id, ledger_id)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            "DELETE FROM voucher_templates WHERE id = ? AND ledger_id = ? AND is_system = 0",
+            (template_id, ledger_id)
+        )
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
 
 def submit_for_review(ledger_id, voucher_no, user_id=None, operator_name=None):
     """submit_for_review: draft/reversed -> pending_review"""
     conn = get_conn()
-    v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ? AND ledger_id = ?", (voucher_no, ledger_id)).fetchone()
-    if not v:
+    try:
+        v = conn.execute("SELECT * FROM vouchers WHERE voucher_no = ? AND ledger_id = ?", (voucher_no, ledger_id)).fetchone()
+        if not v:
+            conn.close()
+            raise ValueError("voucher not found")
+        if v["status"] not in ("draft", "reversed"):
+            conn.close()
+            raise ValueError("only draft/reversed can submit for review")
+        conn.execute("UPDATE vouchers SET status = 'pending_review', updated_at = datetime('now','localtime') WHERE id = ?", (v["id"],))
+        add_audit_log(
+            ledger_id=ledger_id,
+            action="submit_review",
+            detail="提交审核 " + voucher_no,
+            voucher_id=v["id"],
+            user_id=user_id,
+            operator_name=operator_name,
+            module="voucher",
+            target_table="vouchers",
+            target_id=v["id"],
+            remark=f"凭证号:{voucher_no}",
+            conn=conn,
+        )
+        conn.commit()
+    finally:
         conn.close()
-        raise ValueError("voucher not found")
-    if v["status"] not in ("draft", "reversed"):
-        conn.close()
-        raise ValueError("only draft/reversed can submit for review")
-    conn.execute("UPDATE vouchers SET status = 'pending_review', updated_at = datetime('now','localtime') WHERE id = ?", (v["id"],))
-    add_audit_log(
-        ledger_id=ledger_id,
-        action="submit_review",
-        detail="提交审核 " + voucher_no,
-        voucher_id=v["id"],
-        user_id=user_id,
-        operator_name=operator_name,
-        module="voucher",
-        target_table="vouchers",
-        target_id=v["id"],
-        remark=f"凭证号:{voucher_no}",
-        conn=conn,
-    )
-    conn.commit()
-    conn.close()
     clear_query_cache()
     add_workflow_log(ledger_id, v["id"], "submit", v["status"], "pending_review", user_id)
 
 def get_voucher_workflow(voucher_id: int) -> list:
     """获取凭证的审核流程历史"""
     conn = get_conn()
-    rows = conn.execute(
-        "SELECT w.*, u.username "
-        "FROM voucher_workflow w "
-        "LEFT JOIN users u ON w.user_id = u.id "
-        "WHERE w.voucher_id = ? ORDER BY w.created_at ASC",
-        (voucher_id,)
-    ).fetchall()
-    conn.close()
+    try:
+        rows = conn.execute(
+            "SELECT w.*, u.username "
+            "FROM voucher_workflow w "
+            "LEFT JOIN users u ON w.user_id = u.id "
+            "WHERE w.voucher_id = ? ORDER BY w.created_at ASC",
+            (voucher_id,)
+        ).fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 def get_scheduled_vouchers(ledger_id: int) -> list:
     """获取定时凭证任务列表"""
     conn = get_conn()
-    rows = conn.execute(
-        "SELECT sv.*, vt.name as template_name "
-        "FROM scheduled_vouchers sv "
-        "LEFT JOIN voucher_templates vt ON sv.template_id = vt.id "
-        "WHERE sv.ledger_id = ? AND sv.is_active = 1 "
-        "ORDER BY sv.next_run_at",
-        (ledger_id,)
-    ).fetchall()
-    conn.close()
+    try:
+        rows = conn.execute(
+            "SELECT sv.*, vt.name as template_name "
+            "FROM scheduled_vouchers sv "
+            "LEFT JOIN voucher_templates vt ON sv.template_id = vt.id "
+            "WHERE sv.ledger_id = ? AND sv.is_active = 1 "
+            "ORDER BY sv.next_run_at",
+            (ledger_id,)
+        ).fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 def add_scheduled_voucher(ledger_id: int, name: str, cron_expression: str, template_id: int = None, next_run_at: str = None):
     """添加定时凭证任务"""
     conn = get_conn()
-    conn.execute(
-        "INSERT INTO scheduled_vouchers (ledger_id, template_id, name, cron_expression, next_run_at) VALUES (?,?,?,?,?)",
-        (ledger_id, template_id, name, cron_expression, next_run_at)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            "INSERT INTO scheduled_vouchers (ledger_id, template_id, name, cron_expression, next_run_at) VALUES (?,?,?,?,?)",
+            (ledger_id, template_id, name, cron_expression, next_run_at)
+        )
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
 
 def run_scheduled_voucher(scheduled_id: int) -> str:
     """执行定时凭证任务，生成实际凭证"""
     from datetime import datetime
     conn = get_conn()
-    sv = conn.execute("SELECT * FROM scheduled_vouchers WHERE id = ?", (scheduled_id,)).fetchone()
-    if not sv:
+    try:
+        sv = conn.execute("SELECT * FROM scheduled_vouchers WHERE id = ?", (scheduled_id,)).fetchone()
+        if not sv:
+            conn.close()
+            raise ValueError("定时任务不存在")
+
+        entries = []
+        if sv["template_id"]:
+            tpl = conn.execute("SELECT entries FROM voucher_templates WHERE id = ?", (sv["template_id"],)).fetchone()
+            if tpl:
+                entries = json.loads(tpl["entries"])
+        else:
+            conn.close()
+            raise ValueError("定时任务未关联凭证模板")
+
+        if not entries:
+            conn.close()
+            raise ValueError("凭证模板分录为空")
+
+        today = datetime.now().strftime("%Y-%m-%d")
+        vn = create_voucher(sv["ledger_id"], today, f"[自动]{sv['name']}", entries, status="draft")
+
+        # 更新最后执行时间
+        conn.execute(
+            "UPDATE scheduled_vouchers SET last_run_at = datetime('now','localtime'), updated_at = datetime('now','localtime') WHERE id = ?",
+            (scheduled_id,)
+        )
+        conn.commit()
+    finally:
         conn.close()
-        raise ValueError("定时任务不存在")
-
-    entries = []
-    if sv["template_id"]:
-        tpl = conn.execute("SELECT entries FROM voucher_templates WHERE id = ?", (sv["template_id"],)).fetchone()
-        if tpl:
-            entries = json.loads(tpl["entries"])
-    else:
-        conn.close()
-        raise ValueError("定时任务未关联凭证模板")
-
-    if not entries:
-        conn.close()
-        raise ValueError("凭证模板分录为空")
-
-    today = datetime.now().strftime("%Y-%m-%d")
-    vn = create_voucher(sv["ledger_id"], today, f"[自动]{sv['name']}", entries, status="draft")
-
-    # 更新最后执行时间
-    conn.execute(
-        "UPDATE scheduled_vouchers SET last_run_at = datetime('now','localtime'), updated_at = datetime('now','localtime') WHERE id = ?",
-        (scheduled_id,)
-    )
-    conn.commit()
-    conn.close()
     clear_query_cache()
     return vn
 
 def link_invoice_voucher(invoice_id: int, voucher_id: int, ledger_id: int):
     """关联发票与凭证"""
     conn = get_conn()
-    conn.execute(
-        "INSERT OR IGNORE INTO invoice_voucher (invoice_id, voucher_id, ledger_id) VALUES (?,?,?)",
-        (invoice_id, voucher_id, ledger_id)
-    )
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute(
+            "INSERT OR IGNORE INTO invoice_voucher (invoice_id, voucher_id, ledger_id) VALUES (?,?,?)",
+            (invoice_id, voucher_id, ledger_id)
+        )
+        conn.commit()
+    finally:
+        conn.close()
     clear_query_cache()
 
 def get_invoice_vouchers(invoice_id: int) -> list:
     """获取发票关联的凭证"""
     conn = get_conn()
-    rows = conn.execute(
-        "SELECT v.* FROM vouchers v "
-        "JOIN invoice_voucher iv ON v.id = iv.voucher_id "
-        "WHERE iv.invoice_id = ? ORDER BY v.date DESC",
-        (invoice_id,)
-    ).fetchall()
-    conn.close()
+    try:
+        rows = conn.execute(
+            "SELECT v.* FROM vouchers v "
+            "JOIN invoice_voucher iv ON v.id = iv.voucher_id "
+            "WHERE iv.invoice_id = ? ORDER BY v.date DESC",
+            (invoice_id,)
+        ).fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 def import_vouchers_from_excel(ledger_id: int, file_path: str) -> dict:
@@ -1103,8 +1135,10 @@ def generate_composite_voucher(ledger_id: int, text: str) -> dict:
 
     def _get_account(code):
         conn = get_conn()
-        row = conn.execute("SELECT name FROM accounts WHERE code = ?", (code,)).fetchone()
-        conn.close()
+        try:
+            row = conn.execute("SELECT name FROM accounts WHERE code = ?", (code,)).fetchone()
+        finally:
+            conn.close()
         return row["name"] if row else code
 
     def _make_entry(code, debit=0, credit=0, summary=""):
@@ -1217,8 +1251,10 @@ def parse_complex_voucher(ledger_id: int, text: str) -> dict:
 
     def _get_account(code):
         conn = get_conn()
-        row = conn.execute("SELECT name FROM accounts WHERE code = ?", (code,)).fetchone()
-        conn.close()
+        try:
+            row = conn.execute("SELECT name FROM accounts WHERE code = ?", (code,)).fetchone()
+        finally:
+            conn.close()
         return row["name"] if row else code
 
     def _make_entry(code, debit=0, credit=0, summary=""):
@@ -1504,69 +1540,77 @@ def parse_complex_voucher(ledger_id: int, text: str) -> dict:
 def search_vouchers(keyword, limit=10):
     """全局搜索凭证：按凭证号、摘要、金额模糊匹配"""
     conn = get_conn()
-    kw = f"%{keyword}%"
-    rows = conn.execute("""
-        SELECT v.voucher_no, v.date, v.summary, v.total_debit, v.total_credit, v.status
-        FROM vouchers v
-        WHERE v.voucher_no LIKE ? OR v.summary LIKE ?
-        ORDER BY v.date DESC, v.voucher_no DESC
-        LIMIT ?
-    """, (kw, kw, limit)).fetchall()
-    conn.close()
+    try:
+        kw = f"%{keyword}%"
+        rows = conn.execute("""
+            SELECT v.voucher_no, v.date, v.summary, v.total_debit, v.total_credit, v.status
+            FROM vouchers v
+            WHERE v.voucher_no LIKE ? OR v.summary LIKE ?
+            ORDER BY v.date DESC, v.voucher_no DESC
+            LIMIT ?
+        """, (kw, kw, limit)).fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 def search_vouchers_by_aux(ledger_id, aux_type, aux_id, year=None, month=None):
     """按辅助核算查询凭证"""
     conn = get_conn()
-    date_filter = ""
-    params = [aux_id, aux_type, ledger_id]
-    if year:
-        date_filter += " AND strftime('%Y', v.date) = ?"
-        params.append(str(year))
-    if month:
-        date_filter += " AND strftime('%m', v.date) = ?"
-        params.append(f"{month:02d}")
+    try:
+        date_filter = ""
+        params = [aux_id, aux_type, ledger_id]
+        if year:
+            date_filter += " AND strftime('%Y', v.date) = ?"
+            params.append(str(year))
+        if month:
+            date_filter += " AND strftime('%m', v.date) = ?"
+            params.append(f"{month:02d}")
 
-    rows = conn.execute(
-        "SELECT DISTINCT v.voucher_no, v.date, v.summary, v.total_debit, v.total_credit, v.status "
-        "FROM vouchers v "
-        "INNER JOIN journal_entries je ON je.voucher_no = v.voucher_no "
-        "INNER JOIN voucher_entry_auxiliaries vea ON vea.entry_id = je.id "
-        "WHERE vea.aux_id = ? AND vea.aux_type = ? AND v.ledger_id = ? " + date_filter + " "
-        "ORDER BY v.date DESC, v.voucher_no DESC",
-        params).fetchall()
-    conn.close()
+        rows = conn.execute(
+            "SELECT DISTINCT v.voucher_no, v.date, v.summary, v.total_debit, v.total_credit, v.status "
+            "FROM vouchers v "
+            "INNER JOIN journal_entries je ON je.voucher_no = v.voucher_no "
+            "INNER JOIN voucher_entry_auxiliaries vea ON vea.entry_id = je.id "
+            "WHERE vea.aux_id = ? AND vea.aux_type = ? AND v.ledger_id = ? " + date_filter + " "
+            "ORDER BY v.date DESC, v.voucher_no DESC",
+            params).fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 def search_voucher_history_v2(ledger_id, keyword, limit=5):
     """搜索历史凭证：按摘要模糊匹配（Phase 2 版本，带 ledger_id 过滤）"""
     conn = get_conn()
-    kw = f"%{keyword}%"
-    rows = conn.execute("""
-        SELECT DISTINCT v.description as summary,
-               je.account_code, je.account_name,
-               AVG(je.debit + je.credit) as avg_amount
-        FROM vouchers v
-        JOIN journal_entries je ON v.id = je.voucher_id
-        WHERE v.ledger_id = ?
-          AND v.description LIKE ?
-          AND v.status = 'posted'
-          AND je.debit + je.credit > 0
-        GROUP BY v.description, je.account_code
-        ORDER BY v.date DESC
-        LIMIT ?
-    """, (ledger_id, kw, limit)).fetchall()
-    conn.close()
+    try:
+        kw = f"%{keyword}%"
+        rows = conn.execute("""
+            SELECT DISTINCT v.description as summary,
+                   je.account_code, je.account_name,
+                   AVG(je.debit + je.credit) as avg_amount
+            FROM vouchers v
+            JOIN journal_entries je ON v.id = je.voucher_id
+            WHERE v.ledger_id = ?
+              AND v.description LIKE ?
+              AND v.status = 'posted'
+              AND je.debit + je.credit > 0
+            GROUP BY v.description, je.account_code
+            ORDER BY v.date DESC
+            LIMIT ?
+        """, (ledger_id, kw, limit)).fetchall()
+    finally:
+        conn.close()
     return [dict(r) for r in rows]
 
 def save_voucher_template(ledger_id: int, name: str, entries: list, description: str = "", voucher_type: str = "记") -> int:
     """保存凭证模板"""
     conn = get_conn()
-    conn.execute(
-        "INSERT INTO voucher_templates (ledger_id, name, description, voucher_type, entries) VALUES (?,?,?,?,?)",
-        (ledger_id, name, description, voucher_type, json.dumps(entries, ensure_ascii=False))
-    )
-    conn.commit()
-    tid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
-    conn.close()
+    try:
+        conn.execute(
+            "INSERT INTO voucher_templates (ledger_id, name, description, voucher_type, entries) VALUES (?,?,?,?,?)",
+            (ledger_id, name, description, voucher_type, json.dumps(entries, ensure_ascii=False))
+        )
+        conn.commit()
+        tid = conn.execute("SELECT last_insert_rowid()").fetchone()[0]
+    finally:
+        conn.close()
     return tid
