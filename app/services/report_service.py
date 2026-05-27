@@ -117,7 +117,7 @@ class ReportService:
 
     @staticmethod
     def ocr_recognize_invoice(file_path):
-        # TODO: involves file processing + OCR, keep old implementation for now
+        # NOTE: involves file processing + OCR, keep old implementation for now
         from database.invoice import ocr_recognize_invoice
         return ocr_recognize_invoice(file_path)
 
@@ -234,7 +234,7 @@ class ReportService:
         try:
             pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
             cjk_font = 'STSong-Light'
-        except:
+        except Exception:
             cjk_font = 'Helvetica'
 
         doc = SimpleDocTemplate(filepath, pagesize=A4,
@@ -336,7 +336,7 @@ class ReportService:
         try:
             pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
             cjk_font = 'STSong-Light'
-        except:
+        except Exception:
             cjk_font = 'Helvetica'
 
         doc = SimpleDocTemplate(filepath, pagesize=A4,
@@ -405,7 +405,7 @@ class ReportService:
         try:
             pdfmetrics.registerFont(UnicodeCIDFont('STSong-Light'))
             cjk_font = 'STSong-Light'
-        except:
+        except Exception:
             cjk_font = 'Helvetica'
 
         doc = SimpleDocTemplate(filepath, pagesize=A4,

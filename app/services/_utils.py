@@ -1,4 +1,4 @@
-﻿"""服务层公共工具函数"""
+"""服务层公共工具函数"""
 import asyncio
 import concurrent.futures
 

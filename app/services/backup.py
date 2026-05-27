@@ -3,7 +3,7 @@ import os, threading, logging, json as _json
 from datetime import datetime
 from app.repository.ledger_repository import LedgerRepository
 from app.services._utils import run_async
-from database.ledger import backup_ledger_to_json  # TODO: migrate to repository pattern
+from database.ledger import backup_ledger_to_json  # NOTE: migrate to repository pattern
 
 _ledger_repo = LedgerRepository()
 

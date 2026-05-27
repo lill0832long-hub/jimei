@@ -6,10 +6,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from nicegui import ui
 from app.components.state import state
+import pytest
 
 
 def setup_logged_in():
-    """模拟已登录状态"""
     state.current_user = {"id": 1, "username": "admin", "role": "admin"}
     state.selected_ledger_id = 1
     state.selected_year = 2026
@@ -20,13 +20,11 @@ def setup_logged_in():
 
 
 def setup_logged_out():
-    """模拟未登录状态"""
     state.current_user = None
     state.selected_ledger_id = None
 
 
 def render_page(page_key):
-    """渲染指定页面，返回容器"""
     from app.config import get_page_render
     setup_logged_in()
     state.current_page = page_key
@@ -36,3 +34,15 @@ def render_page(page_key):
         if render_fn:
             render_fn()
     return container
+
+
+@pytest.fixture(scope="session")
+def browser():
+    from tests.test_browser_ui import Browser
+    return Browser()
+
+
+@pytest.fixture
+def r():
+    from tests.test_browser_ui import Result
+    return Result()

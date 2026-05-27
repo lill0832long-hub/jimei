@@ -1,4 +1,4 @@
-﻿"""API 路由注册 — 安全加固版"""
+"""API 路由注册 — 安全加固版"""
 import os
 import time
 import logging
@@ -117,7 +117,7 @@ def _validate_aux_type(aux_type):
 def register_routes(app):
     """注册所有 GET + POST API 路由"""
     import sys
-    print(f"REGISTER_ROUTES CALLED", file=sys.stderr, flush=True)
+    # Debug: routes registered
 
     # ── 请求日志中间件 ──
     @app.middleware("http")

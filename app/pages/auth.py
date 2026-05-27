@@ -1,4 +1,4 @@
-﻿"""登录/登出"""
+"""登录/登出"""
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import show_toast
