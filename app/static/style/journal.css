@@ -315,16 +315,76 @@
 }
 
 /* ============================================================
-   Responsive — 凭证表格适配
+   Responsive — 凭证表单全断点自适应
    ============================================================ */
 
+/* ── 超大屏 1440px+：表格略微紧凑 ── */
+@media (min-width: 1440px) {
+    .vctable {
+        max-width: 1200px;
+    }
+    .vcheader,
+    .vcsection-meta,
+    .vcsection-tpl,
+    .vcsection-footer {
+        max-width: 1200px;
+    }
+}
+
+/* ── 大屏 1024-1439px ── */
+@media (max-width: 1439px) {
+    .vcheader {
+        padding: 12px 16px;
+    }
+    .vcsection-meta {
+        padding: 8px 16px;
+    }
+}
+
+/* ── 中屏 768-1023px：头部字段自动换行 ── */
+@media (max-width: 1023px) {
+    .vcheader .nicegui-row {
+        flex-wrap: wrap;
+        gap: 8px !important;
+    }
+    .vcsection-meta {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    .vcsection-meta .nicegui-row {
+        flex-wrap: wrap;
+    }
+    .vcsummary-inp {
+        min-width: 100% !important;
+    }
+    .vcsection-footer .gap-8 {
+        flex-wrap: wrap;
+        gap: 12px !important;
+    }
+}
+
+/* ── 小屏 ≤768px：堆叠布局 + 表格横滚 ── */
 @media (max-width: 768px) {
+    /* 表单卡片全宽无圆角 */
     .vctable {
         font-size: 12px;
+        display: block;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    .vctable thead,
+    .vctable tbody,
+    .vctable tfoot,
+    .vctable tr,
+    .vctable th,
+    .vctable td {
+        display: revert;
     }
     .vcth {
         padding: 6px 3px;
         font-size: 11px;
+        white-space: nowrap;
     }
     .vctd {
         padding: 2px 2px;
@@ -338,6 +398,84 @@
     .vcth-op,
     .vctd-seq,
     .vctd-op {
-        width: 32px;
+        width: 32px !important;
+        min-width: 32px !important;
+    }
+
+    /* 头部堆叠 */
+    .vcheader {
+        padding: 10px 12px;
+    }
+    .vcheader .nicegui-row {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+        gap: 6px !important;
+    }
+    .vc-doc-title {
+        font-size: 18px !important;
+        letter-spacing: 4px !important;
+    }
+    .vctype-sel {
+        width: 60px !important;
+    }
+    .vcdate-inp {
+        width: 130px !important;
+    }
+
+    /* 摘要区堆叠 */
+    .vcsection-meta {
+        flex-direction: column !important;
+        padding: 8px 12px;
+        gap: 6px;
+    }
+    .vcsummary-inp {
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* 签章区堆叠 */
+    .vcsection-footer {
+        padding: 8px 12px;
+    }
+    .vcsection-footer .gap-8 {
+        flex-direction: column !important;
+        gap: 4px !important;
+    }
+
+    /* 底部操作栏堆叠 */
+    .nicegui-row.w-full.items-center.justify-between.mt-3 {
+        flex-direction: column !important;
+        gap: 8px !important;
+        align-items: stretch !important;
+    }
+    .nicegui-row.w-full.items-center.justify-between.mt-3 .gap-3 {
+        justify-content: stretch !important;
+    }
+    .nicegui-row.w-full.items-center.justify-between.mt-3 .gap-3 .q-btn {
+        flex: 1;
+    }
+}
+
+/* ── 超小屏 ≤480px ── */
+@media (max-width: 480px) {
+    .vctable {
+        font-size: 11px;
+    }
+    .vcth {
+        padding: 4px 2px;
+        font-size: 10px;
+    }
+    .vctd-inp,
+    .vctd-sel {
+        font-size: 11px !important;
+        padding: 2px !important;
+    }
+    .vc-doc-title {
+        font-size: 16px !important;
+        letter-spacing: 2px !important;
+    }
+    .vc-vno-badge {
+        font-size: 11px !important;
+        padding: 2px 6px !important;
     }
 }
