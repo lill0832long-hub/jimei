@@ -31,9 +31,7 @@ def render_balance_sheet():
         with ui.row().classes("report-header"):
             ui.label("📗 资产负债表").classes("report-header__title")
             with ui.row().classes("report-header__actions"):
-                year_sel = ui.select(options=_YEAR_OPTS, value=str(state.selected_year), label="年度") \
                     .props("dense outlined").classes("w-28")
-                month_sel = ui.select(options=_MONTH_OPTS, value=str(state.selected_month), label="月份") \
                     .props("dense outlined").classes("w-24")
                 ui.button("📥 Excel", color="green-7", on_click=lambda: _do_export_with_loading("excel")) \
                     .props("dense no-caps").classes("text-xs px-3")
@@ -42,7 +40,6 @@ def render_balance_sheet():
                 compare_mode = ui.toggle(options={"mom": "环比", "yoy": "同比"}, value="mom") \
                     .props("dense")
                 compare_mode.on("update:value", lambda e: _refresh_report())
-
     # ── Loading ──
     loading_area = ui.column().classes("w-full items-center py-10")
     with loading_area:
@@ -74,7 +71,6 @@ def render_balance_sheet():
         finally:
             loading_area.set_visibility(False)
 
-    def _on_period_change():
         state.selected_year = int(year_sel.value)
         state.selected_month = int(month_sel.value)
         _refresh_report()

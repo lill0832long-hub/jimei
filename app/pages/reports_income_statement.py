@@ -27,18 +27,14 @@ def render_income_statement():
     with ui.row().classes("report-header"):
         ui.label("📈 利润表").classes("report-header__title")
         with ui.row().classes("report-header__actions"):
-            inc_year_sel = ui.select(
                 options={str(y): str(y) for y in range(2020, 2031)},
                 value=str(state.selected_year), label="年度"
             ).props("dense outlined").classes("w-28")
-            inc_month_sel = ui.select(
                 options={str(m): f"{m}月" for m in range(1, 13)},
                 value=str(state.selected_month), label="月份"
             ).props("dense outlined").classes("w-24")
             ui.button("📥 Excel", color="green-7", on_click=lambda: _export_income_statement()) \
                 .props("dense no-caps").classes("text-xs px-3")
-
-            def _on_inc_period():
                 state.selected_year = int(inc_year_sel.value)
                 state.selected_month = int(inc_month_sel.value)
                 refresh_main()
