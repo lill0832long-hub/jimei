@@ -473,99 +473,72 @@
 .tb-row:hover {
     background: var(--c-bg-hover, #f5f7ff) !important;
 }
-/* ===== 报表左右导航布局 ===== */
-
-/* 左侧导航面板 */
-.report-nav-panel {
-    width: 220px;
-    min-width: 220px;
-    max-width: 220px;
-    background: var(--c-bg-card, #fff);
-    border-right: 1px solid var(--c-border-light, #e8e8e8);
-    padding: 16px 0;
+/* ===== 报表卡片网格 ===== */
+.report-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 0;
+}
+.report-card-item {
+    cursor: pointer;
+    border-radius: 12px !important;
+    border: 1px solid var(--c-border-light, #e8e8e8) !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
+    padding: 24px !important;
+    transition: all 0.2s ease !important;
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    overflow-y: auto;
-    flex-shrink: 0;
+    gap: 10px;
+    min-height: 160px;
 }
-.report-nav-title {
-    font-size: 11px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
-    color: var(--c-text-muted, #999);
-    padding: 8px 20px 12px;
-    border-bottom: 1px solid var(--c-border-light, #e8e8e8);
-    margin-bottom: 8px;
+.report-card-item:hover {
+    transform: translateY(-3px) !important;
+    box-shadow: 0 8px 24px rgba(196,120,74,0.12) !important;
+    border-color: var(--c-primary, #C4784A) !important;
 }
-.report-nav-item {
-    display: flex !important;
-    align-items: center !important;
-    gap: 10px !important;
-    padding: 10px 20px !important;
-    border-radius: 0 !important;
-    width: 100% !important;
-    text-align: left !important;
-    justify-content: flex-start !important;
-    transition: all 0.15s ease !important;
-    border-left: 3px solid transparent !important;
-    min-height: 42px !important;
-    font-size: 13px !important;
+.report-card-icon {
+    font-size: 32px !important;
+    color: var(--c-primary, #C4784A);
+    background: var(--c-primary-light, #FFF3E8);
+    width: 52px;
+    height: 52px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
-.report-nav-item:hover {
-    background: var(--c-bg-hover, #f5f0ea) !important;
-}
-.report-nav-item--active {
-    background: var(--c-primary-light, #FFF3E8) !important;
-    border-left-color: var(--c-primary, #C4784A) !important;
-    color: var(--c-primary, #C4784A) !important;
-}
-.report-nav-item--active .report-nav-icon {
-    color: var(--c-primary, #C4784A) !important;
-}
-.report-nav-item--active .report-nav-label {
-    color: var(--c-primary, #C4784A) !important;
-    font-weight: 600 !important;
-}
-.report-nav-icon {
-    font-size: 18px;
-    color: var(--c-text-muted, #999);
-    flex-shrink: 0;
-}
-.report-nav-label {
-    font-size: 13px;
-    font-weight: 500;
+.report-card-title {
+    font-size: 16px !important;
+    font-weight: 700 !important;
     color: var(--c-text-primary);
-    white-space: nowrap;
+    margin-top: 4px;
 }
-
-/* 右侧内容区 */
-.report-content-area {
-    padding: 16px 20px;
-    overflow-y: auto;
-    background: var(--c-bg-page, #FAF7F2);
-    min-height: 100%;
+.report-card-desc {
+    font-size: 12px !important;
+    color: var(--c-text-muted, #999);
+    line-height: 1.6;
+    flex-grow: 1;
+}
+.report-card-action {
+    color: var(--c-primary, #C4784A);
+    font-weight: 600;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    margin-top: auto;
+}
+.report-card-item:hover .report-card-action {
+    opacity: 1;
 }
 
 /* 响应式 */
-@media (max-width: 768px) {
-    .report-nav-panel {
-        width: 56px;
-        min-width: 56px;
-        max-width: 56px;
+@media (max-width: 1024px) {
+    .report-card-grid {
+        grid-template-columns: repeat(2, 1fr);
     }
-    .report-nav-title {
-        display: none;
-    }
-    .report-nav-label {
-        display: none;
-    }
-    .report-nav-item {
-        justify-content: center !important;
-        padding: 10px 8px !important;
-    }
-    .report-nav-icon {
-        width: auto;
+}
+@media (max-width: 640px) {
+    .report-card-grid {
+        grid-template-columns: 1fr;
     }
 }
