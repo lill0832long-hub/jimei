@@ -101,31 +101,50 @@ def render_reports_center():
     ''')
     ui.timer(1.0, _poll_drill, once=True)
 
-    # ── 子报表标签页 ──
-    # 初始化 reports_center 的 tab 列表
-    if not hasattr(state, '_reports_tabs') or state._reports_tabs is None:
-        state._reports_tabs = [
-            {"key": "trial_balance", "label": "试算平衡表", "icon": "grid_on"}
-        ]
-    if not hasattr(state, '_reports_active_idx'):
-        state._reports_active_idx = 0
+# ── 折叠式报表单页布局 ──
+    if not hasattr(state, '_report_expanded'):
+        state._report_expanded = {"trial_balance": True}
 
-    # 标签栏
-    with ui.row().classes("reports-tab-bar w-full"):
-        for i, (rkey, rlabel, ricon) in enumerate(_REPORT_TABS):
-            is_active = (i == state._reports_active_idx) if hasattr(state, '_reports_active_idx') else (i == 0)
-            with ui.button(
-                on_click=lambda _i=i, _k=rkey: _switch_report(_i, _k)
-            ).props("flat no-caps").classes(
-                f"reports-tab {'reports-tab--active' if is_active else 'reports-tab--inactive'}"
-            ):
-                ui.icon(ricon).classes("text-sm")
-                ui.label(rlabel).classes("text-sm")
+    def _toggle_section(key):
+        if state._report_expanded.get(key):
+            state._report_expanded[key] = False
+        else:
+            state._report_expanded[key] = True
+        refresh_main()
 
-    # 内容区
-    with ui.element("div").classes("reports-tab-content w-full") as state._reports_content_area:
-        _render_current_report()
+    for rkey, rlabel, ricon in _REPORT_TABS:
+        is_open = state._report_expanded.get(rkey, False)
+        arrow = "expand_less" if is_open else "expand_more"
 
+        # 折叠头部
+        with ui.row().classes("report-accordion-header w-full").on("click", lambda _k=rkey: _toggle_section(_k)):
+            ui.icon(ricon).classes("report-accordion-icon")
+            ui.label(rlabel).classes("report-accordion-label")
+            ui.element("div").style("flex-grow:1")
+            ui.icon(arrow).classes("report-accordion-arrow")
+
+        # 折叠内容
+        if is_open:
+            with ui.column().classes("report-accordion-body w-full"):
+                _render_report_by_key(rkey)
+
+def _render_report_by_key(key):
+    """渲染指定报表内容"""
+    lid = state.selected_ledger_id
+    year, month = state.selected_year, state.selected_month
+    if key == "trial_balance":
+        _render_trial_balance_content(lid, year, month)
+    elif key == "balance_sheet":
+        _render_balance_sheet_content(lid, year, month)
+    elif key == "income_statement":
+        _render_income_statement_content(lid, year, month)
+    elif key == "accounts":
+        _render_accounts_content(lid, year, month)
+    elif key == "charts":
+        _render_charts_content(lid, year, month)
+    elif key == "close_period":
+        from app.pages.close_period import render_close_period
+        render_close_period()
 
 def _switch_report(idx, key):
     """切换到指定子报表"""

@@ -473,3 +473,57 @@
 .tb-row:hover {
     background: var(--c-bg-hover, #f5f7ff) !important;
 }
+
+
+/* ===== 报表折叠面板 ===== */
+.report-accordion-header {
+    display: flex;
+    align-items: center;
+    padding: 14px 20px;
+    background: var(--c-bg-card, #fff);
+    border: 1px solid var(--c-border-light, #e8e8e8);
+    border-radius: 10px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s ease, box-shadow 0.15s ease;
+    margin-top: 8px;
+    gap: 10px;
+}
+.report-accordion-header:first-child {
+    margin-top: 0;
+}
+.report-accordion-header:hover {
+    background: var(--c-bg-hover, #f5f0ea);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+.report-accordion-icon {
+    font-size: 20px;
+    color: var(--c-primary, #C4784A);
+    flex-shrink: 0;
+}
+.report-accordion-label {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--c-text-primary);
+    white-space: nowrap;
+}
+.report-accordion-arrow {
+    font-size: 22px;
+    color: var(--c-text-muted, #999);
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+.report-accordion-body {
+    border: 1px solid var(--c-border-light, #e8e8e8);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    background: var(--c-bg-card, #fff);
+    overflow: hidden;
+    animation: accordionSlideDown 0.25s ease;
+    margin-top: -8px;
+    padding: 12px 0;
+}
+@keyframes accordionSlideDown {
+    from { opacity: 0; max-height: 0; }
+    to   { opacity: 1; max-height: 6000px; }
+}
