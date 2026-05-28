@@ -12,16 +12,29 @@
     padding: 0 var(--header-padding-x);
     transition: background var(--transition-base), box-shadow var(--transition-base);
     position: relative;
+    overflow: hidden;
 }
+/* 品牌渐变底边 — 更粗更亮 */
 .header-bar::after {
     content: '';
     position: absolute;
-    bottom: -1px;
+    bottom: 0;
     left: 0;
     right: 0;
-    height: 2px;
-    background: var(--gradient-primary);
-    opacity: 0.4;
+    height: 3px;
+    background: linear-gradient(90deg, #C4784A 0%, #E8A87C 30%, #C4784A 60%, #E8A87C 100%);
+    opacity: 0.7;
+}
+/* 左侧品牌渐变背景 */
+.header-bar::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 360px;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(196,120,74,0.06) 0%, transparent 100%);
+    pointer-events: none;
 }
 body[data-theme="dark"] .header-bar {
     background: #2D2620 !important;
@@ -65,26 +78,30 @@ body[data-theme="dark"] .header-bar {
     color: var(--header-accent);
     flex-shrink: 0;
 }
-/* ── 重点：标题加大加粗 ── */
+/* ── 重点：标题加大加粗 + 渐变色 ── */
 .header-title {
-    font-size: 22px;
+    font-size: 23px;
     font-weight: 800;
-    color: var(--header-text-primary);
+    background: linear-gradient(135deg, #2D2620 0%, #C4784A 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     letter-spacing: -0.3px;
     white-space: nowrap;
     line-height: 1;
 }
-/* ── 版本号加大 ── */
+/* ── 版本号加大 + 渐变底 ── */
 .header-version {
     font-size: 10px;
     font-weight: 700;
-    color: var(--header-accent);
-    background: var(--c-primary-light);
-    padding: 2px 7px;
-    border-radius: 4px;
+    color: #fff;
+    background: linear-gradient(135deg, #C4784A, #E8A87C);
+    padding: 2px 8px;
+    border-radius: 6px;
     letter-spacing: 0.5px;
     flex-shrink: 0;
     line-height: 1.4;
+    box-shadow: 0 1px 4px rgba(196,120,74,0.3);
 }
 .header-divider {
     width: 1px;
@@ -146,8 +163,8 @@ body[data-theme="dark"] .header-bar {
 }
 .header-period-label {
     font-size: 15px;
-    font-weight: 600;
-    color: var(--c-text-primary);
+    font-weight: 700;
+    color: var(--c-primary);
     margin: 0 2px;
 }
 
