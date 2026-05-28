@@ -14,6 +14,16 @@ _REPORT_TABS = [
     ("close_period",     "期末结转",   "sync_alt"),
 ]
 
+# 报表卡片配置（模块级常量，render_reports_center 内多处引用）
+_REPORT_CARDS = [
+    ("trial_balance",    "试算平衡表", "grid_on",          "检验借贷是否平衡，包含全部科目期初/本期/期末余额"),
+    ("balance_sheet",    "资产负债表", "account_balance",  "反映企业某一时点的资产、负债和权益状况"),
+    ("income_statement", "利润表",     "trending_up",      "反映企业一定期间的经营成果和利润水平"),
+    ("accounts",         "科目余额表", "bar_chart",        "按科目查看期初、本期发生额、期末余额"),
+    ("charts",           "图表分析",   "show_chart",       "可视化图表展示资产、负债、收入、费用分布"),
+    ("close_period",     "期末结转",   "sync_alt",         "自动生成期末结转凭证，结转损益类科目"),
+]
+
 
 def render_reports_center():
     """报表中心主页 — 全局期间选择器 + 子报表标签页"""
@@ -126,15 +136,6 @@ def render_reports_center():
         # ── 报表卡片网格 ──
         ui.label("报表中心").classes("text-lg font-bold mb-1")
         ui.label("选择报表查看分析数查").classes("text-sm mb-4").style("color:var(--c-text-muted)")
-
-        _REPORT_CARDS = [
-            ("trial_balance",    "试算平衡表", "grid_on",          "检验借贷是否平衡，包含全部科目期初/本期/期末余额"),
-            ("balance_sheet",    "资产负债表", "account_balance",  "反映企业某一时点的资产、负债和权益状况"),
-            ("income_statement", "利润表",     "trending_up",      "反映企业一定期间的经营成果和利润水平"),
-            ("accounts",         "科目余额表", "bar_chart",        "按科目查看期初、本期发生额、期末余额"),
-            ("charts",           "图表分析",   "show_chart",       "可视化图表展示资产、负债、收入、费用分布"),
-            ("close_period",     "期末结转",   "sync_alt",         "自动生成期末结转凭证，结转损益类科目"),
-        ]
 
         with ui.element("div").classes("report-card-grid"):
             for rkey, rlabel, ricon, rdesc in _REPORT_CARDS:
