@@ -214,8 +214,14 @@ def index():
             render_sidebar()
             with ui.column().classes("main-content-area flex-grow gap-3") as state.main_content:
                 # Tab 系统容器
+                # Tab 栏容器 + 初始化当前页 tab
                 with ui.row().classes("w-full items-center gap-2") as state._tab_bar_container:
-                    pass
+                    _pg = state.current_page
+                    if not state.tabs or state.tabs[0]["key"] != _pg:
+                        state.tabs = [{"key": _pg, "label": state.get_tab_label(_pg)}]
+                        state.active_tab_idx = 0
+                    from app.components.ui_helpers import _rebuild_tab_bar
+                    _rebuild_tab_bar()
                 with ui.column().classes("w-full flex-grow") as state._tab_contents:
                     render_page()
 
