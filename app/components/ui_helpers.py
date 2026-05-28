@@ -468,6 +468,7 @@ _nav_groups = [
         "label": "凭证管理",
         "icon": "edit_note",
         "items": [
+            ("journal", "记账凭证", "receipt_long"),
             ("journal_form", "凭证录入", "edit_note"),
             ("voucher_template", "凭证模板", "description"),
             ("scheduled_vouchers", "定时凭证", "schedule_send"),
