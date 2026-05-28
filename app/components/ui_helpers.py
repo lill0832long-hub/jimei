@@ -464,21 +464,37 @@ _nav_groups = [
         ],
     },
     {
-        "key": "operations",
-        "label": "账务处理",
+        "key": "voucher",
+        "label": "凭证管理",
         "icon": "edit_note",
         "items": [
-            ("journal", "记账凭证", "edit_note"),
-            ("import", "批量导入", "cloud_upload"),
+            ("journal_form", "凭证录入", "edit_note"),
+            ("voucher_template", "凭证模板", "description"),
+            ("scheduled_vouchers", "定时凭证", "schedule_send"),
             ("invoices", "发票管理", "receipt_long"),
+            ("import", "批量导入", "cloud_upload"),
+        ],
+    },
+    {
+        "key": "ledger",
+        "label": "账簿查询",
+        "icon": "menu_book",
+        "items": [
+            ("general_ledger", "总账", "account_balance"),
+            ("account_ledger", "明细账", "table_chart"),
+            ("trial_balance", "科目余额", "summarize"),
+            ("cash_flow", "现金流量", "swap_horiz"),
         ],
     },
     {
         "key": "reports",
-        "label": "报表中心",
+        "label": "报表分析",
         "icon": "assessment",
         "items": [
             ("reports_center", "报表中心", "assessment"),
+            ("charts", "图表分析", "bar_chart"),
+            ("compare", "期间对比", "compare_arrows"),
+            ("budget", "预算管理", "savings"),
         ],
     },
     {
@@ -487,12 +503,10 @@ _nav_groups = [
         "icon": "account_balance_wallet",
         "items": [
             ("cashier", "出纳管理", "point_of_sale"),
-            ("bank_reconciliation", "银行对账", "account_balance"),
+            ("bank_reconciliation", "银行对账", "receipt"),
             ("fixed_assets", "固定资产", "precision_manufacturing"),
             ("auxiliary", "辅助核算", "hub"),
-            ("tax", "增值税管理", "receipt"),
-            ("budget", "预算管理", "savings"),
-            ("scheduled_vouchers", "定时凭证", "schedule_send"),
+            ("tax", "税务管理", "receipt"),
             ("multi_currency", "多币种", "currency_exchange"),
             ("close_period", "期末结转", "sync_alt"),
         ],
@@ -607,6 +621,7 @@ def _init_sidebar_state():
             "operations": True,
             "reports": True,
             "finance": True,
+            "investment": True,
         }
 
 

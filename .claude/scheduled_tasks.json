@@ -1,14 +1,3 @@
 {
-  "tasks": [
-    {
-      "id": "625ed619",
-      "cron": "0 21 * * *",
-      "prompt": "现在是晚上 9 点，请总结今天的工作内容：回顾今天的对话和操作，提炼 3-5 个关键经验点 + 1 行最终结果，追加到 memory/daily-log.md 文件中。格式与已有条目保持一致。",
-      "createdAt": 1778768042894,
-      "lastFiredAt": 1779031761226,
-      "recurring": true,
-      "createdBySessionId": "f6856eaf-e2e5-4865-8bf1-378ceb575804",
-      "createdByPid": 19972
-    }
-  ]
+  "tasks": []
 }
