@@ -39,6 +39,7 @@ voucher_login*
 voucher_table_test*
 
 # Misc temp
+tmp/
 e319e8cc*.png
 split_db.py
 PLAN_*.md
