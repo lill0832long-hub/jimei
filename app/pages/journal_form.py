@@ -129,123 +129,174 @@ def render_journal_form(detail=None):
 </tfoot>
 </table>'''
 
-    # ── 凭证头部 ──
-    with ui.card().classes("w-full"):
-        with ui.card_section().classes("vcheader"):
-            ui.label("记 账 凭 证").classes("vc-doc-title")
-            with ui.row().classes("w-full items-center justify-between"):
-                with ui.row().classes("items-center gap-2"):
-                    ui.label("凭证字：").classes("vc-field-label")
-                    vtype_sel = ui.select(vtype_opts, value=default_vtype) \
-                        .props("outlined dense").classes("vctype-sel")
-                with ui.row().classes("items-center gap-2"):
-                    ui.label("日期：").classes("vc-field-label")
-                    date_input = ui.input(value=default_date) \
-                        .props("type=date outlined dense").classes("vcdate-inp")
 
-        # ── 摘要 + 附件 ──
-        with ui.card_section().classes("vcsection-meta"):
-            with ui.row().classes("items-center gap-2"):
-                ui.label("摘要：").classes("vc-field-label vc-field-label-bold")
-                desc_input = ui.input(value=default_desc, placeholder="请输入凭证摘要...") \
-                    .props("outlined dense").classes("vcsummary-inp")
-            with ui.row().classes("items-center gap-2"):
-                ui.label("附件：").classes("vc-field-label")
-                attach_input = ui.number(value=attach_count, precision=0) \
-                    .props("outlined dense").classes("vcattach-inp")
-                ui.label("张").classes("vc-field-label")
+    # ── 双栏布局：表单 + 辅助面板 ──
+    with ui.row().classes("w-full gap-4"):
+        # ── 左栏：凭证表单（70%）──
+        with ui.column().classes("flex-grow gap-3"):
+            # ── 凭证头部 ──
+            with ui.card().classes("w-full"):
+                with ui.card_section().classes("vcheader"):
+                    ui.label("记 账 凭 证").classes("vc-doc-title")
+                    with ui.row().classes("w-full items-center justify-between"):
+                        with ui.row().classes("items-center gap-2"):
+                            ui.label("凭证字：").classes("vc-field-label")
+                            vtype_sel = ui.select(vtype_opts, value=default_vtype) \
+                                .props("outlined dense").classes("vctype-sel")
+                        with ui.row().classes("items-center gap-2"):
+                            ui.label("日期：").classes("vc-field-label")
+                            date_input = ui.input(value=default_date) \
+                                .props("type=date outlined dense").classes("vcdate-inp")
 
-        # ── 凭证模板（仅新增时）──
-        if not is_edit:
-            try:
-                _templates = VoucherService.get_templates(lid)
-            except Exception:
-                _templates = []
-            if _templates:
-                with ui.card_section().classes("vcsection-tpl"):
-                    ui.icon("description", size="sm").classes("vc-tpl-icon")
-                    ui.label("模板").classes("vc-tpl-label")
-                    template_opts = {t["id"]: t["name"] for t in _templates}
-                    template_select = ui.select(
-                        options=template_opts, value=None, label="选择"
-                    ).props("outlined dense clearable").classes("w-44")
+                # ── 摘要 + 附件 ──
+                with ui.card_section().classes("vcsection-meta"):
+                    with ui.row().classes("items-center gap-2"):
+                        ui.label("摘要：").classes("vc-field-label vc-field-label-bold")
+                        desc_input = ui.input(value=default_desc, placeholder="请输入凭证摘要...") \
+                            .props("outlined dense").classes("vcsummary-inp")
+                    with ui.row().classes("items-center gap-2"):
+                        ui.label("附件：").classes("vc-field-label")
+                        attach_input = ui.number(value=attach_count, precision=0) \
+                            .props("outlined dense").classes("vcattach-inp")
+                        ui.label("张").classes("vc-field-label")
 
-                    def _on_tpl_apply():
-                        try:
-                            tpl_id = template_select.value
-                            if not tpl_id:
-                                return
-                            tpl = next((t for t in _templates if t["id"] == tpl_id), None)
-                            if not tpl:
-                                show_toast("模板不存在", "error")
-                                return
-                            desc_input.value = tpl.get("description", "")
-                            entries = tpl.get("entries", [])
-                            new_entries = []
-                            for entry in entries:
-                                direction = entry.get("direction", "debit")
-                                amount = entry.get("amount", 0) or 0
-                                new_entries.append({
-                                    "acct_code": entry.get("account_code", ""),
-                                    "summary": entry.get("summary", ""),
-                                    "debit": str(amount) if direction == "debit" else "",
-                                    "credit": str(amount) if direction == "credit" else "",
-                                })
-                            while len(new_entries) < 6:
-                                new_entries.append({"acct_code": "", "summary": "", "debit": "", "credit": ""})
-                            acct_opts_json = json.dumps(_acct_options_html())
-                            entries_json = json.dumps(new_entries)
-                            ui.add_head_html(f"""
-                            <script>
-                            (function() {{
-                                window._v5PendingRebuild = {{acctOpts: {acct_opts_json}, entries: {entries_json}}};
-                                if (typeof v5rebuildTable === 'function' && document.getElementById('vcBody')) {{
-                                    v5rebuildTable(window._v5PendingRebuild.acctOpts, window._v5PendingRebuild.entries);
-                                }}
-                            }})();
-                            </script>
-                            """)
-                            show_toast(f"已应用模板：{tpl['name']}", "success")
-                        except Exception as e:
-                            show_toast(f"应用模板失败: {e}", "error")
+                # ── 凭证模板（仅新增时）──
+                if not is_edit:
+                    try:
+                        _templates = VoucherService.get_templates(lid)
+                    except Exception:
+                        _templates = []
+                    if _templates:
+                        with ui.card_section().classes("vcsection-tpl"):
+                            ui.icon("description", size="sm").classes("vc-tpl-icon")
+                            ui.label("模板").classes("vc-tpl-label")
+                            template_opts = {t["id"]: t["name"] for t in _templates}
+                            template_select = ui.select(
+                                options=template_opts, value=None, label="选择"
+                            ).props("outlined dense clearable").classes("w-44")
 
-                    ui.button("应用", on_click=_on_tpl_apply) \
-                        .props("dense color=warning").classes("px-3 text-xs")
+                            def _on_tpl_apply():
+                                try:
+                                    tpl_id = template_select.value
+                                    if not tpl_id:
+                                        return
+                                    tpl = next((t for t in _templates if t["id"] == tpl_id), None)
+                                    if not tpl:
+                                        show_toast("模板不存在", "error")
+                                        return
+                                    desc_input.value = tpl.get("description", "")
+                                    entries = tpl.get("entries", [])
+                                    new_entries = []
+                                    for entry in entries:
+                                        direction = entry.get("direction", "debit")
+                                        amount = entry.get("amount", 0) or 0
+                                        new_entries.append({
+                                            "acct_code": entry.get("account_code", ""),
+                                            "summary": entry.get("summary", ""),
+                                            "debit": str(amount) if direction == "debit" else "",
+                                            "credit": str(amount) if direction == "credit" else "",
+                                        })
+                                    while len(new_entries) < 6:
+                                        new_entries.append({"acct_code": "", "summary": "", "debit": "", "credit": ""})
+                                    acct_opts_json = json.dumps(_acct_options_html())
+                                    entries_json = json.dumps(new_entries)
+                                    ui.add_head_html(f"""
+                                    <script>
+                                    (function() {{
+                                        window._v5PendingRebuild = {{acctOpts: {acct_opts_json}, entries: {entries_json}}};
+                                        if (typeof v5rebuildTable === 'function' && document.getElementById('vcBody')) {{
+                                            v5rebuildTable(window._v5PendingRebuild.acctOpts, window._v5PendingRebuild.entries);
+                                        }}
+                                    }})();
+                                    </script>
+                                    """)
+                                    show_toast(f"已应用模板：{tpl['name']}", "success")
+                                except Exception as e:
+                                    show_toast(f"应用模板失败: {e}", "error")
 
-        # ── 分录明细表格 ──
-        with ui.card_section().classes("vcsection-table"):
-            table_html = _build_table_html(init_entries)
-            ui.html(table_html, sanitize=False)
-            ui.add_head_html("""
-            <script>
-            (function() {
-                function initV5Table() {
-                    if (!document.getElementById('vcBody')) {
-                        setTimeout(initV5Table, 100);
-                        return;
-                    }
-                    document.querySelectorAll('#vcBody .vctd-num').forEach(function(inp) {
-                        inp.addEventListener('input', v5calcTotals);
-                    });
-                    v5calcTotals();
-                }
-                if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', initV5Table);
-                } else {
-                    setTimeout(initV5Table, 50);
-                }
-            })();
-            </script>
-            """)
+                            ui.button("应用", on_click=_on_tpl_apply) \
+                                .props("dense color=warning").classes("px-3 text-xs")
 
-        # ── 底部签章 ──
-        with ui.card_section().classes("vcsection-footer"):
-            with ui.row().classes("gap-8"):
-                maker = state.current_user.get('username', '') if state.current_user else ''
-                ui.label(f"制单人：{maker}").classes("vc-sign-label")
-                ui.label("审核人：").classes("vc-sign-label")
-                ui.label("记账人：").classes("vc-sign-label")
-                ui.label("出纳人：").classes("vc-sign-label")
+                # ── 分录明细表格 ──
+                with ui.card_section().classes("vcsection-table"):
+                    table_html = _build_table_html(init_entries)
+                    ui.html(table_html, sanitize=False)
+                    ui.add_head_html("""
+                    <script>
+                    (function() {
+                        function initV5Table() {
+                            if (!document.getElementById('vcBody')) {
+                                setTimeout(initV5Table, 100);
+                                return;
+                            }
+                            document.querySelectorAll('#vcBody .vctd-num').forEach(function(inp) {
+                                inp.addEventListener('input', v5calcTotals);
+                            });
+                            v5calcTotals();
+                        }
+                        if (document.readyState === 'loading') {
+                            document.addEventListener('DOMContentLoaded', initV5Table);
+                        } else {
+                            setTimeout(initV5Table, 50);
+                        }
+                    })();
+                    </script>
+                    """)
+
+                # ── 底部签章 ──
+                with ui.card_section().classes("vcsection-footer"):
+                    with ui.row().classes("gap-8"):
+                        maker = state.current_user.get('username', '') if state.current_user else ''
+                        ui.label(f"制单人：{maker}").classes("vc-sign-label")
+                        ui.label("审核人：").classes("vc-sign-label")
+                        ui.label("记账人：").classes("vc-sign-label")
+                        ui.label("出纳人：").classes("vc-sign-label")
+
+
+        # ── 右栏：辅助面板 ──
+        with ui.column().classes("gap-3").style("min-width:280px;max-width:360px;"):
+            # 快速记账模板
+            with ui.card().classes("w-full"):
+                with ui.card_section().classes("py-3 px-4"):
+                    ui.label("📋 快速记账").classes("text-sm font-bold mb-2").style("color:var(--c-primary)")
+                    quick_items = [
+                        ("💰 收款", "收到客户货款"),
+                        ("💸 付款", "支付供应商货款"),
+                        ("🏦 转账", "银行转账"),
+                        ("📝 日常", "日常记账凭证"),
+                    ]
+                    for _icon_label, _desc in quick_items:
+                        ui.button(_icon_label, on_click=lambda d=_desc: setattr(desc_input, "value", d)).props("flat dense no-caps").classes("w-full justify-start text-xs").style("padding:4px 8px")
+
+            # 科目速查
+            with ui.card().classes("w-full"):
+                with ui.card_section().classes("py-3 px-4"):
+                    ui.label("🔍 科目速查").classes("text-sm font-bold mb-2").style("color:var(--c-primary)")
+                    _acct_search = ui.input(placeholder="输入科目名称...").props("outlined dense clearable").classes("w-full mb-2")
+                    _acct_list = ui.column().classes("gap-0").style("max-height:200px;overflow-y:auto;")
+                    def _do_acct_search(e):
+                        _acct_list.clear()
+                        kw = (e.args or "").strip().lower()
+                        if not kw or len(kw) < 1:
+                            return
+                        matches = [a for a in _acct_data if kw in a["name"].lower() or kw in a["code"]][:8]
+                        with _acct_list:
+                            for a in matches:
+                                ui.label(a["code"] + " " + a["name"]).classes("text-xs py-1 px-2 cursor-pointer hover:bg-blue-50")
+                    _acct_search.on("update:model-value", _do_acct_search)
+
+            # 记账小贴士
+            with ui.card().classes("w-full"):
+                with ui.card_section().classes("py-3 px-4"):
+                    ui.label("💡 记账小贴士").classes("text-sm font-bold mb-2").style("color:var(--c-primary)")
+                    _tips = [
+                        "有借必有贷，借贷必相等",
+                        "先填摘要，再选科目",
+                        "金额为0的行不会保存",
+                        "可用Tab键快速跳转下一格",
+                    ]
+                    for _tip in _tips:
+                        ui.label("• " + _tip).classes("text-xs").style("color:var(--c-text-secondary);line-height:1.8")
 
     # ── 底部操作栏（独立区域，始终可见）──
     with ui.row().classes("w-full items-center justify-between mt-3"):

@@ -111,7 +111,7 @@ def render_reports_center():
         state._reports_active_idx = 0
 
     # 标签栏
-    with ui.row().classes("reports-tab-bar"):
+    with ui.row().classes("reports-tab-bar w-full"):
         for i, (rkey, rlabel, ricon) in enumerate(_REPORT_TABS):
             is_active = (i == state._reports_active_idx) if hasattr(state, '_reports_active_idx') else (i == 0)
             with ui.button(
@@ -123,7 +123,7 @@ def render_reports_center():
                 ui.label(rlabel).classes("text-sm")
 
     # 内容区
-    with ui.element("div").classes("reports-tab-content") as state._reports_content_area:
+    with ui.element("div").classes("reports-tab-content w-full") as state._reports_content_area:
         _render_current_report()
 
 
