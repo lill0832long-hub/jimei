@@ -191,6 +191,13 @@ def index():
         except Exception:
             pass
 
+
+    # --- fix: reset stale UI container refs on each page load ---
+    # state is a global singleton; old refs point to disconnected client DOM.
+    # Reusing them causes RuntimeError and breaks page rendering.
+    state._sidebar_container = None
+    state._tab_bar_container = None
+    state._tab_contents = None
     if state.current_user is None:
         render_login()
     else:
