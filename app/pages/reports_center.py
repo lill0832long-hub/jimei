@@ -146,14 +146,6 @@ def _render_report_by_key(key):
         from app.pages.close_period import render_close_period
         render_close_period()
 
-def _switch_report(idx, key):
-    """切换到指定子报表"""
-    state._reports_active_idx = idx
-    # 重绘整个报表中心（标签栏高亮 + 内容区）
-    from app.components.ui_helpers import refresh_main
-    refresh_main()
-
-
 def _render_current_report():
     """渲染当前激活的子报表"""
     tabs = state._reports_tabs if hasattr(state, '_reports_tabs') and state._reports_tabs else [
