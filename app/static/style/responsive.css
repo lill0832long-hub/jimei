@@ -29,3 +29,41 @@
         break-inside: avoid;
     }
 }
+
+/* ===== 平板适配 (1024px以下) ===== */
+@media (max-width: 1024px) {
+    .kpi-card {
+        min-width: calc(50% - 8px) !important;
+    }
+    .header-grid {
+        gap: 12px;
+    }
+    .header-title {
+        font-size: 18px;
+    }
+}
+
+/* ===== 小屏幕适配 (768px以下) ===== */
+@media (max-width: 768px) {
+    .kpi-card {
+        min-width: 100% !important;
+    }
+    .header-bar {
+        height: 56px !important;
+        min-height: 56px !important;
+        max-height: 56px !important;
+    }
+    .header-grid {
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+    }
+    .header-right {
+        display: none;
+    }
+    .main-content-area {
+        padding: 8px !important;
+    }
+    .q-card {
+        border-radius: var(--radius-md) !important;
+    }
+}

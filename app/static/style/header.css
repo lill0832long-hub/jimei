@@ -11,6 +11,17 @@
     max-height: var(--header-h);
     padding: 0 var(--header-padding-x);
     transition: background var(--transition-base), box-shadow var(--transition-base);
+    position: relative;
+}
+.header-bar::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--gradient-primary);
+    opacity: 0.4;
 }
 body[data-theme="dark"] .header-bar {
     background: #2D2620 !important;

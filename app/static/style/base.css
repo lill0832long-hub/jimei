@@ -121,7 +121,8 @@ body, p, .q-table td, .q-btn, .q-field__native, .q-item__label {
     transition: box-shadow var(--transition-base);
 }
 .q-card:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+    box-shadow: var(--shadow-card-hover) !important;
+    transform: translateY(-1px);
 }
 
 /* ===== 滚动条美化 ===== */
@@ -146,8 +147,11 @@ body, p, .q-table td, .q-btn, .q-field__native, .q-item__label {
     transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
 .kpi-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0,0,0,0.1) !important;
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-kpi-hover) !important;
+}
+.kpi-card:active {
+    transform: translateY(-1px) scale(0.99);
 }
 .kpi-card::before {
     content: '';
@@ -185,3 +189,17 @@ body, p, .q-table td, .q-btn, .q-field__native, .q-item__label {
 }
 .kpi-trend-up   { color: var(--c-success); background: var(--c-success-light); }
 .kpi-trend-down { color: var(--c-danger);  background: var(--c-danger-light); }
+
+/* ===== 页面内容淡入 ===== */
+.main-content-area {
+    animation: fadeInUp 0.3s var(--anim-smooth) both;
+}
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== 通用卡片交互增强 ===== */
+.q-card {
+    will-change: transform, box-shadow;
+}

@@ -6,3 +6,115 @@
 .dashboard-enter {
     animation: fadeIn 0.25s ease-out;
 }
+
+/* ===== KPI 卡片增强 ===== */
+.kpi-card {
+    border: 1px solid var(--c-border-light);
+    background: var(--c-bg-card) !important;
+}
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: var(--kpi-radius) var(--kpi-radius) 0 0;
+}
+.kpi-card .kpi-value {
+    transition: color var(--duration-normal) var(--anim-smooth);
+}
+.kpi-card:hover .kpi-value {
+    filter: brightness(1.1);
+}
+
+/* KPI 顶部彩色条（通过JS动态设置颜色） */
+.kpi-card[data-color="blue"]::before   { background: var(--gradient-primary); }
+.kpi-card[data-color="red"]::before    { background: var(--gradient-danger); }
+.kpi-card[data-color="green"]::before  { background: var(--gradient-success); }
+.kpi-card[data-color="purple"]::before { background: linear-gradient(135deg, #7C3AED, #A78BFA); }
+.kpi-card[data-color="orange"]::before { background: linear-gradient(135deg, #D4A843, #E8C468); }
+.kpi-card[data-color="cyan"]::before   { background: linear-gradient(135deg, #0891B2, #22D3EE); }
+.kpi-card[data-color="indigo"]::before { background: linear-gradient(135deg, #4F46E5, #818CF8); }
+.kpi-card[data-color="teal"]::before   { background: linear-gradient(135deg, #0D9488, #2DD4BF); }
+
+/* ===== 快速操作卡片 ===== */
+.quick-action-card {
+    border-radius: var(--radius-lg) !important;
+    padding: 16px 20px;
+    cursor: pointer;
+    transition: all var(--duration-normal) var(--anim-smooth);
+    border: 1px solid var(--c-border-light);
+    background: var(--c-bg-card);
+}
+.quick-action-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-card-hover);
+    border-color: var(--c-primary);
+}
+.quick-action-card:active {
+    transform: translateY(0) scale(0.98);
+}
+
+/* ===== 最近凭证表格行 ===== */
+.recent-voucher-row {
+    transition: background var(--duration-fast);
+    cursor: pointer;
+}
+.recent-voucher-row:hover {
+    background: var(--c-primary-light);
+}
+
+/* ===== 空状态增强 ===== */
+.empty-state-wrapper {
+    text-align: center;
+    padding: 40px 20px;
+}
+.empty-state-icon {
+    font-size: 48px;
+    color: var(--c-text-muted);
+    opacity: 0.4;
+    margin-bottom: 12px;
+}
+.empty-state-text {
+    color: var(--c-text-muted);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+/* ===== 快速操作按钮增强 ===== */
+.nav-btn {
+    border-radius: var(--radius-md) !important;
+    padding: 8px 12px !important;
+    transition: all var(--duration-normal) var(--anim-smooth) !important;
+    border: 1px solid transparent !important;
+    font-weight: 500 !important;
+}
+.nav-btn:hover {
+    background: var(--c-primary-light) !important;
+    border-color: var(--c-border) !important;
+    transform: translateX(4px);
+    box-shadow: var(--shadow-sm);
+}
+.nav-btn:active {
+    transform: translateX(2px) scale(0.98);
+}
+.nav-btn .q-icon {
+    transition: color var(--duration-fast);
+}
+.nav-btn:hover .q-icon {
+    color: var(--c-primary) !important;
+}
+
+/* ===== 图表卡片增强 ===== */
+.q-card .echarts,
+.q-card canvas {
+    border-radius: var(--radius-sm);
+}
+
+/* ===== 月度趋势/费用占比图表容器 ===== */
+.chart-container {
+    min-height: 256px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

@@ -77,7 +77,7 @@ def KpiCard(title, value, icon="analytics", color="blue", trend=None, trend_labe
     else:
         trend_color = None
 
-    card = ui.card().classes(f"kpi-card {col_classes}")
+    card = ui.card().classes(f"kpi-card {col_classes}").props(f"data-color={color}")
     if on_click:
         card.style("cursor:pointer;")
         card.on("click", on_click)
