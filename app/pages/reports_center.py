@@ -105,14 +105,22 @@ def render_reports_center():
 # ── 卡片式报表中心 ──
     if not hasattr(state, '_active_report') or state._active_report is None:
         state._active_report = None
+    # Read report from URL parameter
+    try:
+        from nicegui import context
+        _report_param = context.client.request.query_params.get("report")
+        if _report_param:
+            state._active_report = _report_param
+    except Exception:
+        pass
 
     def _open_report(key):
         state._active_report = key
-        refresh_main()
+        ui.navigate.to(f'/?page=reports_center&report={key}')
 
     def _back_to_grid():
         state._active_report = None
-        refresh_main()
+        ui.navigate.to('/?page=reports_center')
 
     if state._active_report is None:
         # ── 报表卡片网格 ──
