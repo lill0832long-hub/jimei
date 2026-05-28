@@ -473,57 +473,99 @@
 .tb-row:hover {
     background: var(--c-bg-hover, #f5f7ff) !important;
 }
+/* ===== 报表左右导航布局 ===== */
 
-
-/* ===== 报表折叠面板 ===== */
-.report-accordion-header {
-    display: flex;
-    align-items: center;
-    padding: 14px 20px;
+/* 左侧导航面板 */
+.report-nav-panel {
+    width: 220px;
+    min-width: 220px;
+    max-width: 220px;
     background: var(--c-bg-card, #fff);
-    border: 1px solid var(--c-border-light, #e8e8e8);
-    border-radius: 10px;
-    cursor: pointer;
-    user-select: none;
-    transition: background 0.15s ease, box-shadow 0.15s ease;
-    margin-top: 8px;
-    gap: 10px;
-}
-.report-accordion-header:first-child {
-    margin-top: 0;
-}
-.report-accordion-header:hover {
-    background: var(--c-bg-hover, #f5f0ea);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-}
-.report-accordion-icon {
-    font-size: 20px;
-    color: var(--c-primary, #C4784A);
+    border-right: 1px solid var(--c-border-light, #e8e8e8);
+    padding: 16px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow-y: auto;
     flex-shrink: 0;
 }
-.report-accordion-label {
-    font-size: 15px;
+.report-nav-title {
+    font-size: 11px;
     font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--c-text-muted, #999);
+    padding: 8px 20px 12px;
+    border-bottom: 1px solid var(--c-border-light, #e8e8e8);
+    margin-bottom: 8px;
+}
+.report-nav-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 10px !important;
+    padding: 10px 20px !important;
+    border-radius: 0 !important;
+    width: 100% !important;
+    text-align: left !important;
+    justify-content: flex-start !important;
+    transition: all 0.15s ease !important;
+    border-left: 3px solid transparent !important;
+    min-height: 42px !important;
+    font-size: 13px !important;
+}
+.report-nav-item:hover {
+    background: var(--c-bg-hover, #f5f0ea) !important;
+}
+.report-nav-item--active {
+    background: var(--c-primary-light, #FFF3E8) !important;
+    border-left-color: var(--c-primary, #C4784A) !important;
+    color: var(--c-primary, #C4784A) !important;
+}
+.report-nav-item--active .report-nav-icon {
+    color: var(--c-primary, #C4784A) !important;
+}
+.report-nav-item--active .report-nav-label {
+    color: var(--c-primary, #C4784A) !important;
+    font-weight: 600 !important;
+}
+.report-nav-icon {
+    font-size: 18px;
+    color: var(--c-text-muted, #999);
+    flex-shrink: 0;
+}
+.report-nav-label {
+    font-size: 13px;
+    font-weight: 500;
     color: var(--c-text-primary);
     white-space: nowrap;
 }
-.report-accordion-arrow {
-    font-size: 22px;
-    color: var(--c-text-muted, #999);
-    transition: transform 0.2s ease;
-    flex-shrink: 0;
+
+/* 右侧内容区 */
+.report-content-area {
+    padding: 16px 20px;
+    overflow-y: auto;
+    background: var(--c-bg-page, #FAF7F2);
+    min-height: 100%;
 }
-.report-accordion-body {
-    border: 1px solid var(--c-border-light, #e8e8e8);
-    border-top: none;
-    border-radius: 0 0 10px 10px;
-    background: var(--c-bg-card, #fff);
-    overflow: hidden;
-    animation: accordionSlideDown 0.25s ease;
-    margin-top: -8px;
-    padding: 12px 0;
-}
-@keyframes accordionSlideDown {
-    from { opacity: 0; max-height: 0; }
-    to   { opacity: 1; max-height: 6000px; }
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .report-nav-panel {
+        width: 56px;
+        min-width: 56px;
+        max-width: 56px;
+    }
+    .report-nav-title {
+        display: none;
+    }
+    .report-nav-label {
+        display: none;
+    }
+    .report-nav-item {
+        justify-content: center !important;
+        padding: 10px 8px !important;
+    }
+    .report-nav-icon {
+        width: auto;
+    }
 }

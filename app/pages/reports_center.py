@@ -101,34 +101,29 @@ def render_reports_center():
     ''')
     ui.timer(1.0, _poll_drill, once=True)
 
-# ── 折叠式报表单页布局 ──
-    if not hasattr(state, '_report_expanded') or state._report_expanded is None:
-        state._report_expanded = {"trial_balance": True}
-    # Reset expanded state on each fresh page load to avoid stale state
-    state._report_expanded = {"trial_balance": True}
 
-    def _toggle_section(key):
-        if state._report_expanded.get(key):
-            state._report_expanded[key] = False
-        else:
-            state._report_expanded[key] = True
+# ── 左右分栏报表布局 ──
+    if not hasattr(state, '_active_report') or state._active_report is None:
+        state._active_report = "trial_balance"
+
+    def _switch_report(key):
+        state._active_report = key
         refresh_main()
 
-    for rkey, rlabel, ricon in _REPORT_TABS:
-        is_open = state._report_expanded.get(rkey, False)
-        arrow = "expand_less" if is_open else "expand_more"
+    with ui.row().classes("w-full gap-0").style("min-height: calc(100vh - 180px);"):
+        # ── 左侧导航栏 ──
+        with ui.column().classes("report-nav-panel"):
+            ui.label("报表导航").classes("report-nav-title")
+            for rkey, rlabel, ricon in _REPORT_TABS:
+                is_active = (state._active_report == rkey)
+                btn_classes = "report-nav-item report-nav-item--active" if is_active else "report-nav-item"
+                with ui.button(on_click=lambda _k=rkey: _switch_report(_k)).props("flat no-caps").classes(btn_classes):
+                    ui.icon(ricon).classes("report-nav-icon")
+                    ui.label(rlabel).classes("report-nav-label")
 
-        # 折叠头部
-        with ui.row().classes("report-accordion-header w-full").on("click", lambda _k=rkey: _toggle_section(_k)):
-            ui.icon(ricon).classes("report-accordion-icon")
-            ui.label(rlabel).classes("report-accordion-label")
-            ui.element("div").style("flex-grow:1")
-            ui.icon(arrow).classes("report-accordion-arrow")
-
-        # 折叠内容
-        if is_open:
-            with ui.column().classes("report-accordion-body w-full"):
-                _render_report_by_key(rkey)
+        # ── 右侧内容区 ──
+        with ui.column().classes("report-content-area flex-grow"):
+            _render_report_by_key(state._active_report)
 
 def _render_report_by_key(key):
     """渲染指定报表内容"""
@@ -147,31 +142,6 @@ def _render_report_by_key(key):
     elif key == "close_period":
         from app.pages.close_period import render_close_period
         render_close_period()
-
-def _render_current_report():
-    """渲染当前激活的子报表"""
-    tabs = state._reports_tabs if hasattr(state, '_reports_tabs') and state._reports_tabs else [
-        {"key": "trial_balance", "label": "试算平衡表", "icon": "grid_on"}
-    ]
-    idx = state._reports_active_idx if hasattr(state, '_reports_active_idx') else 0
-    if idx >= len(tabs):
-        idx = 0
-    tab = tabs[idx]
-    key = tab["key"]
-
-    # 动态导入并渲染对应报表
-    _REPORT_RENDERERS = {
-        "trial_balance":    lambda: _render_minimal("trial_balance"),
-        "balance_sheet":    lambda: _render_minimal("balance_sheet"),
-        "income_statement": lambda: _render_minimal("income_statement"),
-        "accounts":         lambda: _render_minimal("accounts"),
-        "charts":           lambda: _render_minimal("charts"),
-        "close_period":     lambda: _render_minimal("close_period"),
-    }
-    renderer = _REPORT_RENDERERS.get(key)
-    if renderer:
-        renderer()
-
 
 def _render_minimal(page_key):
     """渲染无头部的纯报表内容（期间选择器已在顶部统一）"""
