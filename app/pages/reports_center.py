@@ -102,8 +102,10 @@ def render_reports_center():
     ui.timer(1.0, _poll_drill, once=True)
 
 # ── 折叠式报表单页布局 ──
-    if not hasattr(state, '_report_expanded'):
+    if not hasattr(state, '_report_expanded') or state._report_expanded is None:
         state._report_expanded = {"trial_balance": True}
+    # Reset expanded state on each fresh page load to avoid stale state
+    state._report_expanded = {"trial_balance": True}
 
     def _toggle_section(key):
         if state._report_expanded.get(key):
