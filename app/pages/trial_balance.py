@@ -1,4 +1,4 @@
-"""科目余额表 — 会计主线核心中间环节"""
+"""科目余额表 — 左右折叠多表格布局"""
 from nicegui import ui
 from app.components.state import state
 from app.components.ui_helpers import format_amount, show_toast, navigate, refresh_main
@@ -7,7 +7,7 @@ from app.services import LedgerService, ReportService
 
 
 def render_trial_balance():
-    """科目余额表 — 从凭证汇总，为报表提供数据源"""
+    """科目余额表 — 多表格左右折叠布局（参考金蝶/用友）"""
     if not state.selected_ledger_id:
         ledgers = LedgerService.get_all()
         if ledgers:
@@ -22,7 +22,7 @@ def render_trial_balance():
 
     year, month = state.selected_year, state.selected_month
 
-    # ── 头部 ──
+    # ── 头部筛选区 ──
     with ui.row().classes("report-header"):
         with ui.row().classes("items-center gap-2"):
             ui.icon("grid_on").style("color:var(--c-primary)")
@@ -88,7 +88,6 @@ def render_trial_balance():
             with ui.element("div").classes("report-kpi"):
                 ui.label(label).classes("report-kpi__label")
                 ui.label(format_amount(value)).classes(f"report-kpi__value {color_class}")
-        # 平衡校验单独一个
         with ui.element("div").classes("report-kpi"):
             ui.label("借贷平衡").classes("report-kpi__label")
             if diff < 0.01:
@@ -96,71 +95,97 @@ def render_trial_balance():
             else:
                 ui.label(f"✗ 差额 {format_amount(diff)}").classes("report-kpi__value report-kpi__value--danger")
 
-    # ── 分类展示表格 ──
+    # ── 左右折叠布局 ──
     _CATEGORY_CONFIG = [
-        ("资产类", assets, "account_balance", "var(--c-success)"),
-        ("负债类", liabilities, "credit_card", "var(--c-danger)"),
-        ("权益类", equity, "savings", "var(--c-primary)"),
-        ("收入类", revenue, "trending_up", "#9333ea"),
-        ("费用类", expense, "money_off", "#ea580c"),
+        ("资产类", assets, "account_balance", "var(--c-success)", "#10b981"),
+        ("负债类", liabilities, "credit_card", "var(--c-danger)", "#ef4444"),
+        ("权益类", equity, "savings", "var(--c-primary)", "#3b82f6"),
+        ("收入类", revenue, "trending_up", "#9333ea", "#9333ea"),
+        ("费用类", expense, "money_off", "#ea580c", "#ea580c"),
     ]
 
-    for cat_name, cat_items, icon, color in _CATEGORY_CONFIG:
-        if not cat_items:
-            continue
+    # 左侧导航 + 右侧内容
+    with ui.row().classes("report-fold-layout"):
+        # 左侧：分类导航
+        with ui.column().classes("report-fold-nav"):
+            ui.label("科目分类").classes("report-fold-nav__title")
+            for cat_name, cat_items, icon, color, nav_color in _CATEGORY_CONFIG:
+                if not cat_items:
+                    continue
+                cat_close = _sum_field(cat_items, "closing_balance")
+                with ui.card().classes("report-fold-nav__item").on("click", lambda _c=cat_name: ui.run_javascript(f"document.getElementById('section-{_c}').scrollIntoView({{behavior:'smooth'}})")):
+                    with ui.row().classes("items-center gap-2"):
+                        ui.icon(icon).style(f"color:{nav_color}")
+                        ui.label(cat_name).classes("report-fold-nav__label")
+                    ui.label(f"{len(cat_items)}个科目 | {format_amount(cat_close)}").classes("report-fold-nav__desc")
 
-        cat_open = _sum_field(cat_items, "opening_balance")
-        cat_dr = _sum_field(cat_items, "period_debit")
-        cat_cr = _sum_field(cat_items, "period_credit")
-        cat_close = _sum_field(cat_items, "closing_balance")
+        # 右侧：多表格折叠区
+        with ui.column().classes("report-fold-content"):
+            for cat_name, cat_items, icon, color, nav_color in _CATEGORY_CONFIG:
+                if not cat_items:
+                    continue
 
-        with ui.card().classes("report-card"):
-            with ui.row().classes("report-section__header px-5 pt-4 pb-2"):
-                ui.icon(icon).style(f"color:{color}")
-                ui.label(cat_name).classes("report-section__title")
-                ui.label(f"{len(cat_items)} 个科目").classes("report-section__count")
-                ui.space()
-                ui.label(f"小计 {format_amount(cat_close)}").classes("text-xs font-semibold").style("color:var(--c-text-muted)")
+                cat_open = _sum_field(cat_items, "opening_balance")
+                cat_dr = _sum_field(cat_items, "period_debit")
+                cat_cr = _sum_field(cat_items, "period_credit")
+                cat_close = _sum_field(cat_items, "closing_balance")
 
-            rows_html = ""
-            for b in cat_items:
-                code = b.get("account_code", "")
-                name = b.get("account_name", "")
-                opening = float(b.get("opening_balance", 0) if b.get("opening_balance") is not None else 0)
-                debit = float(b.get("period_debit", 0) if b.get("period_debit") is not None else 0)
-                credit = float(b.get("period_credit", 0) if b.get("period_credit") is not None else 0)
-                closing = float(b.get("closing_balance", 0) if b.get("closing_balance") is not None else 0)
+                # 折叠面板
+                with ui.card().classes("report-fold-section").props(f"id=section-{cat_name}"):
+                    # 折叠头部（点击展开/收缩）
+                    with ui.row().classes("report-fold-header").on("click", lambda _e, _c=cat_name: _toggle_fold(_c)):
+                        with ui.row().classes("items-center gap-2"):
+                            ui.icon(icon).style(f"color:{color}")
+                            ui.label(cat_name).classes("report-fold-header__title")
+                            ui.label(f"{len(cat_items)}个科目").classes("report-fold-header__count")
+                        ui.space()
+                        with ui.row().classes("items-center gap-4"):
+                            ui.label(f"借方 {format_amount(cat_dr)}").classes("report-fold-header__debit")
+                            ui.label(f"贷方 {format_amount(cat_cr)}").classes("report-fold-header__credit")
+                            ui.label(f"余额 {format_amount(cat_close)}").classes("report-fold-header__balance")
+                            ui.icon("expand_more").classes("report-fold-header__arrow").props(f"id=arrow-{cat_name}")
 
-                rows_html += f'''<tr class="tb-row" onclick="navigateToAccount('{code}')">
-                    <td class="tb-td tb-td-code">{code}</td>
-                    <td class="tb-td tb-td-name">{name}</td>
-                    <td class="tb-td tb-td-num">{format_amount(opening) if opening else "—"}</td>
-                    <td class="tb-td tb-td-num amount-negative">{format_amount(debit) if debit else "—"}</td>
-                    <td class="tb-td tb-td-num amount-positive">{format_amount(credit) if credit else "—"}</td>
-                    <td class="tb-td tb-td-num" style="font-weight:600">{format_amount(closing) if closing else "—"}</td>
-                </tr>'''
+                    # 折叠内容（表格）
+                    with ui.column().classes("report-fold-body").props(f"id=body-{cat_name}"):
+                        rows_html = ""
+                        for b in cat_items:
+                            code = b.get("account_code", "")
+                            name = b.get("account_name", "")
+                            opening = float(b.get("opening_balance", 0) if b.get("opening_balance") is not None else 0)
+                            debit = float(b.get("period_debit", 0) if b.get("period_debit") is not None else 0)
+                            credit = float(b.get("period_credit", 0) if b.get("period_credit") is not None else 0)
+                            closing = float(b.get("closing_balance", 0) if b.get("closing_balance") is not None else 0)
 
-            rows_html += f'''<tr class="tb-row tb-row-subtotal">
-                <td class="tb-td tb-td-name" colspan="2">小计</td>
-                <td class="tb-td tb-td-num">{format_amount(cat_open)}</td>
-                <td class="tb-td tb-td-num amount-negative">{format_amount(cat_dr)}</td>
-                <td class="tb-td tb-td-num amount-positive">{format_amount(cat_cr)}</td>
-                <td class="tb-td tb-td-num">{format_amount(cat_close)}</td>
-            </tr>'''
+                            rows_html += '<tr class="tb-row" onclick="navigateToAccount(\'' + code + '\')">'  
+                            rows_html += f'<td class="tb-td tb-td-code">{code}</td>'
+                            rows_html += f'<td class="tb-td tb-td-name">{name}</td>'
+                            rows_html += f'<td class="tb-td tb-td-num">{format_amount(opening) if opening else "—"}</td>'
+                            rows_html += f'<td class="tb-td tb-td-num amount-negative">{format_amount(debit) if debit else "—"}</td>'
+                            rows_html += f'<td class="tb-td tb-td-num amount-positive">{format_amount(credit) if credit else "—"}</td>'
+                            rows_html += f'<td class="tb-td tb-td-num" style="font-weight:600">{format_amount(closing) if closing else "—"}</td>'
+                            rows_html += '</tr>'
 
-            table_html = f'''<table class="tb-table">
-            <thead><tr>
-                <th class="tb-th">科目代码</th>
-                <th class="tb-th">科目名称</th>
-                <th class="tb-th tb-th-num">期初余额</th>
-                <th class="tb-th tb-th-num">本期借方</th>
-                <th class="tb-th tb-th-num">本期贷方</th>
-                <th class="tb-th tb-th-num">期末余额</th>
-            </tr></thead>
-            <tbody>{rows_html}</tbody></table>'''
+                        rows_html += '<tr class="tb-row tb-row-subtotal">'
+                        rows_html += '<td class="tb-td tb-td-name" colspan="2">小计</td>'
+                        rows_html += f'<td class="tb-td tb-td-num">{format_amount(cat_open)}</td>'
+                        rows_html += f'<td class="tb-td tb-td-num amount-negative">{format_amount(cat_dr)}</td>'
+                        rows_html += f'<td class="tb-td tb-td-num amount-positive">{format_amount(cat_cr)}</td>'
+                        rows_html += f'<td class="tb-td tb-td-num">{format_amount(cat_close)}</td>'
+                        rows_html += '</tr>'
 
-            with ui.card_section().classes("p-0"):
-                ui.html(table_html, sanitize=False)
+                        table_html = '<table class="tb-table">'
+                        table_html += '<thead><tr>'
+                        table_html += '<th class="tb-th">科目代码</th>'
+                        table_html += '<th class="tb-th">科目名称</th>'
+                        table_html += '<th class="tb-th tb-th-num">期初余额</th>'
+                        table_html += '<th class="tb-th tb-th-num">本期借方</th>'
+                        table_html += '<th class="tb-th tb-th-num">本期贷方</th>'
+                        table_html += '<th class="tb-th tb-th-num">期末余额</th>'
+                        table_html += '</tr></thead>'
+                        table_html += f'<tbody>{rows_html}</tbody></table>'
+
+                        with ui.card_section().classes("p-0"):
+                            ui.html(table_html, sanitize=False)
 
     # ── 总计 footer ──
     with ui.row().classes("report-footer"):
@@ -177,12 +202,29 @@ def render_trial_balance():
         ui.button("利润表", icon="assessment", on_click=lambda: navigate("income_statement")).props("flat dense no-caps")
         ui.button("现金流量表", icon="swap_horiz", on_click=lambda: navigate("cash_flow_statement")).props("flat dense no-caps")
 
-    # ── 科目钻取 JS ──
-    ui.add_head_html('''<script>
-    function navigateToAccount(code) {
-        window.dispatchEvent(new CustomEvent('account-drilldown', {detail: code}));
+    # ── 折叠控制 JS ──
+    # ── 折叠控制 JS ──
+    ui.add_head_html("""<script>
+    function toggleFold(category) {
+        var body = document.getElementById("body-" + category);
+        var arrow = document.getElementById("arrow-" + category);
+        if (body.style.display === "none") {
+            body.style.display = "block";
+            arrow.style.transform = "rotate(0deg)";
+        } else {
+            body.style.display = "none";
+            arrow.style.transform = "rotate(-90deg)";
+        }
     }
-    </script>''')
+    function navigateToAccount(code) {
+        window.dispatchEvent(new CustomEvent("account-drilldown", {detail: code}));
+    }
+    </script>""")
+
+
+def _toggle_fold(category):
+    """Python端折叠控制"""
+    ui.run_javascript(f"toggleFold('{category}')")
 
 
 def _export_excel(ledger_id, year, month):
