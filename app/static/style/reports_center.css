@@ -1,0 +1,182 @@
+﻿/* ============================================================
+   Reports Center — 柠檬云风格左右分栏布局
+   ============================================================ */
+
+/* 分栏布局容器 */
+.reports-splitter {
+    height: calc(100vh - 120px);
+    min-height: 600px;
+}
+
+/* 左侧导航面板 */
+.reports-left-panel {
+    background: #fff;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 左侧导航项 */
+.reports-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: #4b5563;
+}
+
+.reports-nav-item:hover {
+    background: #f0f4ff;
+    color: #1f2937;
+}
+
+.reports-nav-item--active {
+    background: #e0e7ff;
+    color: #4f46e5;
+    font-weight: 600;
+}
+
+/* 右侧内容区 */
+.reports-content {
+    background: #f9fafb;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 卡片网格 */
+.reports-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+    padding: 16px;
+}
+
+/* 报表卡片 */
+.reports-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.reports-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    border-color: #4f46e5;
+}
+
+.reports-card__header {
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+}
+
+.reports-card__icon {
+    font-size: 32px;
+    color: #4f46e5;
+    background: #e0e7ff;
+    padding: 12px;
+    border-radius: 10px;
+    width: fit-content;
+}
+
+.reports-card__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+.reports-card__desc {
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+    margin-top: 8px;
+}
+
+.reports-card__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    border-top: 1px solid #f3f4f6;
+    background: #fafafa;
+}
+
+.reports-card__action {
+    font-size: 13px;
+    color: #4f46e5;
+    font-weight: 600;
+}
+
+/* 类别标题 */
+.reports-category {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding-left: 12px;
+    border-left: 4px solid #4f46e5;
+}
+
+.reports-category__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+/* 工具栏 */
+.reports-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 24px;
+    background: #fff;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.reports-toolbar__title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+}
+
+/* 报表内容区 */
+.reports-viewer {
+    flex: 1;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+/* 响应式 */
+@media (max-width: 1200px) {
+    .reports-card-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+}
+
+@media (max-width: 768px) {
+    .reports-splitter {
+        flex-direction: column;
+    }
+    
+    .reports-left-panel {
+        width: 100% !important;
+        min-width: 100% !important;
+        border-right: none;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .reports-card-grid {
+        grid-template-columns: 1fr;
+    }
+}

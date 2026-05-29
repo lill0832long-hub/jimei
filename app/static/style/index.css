@@ -1,4 +1,4 @@
-/* ============================================================
+﻿/* ============================================================
    AI 财务系统 V5.1 — CSS 入口文件
    ============================================================ */
 
@@ -10,5 +10,6 @@
 @import url("dashboard.css");
 @import url("journal.css");
 @import url("reports.css");
+@import url("reports_center.css");
 @import url("login.css");
 @import url("responsive.css");
