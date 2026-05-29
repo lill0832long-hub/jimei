@@ -1962,7 +1962,7 @@
 /* ===== 左右网格布局 ===== */
 .tb-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 16px;
     width: 100%;
 }
@@ -2018,12 +2018,7 @@
 }
 
 .tb-compact-th {
-    padding: 8px 10px;
-    text-align: left;
-    font-weight: 600;
-    font-size: 12px;
-    color: #4b5563;
-    background: #f3f4f6;
+    padding: 6px 8px; text-align: left; font-weight: 600; font-size: 11px; color: #4b5563; background: #f3f4f6;
     border-bottom: 1px solid #e5e7eb;
     position: sticky;
     top: 0;
@@ -2049,30 +2044,30 @@
 }
 
 .tb-compact-td {
-    padding: 8px 10px;
+    padding: 5px 8px;
     color: #1f2937;
 }
 
 .tb-compact-td-code {
     font-family: 'Consolas', monospace;
-    font-size: 12px;
+    font-size: 11px;
     color: #6b7280;
-    width: 70px;
+    width: 56px;
 }
 
 .tb-compact-td-name {
-    min-width: 100px;
+    min-width: 80px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 150px;
+    max-width: 120px;
 }
 
 .tb-compact-td-num {
     text-align: right;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    width: 80px;
+    width: 68px;
 }
 
 .tb-td-debit {
