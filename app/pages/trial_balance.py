@@ -1,7 +1,7 @@
 """科目余额表 — 左右网格布局（无重复年月）"""
 from nicegui import ui
 from app.components.state import state
-from app.components.ui_helpers import format_amount, show_toast, navigate, refresh_main
+from app.components.ui_helpers import format_amount, show_toast, navigate, refresh_main, render_kpi_cards
 from app.components.ui_components import SectionHeader, EmptyState
 from app.services import LedgerService, ReportService
 
