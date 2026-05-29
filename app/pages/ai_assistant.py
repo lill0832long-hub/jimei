@@ -146,15 +146,42 @@ def _execute_tool(tool_name, arguments):
         return {"error": str(e)}
 
 
-# ── 对话历史（按账套存储） ──
-_chat_histories = {}
+# ── 对话历史（持久化存储） ──
+import json
+from pathlib import Path
+
+_HISTORY_DIR = Path(__file__).resolve().parent.parent.parent / "data" / "chat_history"
+_chat_cache = {}
 
 
 def _get_history():
     lid = state.selected_ledger_id or "default"
-    if lid not in _chat_histories:
-        _chat_histories[lid] = []
-    return _chat_histories[lid]
+    if lid not in _chat_cache:
+        _chat_cache[lid] = _load_history(lid)
+    return _chat_cache[lid]
+
+
+def _load_history(lid):
+    """从文件加载对话历史"""
+    _HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    fpath = _HISTORY_DIR / f"chat_{lid}.json"
+    if fpath.exists():
+        try:
+            data = json.loads(fpath.read_text(encoding="utf-8"))
+            return data[-50:]  # 最多保留 50 条
+        except Exception:
+            pass
+    return []
+
+
+def _save_history(lid, history):
+    """保存对话历史到文件"""
+    _HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    fpath = _HISTORY_DIR / f"chat_{lid}.json"
+    try:
+        fpath.write_text(json.dumps(history[-50:], ensure_ascii=False, indent=2), encoding="utf-8")
+    except Exception:
+        pass
 
 
 # ── 渲染 AI 助手页面 ──
@@ -371,10 +398,12 @@ def _do_chat(user_msg, history, chat_container, llm):
             reply = result["content"]
 
         history.append({"role": "assistant", "content": reply})
+        _save_history(state.selected_ledger_id or "default", history)
         _refresh_chat_ui(history, chat_container)
 
     except Exception as e:
         history.append({"role": "assistant", "content": f"⚠️ AI 调用出错: {str(e)[:200]}"})
+        _save_history(state.selected_ledger_id or "default", history)
         _refresh_chat_ui(history, chat_container)
 
 
@@ -402,6 +431,7 @@ def _fallback_reply(user_msg, history, chat_container):
                  "配置方法：在 .env 文件中设置 LLM_API_KEY")
 
     history.append({"role": "assistant", "content": reply})
+    _save_history(state.selected_ledger_id or "default", history)
     _refresh_chat_ui(history, chat_container)
 
 
@@ -431,6 +461,8 @@ def _refresh_chat_ui(history, chat_container):
 def _clear_history(history, chat_container):
     """清空对话历史"""
     history.clear()
+    lid = state.selected_ledger_id or "default"
+    _save_history(lid, history)
     _refresh_chat_ui(history, chat_container)
     show_toast("对话已清空", "info")
 
