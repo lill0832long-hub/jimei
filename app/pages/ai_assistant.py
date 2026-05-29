@@ -1,381 +1,397 @@
-"""AI助手"""
+"""AI 助手 — DeepSeek LLM 对话式财务助手"""
 from nicegui import ui
-from app.components.ui_components import SectionHeader, EmptyState
+from app.components.ui_components import SectionHeader
 from app.components.state import state
 from app.components.ui_helpers import show_toast
 from app.services import LedgerService, ReportService, VoucherService
 
-# 外部 API（可选）
-try:
-    from external_apis import convert_currency
-    _EXTERNAL_APIS_OK = True
-except ImportError:
-    _EXTERNAL_APIS_OK = False
-    convert_currency = None
+# ── LLM 服务（延迟加载） ──
+_llm = None
 
-def do_ai_generate(text):
-    """AI智能凭证生成 — 基于规则引擎"""
-    if not text or not text.strip():
-        show_toast("请输入业务描述", "warning")
-        return
+def _get_llm():
+    global _llm
+    if _llm is None:
+        try:
+            from app.services import llm_service
+            _llm = llm_service
+        except Exception as e:
+            _llm = False
+    return _llm if _llm is not False else None
+
+
+# ── 财务工具定义（Function Calling） ──
+FINANCE_TOOLS = [
+    {
+        "type": "function",
+        "function": {
+            "name": "query_account_balance",
+            "description": "查询指定科目或全部科目的余额",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "account_code": {
+                        "type": "string",
+                        "description": "科目编码，如 1001（库存现金）、1002（银行存款）。留空查询全部。"
+                    }
+                }
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_income_statement",
+            "description": "查询利润表数据（收入、成本、利润）",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "query_balance_sheet",
+            "description": "查询资产负债表数据",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "generate_voucher",
+            "description": "根据业务描述生成会计凭证分录",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "description": {
+                        "type": "string",
+                        "description": "业务描述，如：收到客户货款10万元"
+                    }
+                },
+                "required": ["description"]
+            }
+        }
+    },
+]
+
+
+def _execute_tool(tool_name, arguments):
+    """执行 AI 调用的工具"""
     lid = state.selected_ledger_id
     if not lid:
-        show_toast("请先选择账套", "warning")
-        return
+        return {"error": "请先选择账套"}
+
     try:
-        result = VoucherService.generate_from_text(lid, text)
-        entries = result.get("entries", [])
-        confidence = result.get("confidence", 0)
-        if not entries:
-            show_toast("无法识别该业务描述，请尝试其他描述", "warning")
-            return
-        # 构建显示文本
-        lines = [f"📝 {result.get('description', text)}", f"📊 置信度: {confidence:.0%}", "━" * 30]
-        total_dr = total_cr = 0
-        for e in entries:
-            amt = e.get("debit", 0) or e.get("credit", 0)
-            side = "借" if e.get("debit", 0) else "贷"
-            lines.append(f"  {side}  {e.get('account_code', '')} {e.get('account_name', '')}  ¥{amt:,.2f}")
-            total_dr += e.get("debit", 0)
-            total_cr += e.get("credit", 0)
-        lines.append("━" * 30)
-        lines.append(f"  借方合计: ¥{total_dr:,.2f}  贷方合计: ¥{total_cr:,.2f}")
-        if result.get("currency", "CNY") != "CNY":
-            lines.append(f"  币种: {result['currency']}  汇率: {result.get('exchange_rate', 1)}")
-        show_toast("\n".join(lines), "success" if confidence >= 0.7 else "warning")
+        if tool_name == "query_account_balance":
+            code = arguments.get("account_code", "")
+            balances = ReportService.get_account_balances(
+                lid, state.selected_year, state.selected_month
+            )
+            if code:
+                balances = [b for b in balances if b.get("account_code", "").startswith(code)]
+            result = []
+            for b in balances[:20]:
+                result.append({
+                    "code": b.get("account_code", ""),
+                    "name": b.get("account_name", ""),
+                    "closing": round(float(b.get("closing_balance", 0) or 0), 2),
+                })
+            return {"balances": result, "period": f"{state.selected_year}年{state.selected_month}月"}
+
+        elif tool_name == "query_income_statement":
+            report = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
+            if not report:
+                return {"error": "暂无利润表数据"}
+            rows = report.get("rows", []) if isinstance(report, dict) else []
+            return {"rows": rows[:15], "date": report.get("date", "") if isinstance(report, dict) else ""}
+
+        elif tool_name == "query_balance_sheet":
+            bs = ReportService.get_balance_sheet(lid, state.selected_year, state.selected_month)
+            if not bs:
+                return {"error": "暂无资产负债表数据"}
+            return {
+                "total_assets": bs.get("total_assets", 0),
+                "total_liab": bs.get("total_liab", 0),
+                "total_equity": bs.get("total_equity", 0),
+            }
+
+        elif tool_name == "generate_voucher":
+            desc = arguments.get("description", "")
+            result = VoucherService.generate_from_text(lid, desc)
+            return result
+
+        else:
+            return {"error": f"未知工具: {tool_name}"}
     except Exception as e:
-        show_toast(f"生成失败: {str(e)}", "error")
+        return {"error": str(e)}
 
-def do_ocr_extract(text):
-    """发票OCR信息提取 — 正则规则引擎"""
-    import re
-    if not text or not text.strip():
-        show_toast("请粘贴OCR识别文本", "warning")
-        return
-    text = text.strip()
-    results = {}
 
-    # 发票号码
-    inv_no_patterns = [
-        r'发票号码[：:\s]*([A-Za-z0-9]+)',
-        r'发票号[：:\s]*([A-Za-z0-9]+)',
-        r'No[.\s:：]*([A-Za-z0-9]{8,20})',
-        r'([A-Z]{2}\d{16,20})',
-    ]
-    for p in inv_no_patterns:
-        m = re.search(p, text)
-        if m:
-            results["发票号码"] = m.group(1)
-            break
+# ── 对话历史（按账套存储） ──
+_chat_histories = {}
 
-    # 发票代码
-    code_patterns = [
-        r'发票代码[：:\s]*(\d{10,12})',
-        r'代码[：:\s]*(\d{10,12})',
-    ]
-    for p in code_patterns:
-        m = re.search(p, text)
-        if m:
-            results["发票代码"] = m.group(1)
-            break
 
-    # 开票日期
-    date_patterns = [
-        r'开票日期[：:\s]*(\d{4}[年/-]\d{1,2}[月/-]\d{1,2}[日]?)',
-        r'日期[：:\s]*(\d{4}[年/-]\d{1,2}[月/-]\d{1,2}[日]?)',
-        r'(\d{4}[年/-]\d{1,2}[月/-]\d{1,2}[日]?)',
-    ]
-    for p in date_patterns:
-        m = re.search(p, text)
-        if m:
-            results["开票日期"] = m.group(1).replace("年", "-").replace("月", "-").replace("日", "").replace("/", "-")
-            break
+def _get_history():
+    lid = state.selected_ledger_id or "default"
+    if lid not in _chat_histories:
+        _chat_histories[lid] = []
+    return _chat_histories[lid]
 
-    # 金额（价税合计）
-    amount_patterns = [
-        r'价税合计[（(]小写[)）][：:\s]*[¥￥]?\s*([\d,]+\.?\d*)',
-        r'合计[金额]*[：:\s]*[¥￥]?\s*([\d,]+\.?\d*)',
-        r'总计[：:\s]*[¥￥]?\s*([\d,]+\.?\d*)',
-        r'[¥￥]\s*([\d,]+\.?\d{0,2})',
-    ]
-    for p in amount_patterns:
-        m = re.search(p, text)
-        if m:
-            results["价税合计"] = f"¥{m.group(1)}"
-            break
 
-    # 不含税金额
-    net_patterns = [
-        r'不含税金额[：:\s]*[¥￥]?\s*([\d,]+\.?\d*)',
-        r'金额[：:\s]*[¥￥]?\s*([\d,]+\.?\d*)',
-    ]
-    for p in net_patterns:
-        m = re.search(p, text)
-        if m:
-            results["不含税金额"] = f"¥{m.group(1)}"
-            break
-
-    # 税额
-    tax_patterns = [
-        r'税额[：:\s]*[¥￥]?\s*([\d,]+\.?\d*)',
-        r'税[款额][：:\s]*[¥￥]?\s*([\d,]+\.?\d*)',
-    ]
-    for p in tax_patterns:
-        m = re.search(p, text)
-        if m:
-            results["税额"] = f"¥{m.group(1)}"
-            break
-
-    # 销售方
-    seller_patterns = [
-        r'销售方[：:\s]*([^\n]{2,40})',
-        r'卖方[：:\s]*([^\n]{2,40})',
-        r'销售单位[：:\s]*([^\n]{2,40})',
-    ]
-    for p in seller_patterns:
-        m = re.search(p, text)
-        if m:
-            results["销售方"] = m.group(1).strip()
-            break
-
-    # 购买方
-    buyer_patterns = [
-        r'购买方[：:\s]*([^\n]{2,40})',
-        r'买方[：:\s]*([^\n]{2,40})',
-        r'采购方[：:\s]*([^\n]{2,40})',
-    ]
-    for p in buyer_patterns:
-        m = re.search(p, text)
-        if m:
-            results["购买方"] = m.group(1).strip()
-            break
-
-    if not results:
-        show_toast("未能从OCR文本中识别出有效信息", "warning")
-        return
-
-    # 显示结果
-    lines = ["📋 发票信息提取结果", "━" * 30]
-    for k, v in results.items():
-        lines.append(f"  {k}：{v}")
-    show_toast("\n".join(lines), "success")
-
+# ── 渲染 AI 助手页面 ──
 def render_ai_assistant():
+    """AI 助手 — 对话式交互"""
+    llm = _get_llm()
+
     if not state.selected_ledger_id:
         ledgers = LedgerService.get_all()
         if ledgers:
             state.selected_ledger_id = ledgers[0]["id"]
-    lid = state.selected_ledger_id
-    with ui.row().classes("w-full gap-3"):
-        with ui.column().classes("w-1/2 gap-2"):
+
+    history = _get_history()
+
+    # ── 页面布局 ──
+    with ui.row().classes("w-full gap-3 no-wrap"):
+        # 左侧：对话区
+        with ui.column().classes("flex-1 gap-2 min-w-0"):
+            # 状态栏
             with ui.card().classes("w-full"):
-                SectionHeader("智能凭证", icon="smart_toy")
-                with ui.card_section().classes("py-2 px-3"):
-                    ai_input = ui.input("业务描述", placeholder="例：收到股东投资款100万").props("outlined dense").classes("w-full")
-                    ui.button("🧠 生成分录", color="primary", on_click=lambda: do_ai_generate(ai_input.value)).props("dense").classes("w-full mt-1")
+                with ui.row().classes("items-center gap-3 px-4 py-2"):
+                    ui.icon("smart_toy", size="24px").classes("text-primary")
+                    ui.label("AI 财务助手").classes("text-base font-bold")
+                    ui.space()
+                    if llm:
+                        ok, msg = llm.check_connection()
+                        if ok:
+                            ui.icon("check_circle", size="16px").classes("text-green-5")
+                            ui.label("DeepSeek 已连接").classes("text-xs text-green-6")
+                        else:
+                            ui.icon("error", size="16px").classes("text-red-5")
+                            ui.label(msg[:30]).classes("text-xs text-red-6")
+                    else:
+                        ui.icon("cloud_off", size="16px").classes("text-grey-5")
+                        ui.label("LLM 未配置").classes("text-xs text-grey-5")
 
+            # 对话消息区
+            chat_container = ui.column().classes("w-full gap-2").style(
+                "max-height: calc(100vh - 260px); overflow-y: auto; padding: 8px;"
+            )
+
+            def _refresh_chat():
+                chat_container.clear()
+                with chat_container:
+                    if not history:
+                        with ui.card().classes("w-full bg-blue-50"):
+                            with ui.column().classes("items-center gap-2 p-6"):
+                                ui.icon("waving_hand", size="36px").classes("text-blue-4")
+                                ui.label("你好！我是 AI 财务助手").classes("text-base font-bold text-blue-7")
+                                ui.label("你可以问我财务问题，或让我帮你生成凭证").classes("text-sm text-grey-6")
+                                with ui.row().classes("gap-2 mt-2 flex-wrap"):
+                                    for hint in [
+                                        "本月利润是多少？",
+                                        "帮我记一笔办公费500元",
+                                        "银行存款余额多少？",
+                                        "资产负债表平衡吗？",
+                                    ]:
+                                        ui.button(hint, on_click=lambda h=hint: _send_message(h)) \
+                                            .props("outline dense no-caps size-sm color=blue-7") \
+                                            .classes("text-xs")
+                    else:
+                        for msg in history:
+                            role = msg.get("role", "user")
+                            content = msg.get("content", "")
+                            if role == "user":
+                                with ui.row().classes("w-full justify-end"):
+                                    with ui.card().classes("bg-blue-600 text-white max-w-[75%]"):
+                                        ui.label(content).classes("text-sm p-3 whitespace-pre-wrap")
+                            elif role == "assistant":
+                                with ui.row().classes("w-full"):
+                                    with ui.card().classes("bg-grey-1 max-w-[75%]"):
+                                        with ui.row().classes("items-center gap-1 px-3 pt-2"):
+                                            ui.icon("smart_toy", size="16px").classes("text-primary")
+                                            ui.label("AI").classes("text-xs font-bold text-primary")
+                                        ui.label(content).classes("text-sm p-3 whitespace-pre-wrap text-grey-8")
+                            elif role == "tool_result":
+                                with ui.row().classes("w-full justify-center"):
+                                    ui.label(f"📊 {content}").classes("text-xs text-grey-5 bg-grey-2 px-3 py-1 rounded")
+
+                # 滚动到底部
+                ui.run_javascript("document.querySelector('.flex-1.gap-2.min-w-0 > .gap-2:last-child')?.scrollIntoView({behavior:'smooth'})")
+
+            _refresh_chat()
+
+            # 输入区
             with ui.card().classes("w-full"):
-                SectionHeader("发票OCR", icon="document_scanner")
-                with ui.card_section().classes("py-2 px-3"):
-                    ocr_input = ui.textarea("OCR文本", placeholder="粘贴发票OCR识别结果...").props("outlined dense").classes("w-full")
-                    ui.button("🔍 提取信息", color="orange", on_click=lambda: do_ocr_extract(ocr_input.value)).props("dense").classes("w-full mt-1")
+                with ui.row().classes("items-end gap-2 p-3"):
+                    msg_input = ui.textarea(placeholder="输入财务问题或业务描述...").props(
+                        "outlined dense autogrow"
+                    ).classes("flex-1").style("max-height: 120px;")
+                    send_btn = ui.button(icon="send", color="primary") \
+                        .props("round dense").classes("mb-1")
 
-        with ui.column().classes("w-1/2 gap-2"):
+                    def _send_message(text=None):
+                        user_msg = text or msg_input.value
+                        if not user_msg or not user_msg.strip():
+                            return
+                        msg_input.value = ""
+                        _do_chat(user_msg, history, chat_container, llm)
+
+                    send_btn.on_click(lambda: _send_message())
+                    msg_input.on("keydown", lambda e: _send_message() if e.args.get("key") == "Enter" and not e.args.get("shiftKey") else None)
+
+        # 右侧：工具面板
+        with ui.column().classes("w-72 gap-2"):
+            # 快捷工具
             with ui.card().classes("w-full"):
-                SectionHeader("支持场景", icon="list_alt")
-                with ui.card_section().classes("py-2 px-3"):
-                    with ui.column().classes("gap-0.5 text-sm"):
-                        scenes = [
-                            ("💰 筹资", ["收到投资款","取得借款","归还借款","支付利息"]),
-                            ("🏭 采购", ["购买设备","采购材料","赊购","预付货款"]),
-                            ("📦 销售", ["销售收入","赊销商品","收到货款","结转成本"]),
-                            ("💳 费用", ["办公费","工资薪酬","水电费","房租"]),
-                            ("📢 营销", ["广告费","差旅费","计提折旧"]),
-                            ("🧾 税费", ["增值税","所得税","城建税"]),
-                            ("🔧 其他", ["投资收益","捐赠","罚款","费用报销"]),
-                        ]
-                        for group, items in scenes:
-                            ui.label(group).classes("font-semibold mt-1").style("color:var(--c-text-secondary)")
-                            for item in items:
-                                ui.label(f"  · {item}").classes("text-xs").style("color:var(--c-text-secondary)")
+                SectionHeader("快捷工具", icon="build")
+                with ui.card_section().classes("gap-1.5"):
+                    tools = [
+                        ("📝 智能凭证", "描述业务自动生成分录", lambda: _send_message("帮我生成凭证：")),
+                        ("🔍 查询余额", "查询科目余额", lambda: _send_message("查询银行存款余额")),
+                        ("📊 利润分析", "查看本月利润情况", lambda: _send_message("本月利润是多少？")),
+                        ("📋 资产负债", "查看资产负债表", lambda: _send_message("资产负债表平衡吗？")),
+                    ]
+                    for label, desc, action in tools:
+                        with ui.row().classes("items-center gap-2 cursor-pointer hover:bg-grey-2 p-2 rounded"):
+                            ui.label(label).classes("text-sm font-semibold")
+                            ui.label(desc).classes("text-xs text-grey-5")
+                            ui.space()
+                            ui.icon("arrow_forward", size="14px").classes("text-grey-4")
+                            ui.row().classes("w-full").on("click", action)
 
-            # 汇率转换工具
-            if _EXTERNAL_APIS_OK:
-                with ui.card().classes("w-full"):
-                    SectionHeader("汇率转换", icon="currency_exchange")
-                    with ui.card_section().classes("py-2 px-3"):
-                        with ui.column().classes("gap-1.5"):
-                            fx_amount = ui.number("金额", value=100, precision=2).props("outlined dense").classes("w-full")
-                            with ui.row().classes("gap-1"):
-                                fx_from = ui.select(options={"CNY":"人民币","USD":"美元","EUR":"欧元","GBP":"英镑","JPY":"日元","HKD":"港币"}, value="CNY", label="从").props("outlined dense").classes("flex-1")
-                                fx_to = ui.select(options={"CNY":"人民币","USD":"美元","EUR":"欧元","GBP":"英镑","JPY":"日元","HKD":"港币"}, value="USD", label="到").props("outlined dense").classes("flex-1")
-                            fx_result_label = ui.label("").classes("text-center font-bold text-lg mt-1 tabular-nums tabular-nums").style("color:var(--c-primary)")
-                            def _do_fx_convert():
-                                amt = fx_amount.value
-                                fc = fx_from.value
-                                tc = fx_to.value
-                                if not amt or not fc or not tc:
-                                    return
-                                result = convert_currency(amt, fc, tc)
-                                if result is not None:
-                                    fx_result_label.text = f"{amt:,.2f} {fc} = {result:,.2f} {tc}"
-                                else:
-                                    fx_result_label.text = "转换失败，请重试"
-                            ui.button("🔄 转换", color="blue", on_click=_do_fx_convert).props("dense").classes("w-full")
-
-            # 自然语言查报表
+            # 知识库快捷入口
             with ui.card().classes("w-full"):
-                SectionHeader("自然语言查询", icon="chat")
-                with ui.card_section().classes("py-2 px-3"):
-                    nl_input = ui.input("问财务问题", placeholder="例：上月利润是多少？银行存款余额？").props("outlined dense").classes("w-full")
-                    nl_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[60px] whitespace-pre-wrap").style("color:var(--c-text-secondary)")
-                    ui.button("🔍 查询", color="teal", on_click=lambda: _do_nl_query(nl_input.value, nl_result)).props("dense").classes("w-full mt-1")
+                SectionHeader("知识库", icon="menu_book")
+                with ui.card_section().classes("gap-1"):
+                    topics = ["借贷记账法", "资产负债表", "利润表", "增值税", "固定资产折旧", "期末结转"]
+                    for topic in topics:
+                        ui.button(topic, on_click=lambda t=topic: _send_message(f"解释一下{t}")) \
+                            .props("flat dense no-caps size-sm").classes("text-xs justify-start w-full text-left")
 
-            # 财务知识问答
+            # 清空对话
             with ui.card().classes("w-full"):
-                SectionHeader("财务知识库", icon="menu_book")
-                with ui.card_section().classes("py-2 px-3"):
-                    kb_input = ui.input("搜索知识", placeholder="例：什么是借贷记账法？").props("outlined dense").classes("w-full")
-                    kb_result = ui.label("").classes("text-sm mt-2 p-2 rounded min-h-[80px] whitespace-pre-wrap").style("color:var(--c-text-secondary)")
-                    ui.button("📖 查询", color="purple", on_click=lambda: _do_kb_query(kb_input.value, kb_result)).props("dense").classes("w-full mt-1")
+                ui.button("清空对话历史", icon="delete_outline", color="red",
+                          on_click=lambda: _clear_history(history, chat_container)) \
+                    .props("flat dense no-caps").classes("w-full text-xs")
 
 
-# ===== 财务知识库 =====
-def _do_nl_query(query_text, result_label):
-    """自然语言查询财务数据"""
-    if not query_text.strip():
-        result_label.text = "请输入查询问题"
+def _do_chat(user_msg, history, chat_container, llm):
+    """处理对话消息"""
+    # 添加用户消息
+    history.append({"role": "user", "content": user_msg})
+    _refresh_chat_ui(history, chat_container)
+
+    if not llm:
+        # 无 LLM — 使用旧的规则引擎
+        _fallback_reply(user_msg, history, chat_container)
         return
-    q = query_text.strip().lower()
-    lid = state.selected_ledger_id
+
     try:
-        if any(kw in q for kw in ["利润", "净利润", "盈利", "亏损", "收益"]):
-            # 查询利润表数据
-            year = state.selected_year
-            month = state.selected_month
-            report = ReportService.get_income_statement(lid, year, month)
-            if report:
-                total_revenue = sum(float(r.get("balance") or 0) for r in report if r.get("category") == "revenue")
-                total_expense = sum(abs(float(r.get("balance") or 0)) for r in report if r.get("category") == "expense")
-                net_profit = total_revenue - total_expense
-                result_label.text = (f"📊 {year}年{month}月利润表摘要\n"
-                                      f"━━━━━━━━━━━━━━━━━━\n"
-                                      f"营业收入：¥{total_revenue:,.2f}\n"
-                                      f"营业成本：¥{total_expense:,.2f}\n"
-                                      f"净利润：  ¥{net_profit:,.2f}\n"
-                                      f"利润率：  {(net_profit/total_revenue*100) if total_revenue else 0:.1f}%")
-            else:
-                result_label.text = "暂无利润表数据，请先录入凭证"
+        from app.services.llm_service import get_finance_prompt, chat
 
-        elif any(kw in q for kw in ["存款", "银行", "余额", "现金", "资金"]):
-            # 查询银行存款和现金余额
-            accounts = ReportService.get_account_balances(lid)
-            cash_items = [a for a in accounts if a.get("code","").startswith(("1001","1002"))]
-            if cash_items:
-                lines = ["💰 货币资金余额", "━━━━━━━━━━━━━━━━━━"]
-                total = 0
-                for a in cash_items:
-                    bal = float(a.get("balance") or 0)
-                    total += bal
-                    lines.append(f"{a.get('name','')}：¥{bal:,.2f}")
-                lines.append(f"━━━━━━━━━━━━━━━━━━")
-                lines.append(f"合计：¥{total:,.2f}")
-                result_label.text = "\n".join(lines)
-            else:
-                result_label.text = "暂无货币资金数据"
+        # 构建消息
+        messages = [{"role": "system", "content": get_finance_prompt()}]
+        for msg in history[-10:]:  # 最近 10 条上下文
+            if msg["role"] in ("user", "assistant"):
+                messages.append({"role": msg["role"], "content": msg["content"]})
 
-        elif any(kw in q for kw in ["应收", "应收账款", "欠款", "应收款"]):
-            accounts = ReportService.get_account_balances(lid)
-            ar_items = [a for a in accounts if a.get("code","").startswith("1122")]
-            if ar_items:
-                lines = ["📋 应收账款余额", "━━━━━━━━━━━━━━━━━━"]
-                total = 0
-                for a in ar_items:
-                    bal = float(a.get("balance") or 0)
-                    total += bal
-                    lines.append(f"{a.get('name','')}：¥{bal:,.2f}")
-                lines.append(f"合计：¥{total:,.2f}")
-                result_label.text = "\n".join(lines)
-            else:
-                result_label.text = "暂无应收账款数据"
+        # 调用 LLM（带工具）
+        result = chat(messages, tools=FINANCE_TOOLS)
 
-        elif any(kw in q for kw in ["应付", "应付账款", "欠供应商"]):
-            accounts = ReportService.get_account_balances(lid)
-            ap_items = [a for a in accounts if a.get("code","").startswith("2202")]
-            if ap_items:
-                lines = ["📋 应付账款余额", "━━━━━━━━━━━━━━━━━━"]
-                total = 0
-                for a in ap_items:
-                    bal = float(a.get("balance") or 0)
-                    total += bal
-                    lines.append(f"{a.get('name','')}：¥{bal:,.2f}")
-                lines.append(f"合计：¥{total:,.2f}")
-                result_label.text = "\n".join(lines)
-            else:
-                result_label.text = "暂无应付账款数据"
+        # 处理工具调用
+        if result.get("tool_calls"):
+            for tc in result["tool_calls"]:
+                fn_name = tc["function"]
+                fn_args = tc["arguments"]
+                tool_result = _execute_tool(fn_name, fn_args)
+                history.append({
+                    "role": "tool_result",
+                    "content": f"调用 {fn_name} → {json.dumps(tool_result, ensure_ascii=False)[:200]}"
+                })
+                # 将工具结果发回 LLM
+                messages.append({"role": "assistant", "content": None, "tool_calls": [{
+                    "id": tc["id"],
+                    "type": "function",
+                    "function": {"name": fn_name, "arguments": json.dumps(fn_args)}
+                }]})
+                messages.append({
+                    "role": "tool",
+                    "tool_call_id": tc["id"],
+                    "content": json.dumps(tool_result, ensure_ascii=False)
+                })
 
-        elif any(kw in q for kw in ["凭证", "单据", "分录"]):
-            total_v = VoucherService.count(lid)
-            month_v = VoucherService.count(lid, year=state.selected_year, month=state.selected_month)
-            result_label.text = (f"📋 凭证统计\n"
-                                  f"━━━━━━━━━━━━━━━━━━\n"
-                                  f"本月凭证：{month_v} 张\n"
-                                  f"总凭证数：{total_v} 张\n"
-                                  f"会计期间：{state.selected_year}年{state.selected_month}月")
-
+            # 让 LLM 根据工具结果生成最终回复
+            final = chat(messages)
+            reply = final["content"]
         else:
-            result_label.text = ("暂不支持该查询，请尝试：\n"
-                                  "• 上月利润是多少\n"
-                                  "• 银行存款余额\n"
-                                  "• 应收账款余额\n"
-                                  "• 应付账款余额\n"
-                                  "• 本月凭证数量")
+            reply = result["content"]
+
+        history.append({"role": "assistant", "content": reply})
+        _refresh_chat_ui(history, chat_container)
+
     except Exception as e:
-        result_label.text = f"查询出错：{str(e)}"
+        history.append({"role": "assistant", "content": f"⚠️ AI 调用出错: {str(e)[:200]}"})
+        _refresh_chat_ui(history, chat_container)
 
 
-# ===== 财务知识库 =====
-FINANCIAL_KNOWLEDGE = {
-    "借贷记账法": "借贷记账法是会计的基本记账规则。'借'表示资产增加、负债减少；'贷'表示资产减少、负债增加。每笔业务都要有借有贷，借贷必相等。",
-    "资产负债表": "资产负债表反映企业在某一时点的财务状况，遵循'资产=负债+所有者权益'的会计恒等式。",
-    "利润表": "利润表反映企业在一定期间的经营成果。核心公式：收入-费用=利润。",
-    "期初余额": "期初余额是会计科目在会计期间开始时的余额。资产类科目期初余额在借方，负债和权益类科目期初余额在贷方。",
-    "期末结转": "期末结转是将损益类科目（收入、费用）的余额转入'本年利润'科目。结转后损益类科目余额为零。",
-    "固定资产折旧": "固定资产折旧是将固定资产成本在其使用寿命内分摊。常用方法：直线法、双倍余额递减法、年数总和法。",
-    "增值税": "增值税是对商品和服务增值部分征收的税。一般纳税人税率13%、9%、6%；小规模纳税人征收率3%。",
-    "企业所得税": "企业所得税是对企业利润征收的税，基本税率25%。小微企业应纳税所得额300万以下实际税率5%。",
-    "什么是凭证": "凭证是记录经济业务、明确经济责任的书面证明。分为原始凭证（发票、收据）和记账凭证（会计分录）。",
-    "什么是科目": "会计科目是对会计要素的分类。分为资产类、负债类、权益类、成本类、损益类五大类。",
-    "现金流量表": "现金流量表反映企业现金流入和流出，分为经营活动、投资活动、筹资活动三类。",
-}
+def _fallback_reply(user_msg, history, chat_container):
+    """无 LLM 时的降级回复"""
+    import re
+    q = user_msg.strip().lower()
+    lid = state.selected_ledger_id
 
-def _do_kb_query(query_text, result_label):
-    """财务知识库查询"""
-    if not query_text.strip():
-        result_label.text = "输入关键词查询财务知识，如：借贷记账法、资产负债表、增值税..."
-        return
-    q = query_text.strip()
-    # 精确匹配
-    if q in FINANCIAL_KNOWLEDGE:
-        result_label.text = FINANCIAL_KNOWLEDGE[q]
-        return
-    # 模糊匹配
-    matches = [(k, v) for k, v in FINANCIAL_KNOWLEDGE.items() if q in k or k in q]
-    if matches:
-        result_label.text = "\n\n".join(f"📖 {k}\n{v}" for k, v in matches[:3])
-        return
-    # 关键词匹配
-    keyword_map = {
-        "借贷": "借贷记账法", "记账": "借贷记账法", "分录": "什么是凭证",
-        "资产": "资产负债表", "负债": "资产负债表", "权益": "资产负债表",
-        "利润": "利润表", "收入": "利润表", "费用": "利润表",
-        "折旧": "固定资产折旧", "固定资产": "固定资产折旧",
-        "税": "增值税", "增值税": "增值税", "所得税": "企业所得税",
-        "凭证": "什么是凭证", "科目": "什么是科目",
-        "期初": "期初余额", "结转": "期末结转",
-    }
-    for kw, topic in keyword_map.items():
-        if kw in q:
-            result_label.text = f"📖 {topic}\n{FINANCIAL_KNOWLEDGE.get(topic, '暂无相关信息')}"
-            return
-    result_label.text = "未找到相关知识，请尝试其他关键词：借贷记账法、资产负债表、利润表、增值税、折旧等"
+    if any(kw in q for kw in ["利润", "盈利", "收益"]):
+        try:
+            report = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
+            if report:
+                reply = f"📊 {state.selected_year}年{state.selected_month}月利润表数据已获取，请在报表中心查看详细内容。"
+            else:
+                reply = "暂无利润表数据，请先录入凭证。"
+        except:
+            reply = "查询失败，请稍后重试。"
+    elif any(kw in q for kw in ["余额", "存款", "现金", "资金"]):
+        reply = "💰 请在「科目余额表」中查看各科目余额，或接入 LLM 后可直接对话查询。"
+    elif "生成" in q or "凭证" in q:
+        reply = "📝 智能凭证功能需要接入 LLM。请先配置 .env 中的 LLM_API_KEY。"
+    else:
+        reply = ("🤖 当前为离线模式，请配置 LLM 以获得完整 AI 能力。\n\n"
+                 "配置方法：在 .env 文件中设置 LLM_API_KEY")
+
+    history.append({"role": "assistant", "content": reply})
+    _refresh_chat_ui(history, chat_container)
+
+
+def _refresh_chat_ui(history, chat_container):
+    """刷新聊天 UI"""
+    chat_container.clear()
+    with chat_container:
+        for msg in history:
+            role = msg.get("role", "user")
+            content = msg.get("content", "")
+            if role == "user":
+                with ui.row().classes("w-full justify-end"):
+                    with ui.card().classes("bg-blue-600 text-white max-w-[75%]"):
+                        ui.label(content).classes("text-sm p-3 whitespace-pre-wrap")
+            elif role == "assistant":
+                with ui.row().classes("w-full"):
+                    with ui.card().classes("bg-grey-1 max-w-[75%]"):
+                        with ui.row().classes("items-center gap-1 px-3 pt-2"):
+                            ui.icon("smart_toy", size="16px").classes("text-primary")
+                            ui.label("AI").classes("text-xs font-bold text-primary")
+                        ui.label(content).classes("text-sm p-3 whitespace-pre-wrap text-grey-8")
+            elif role == "tool_result":
+                with ui.row().classes("w-full justify-center"):
+                    ui.label(f"📊 {content}").classes("text-xs text-grey-5")
+
+
+def _clear_history(history, chat_container):
+    """清空对话历史"""
+    history.clear()
+    _refresh_chat_ui(history, chat_container)
+    show_toast("对话已清空", "info")
+
+
+import json
