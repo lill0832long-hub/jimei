@@ -1,7 +1,7 @@
 """报表 — 资产负债表"""
 from nicegui import ui
 from app.components.state import state
-from app.components.ui_helpers import format_amount, show_toast, refresh_main, navigate
+from app.components.ui_helpers import format_amount, show_toast, refresh_main, navigate, render_kpi_cards
 from app.components.ui_components import SectionHeader, KpiCard
 from app.services import LedgerService, ReportService
 from app.pages.reports_export import _export_balance_sheet, _export_balance_sheet_pdf
@@ -117,19 +117,17 @@ def _render_report_data(container, compare_mom):
     net = ta - (tl + te)
 
     with container:
-        # ── KPI ──
-        with ui.row().classes("report-kpi-grid"):
-            for label, value, color_class in [
-                ("资产总计", ta, "report-kpi__value--success"),
-                ("负债合计", tl, "report-kpi__value--danger"),
-                ("所有者权益", te, "report-kpi__value--primary"),
-                ("平衡差额", net, "report-kpi__value--success" if abs(net) < 0.01 else "report-kpi__value--danger"),
-            ]:
-                with ui.element("div").classes("report-kpi"):
-                    ui.label(label).classes("report-kpi__label")
-                    ui.label(format_amount(value)).classes(f"report-kpi__value {color_class}")
-                    if label == "平衡差额":
-                        ui.label("借贷平衡" if abs(net) < 0.01 else "不平衡").classes("report-kpi__hint")
+        # ── KPI 汇总卡片 ──
+        kpis = [
+            ("资产总计", ta, "account_balance", "green", ""),
+            ("负债合计", tl, "credit_card", "red", ""),
+            ("所有者权益", te, "savings", "blue", ""),
+        ]
+        if abs(net) < 0.01:
+            kpis.append(("平衡状态", "\u2713 平衡", "check_circle", "green", ""))
+        else:
+            kpis.append(("差额", net, "warning", "orange", "不平衡"))
+        render_kpi_cards(kpis)
 
         # ── 表格构建 ──
         def _build_bs_table(title, items, icon, color_var):

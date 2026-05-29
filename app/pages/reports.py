@@ -65,17 +65,7 @@ def render_accounts():
         "level": 0, "is_total": True,
     })
 
-    # ── KPI 汇总卡片 ──
-    with ui.row().classes("report-kpi-grid"):
-        for label, value, color_class in [
-            ("期初余额", total["opening"], ""),
-            ("本期借方", total["debit"], "report-kpi__value--success"),
-            ("本期贷方", total["credit"], "report-kpi__value--danger"),
-            ("期末余额", total["closing"], "report-kpi__value--primary"),
-        ]:
-            with ui.element("div").classes("report-kpi"):
-                ui.label(label).classes("report-kpi__label")
-                ui.label(f"¥{value:,.2f}").classes(f"report-kpi__value {color_class}")
+
 
     HC = "table-header-cell text-uppercase"
     cols = [

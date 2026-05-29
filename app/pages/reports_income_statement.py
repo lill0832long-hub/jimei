@@ -1,7 +1,7 @@
 """报表 — 利润表"""
 from nicegui import ui
 from app.components.state import state
-from app.components.ui_helpers import refresh_main, format_amount, navigate
+from app.components.ui_helpers import refresh_main, format_amount, navigate, render_kpi_cards
 from app.services import LedgerService, ReportService
 from app.pages.reports_export import _export_income_statement
 
@@ -61,15 +61,15 @@ def render_income_statement():
     total_expense = sum(r.get("ytd", 0) or 0 for r in inc.get("rows", []) if r.get("type", "").startswith("exp"))
     net_profit = total_revenue - total_expense
 
-    with ui.row().classes("report-kpi-grid"):
-        for label, value, color_class in [
-            ("营业收入", total_revenue, "report-kpi__value--success"),
-            ("营业成本", total_expense, "report-kpi__value--danger"),
-            ("净利润", net_profit, "report-kpi__value--success" if net_profit >= 0 else "report-kpi__value--danger"),
-        ]:
-            with ui.element("div").classes("report-kpi"):
-                ui.label(label).classes("report-kpi__label")
-                ui.label(format_amount(value)).classes(f"report-kpi__value {color_class}")
+    kpis = [
+        ("营业收入", total_revenue, "trending_up", "green", ""),
+        ("营业成本", total_expense, "trending_down", "red", ""),
+    ]
+    if net_profit >= 0:
+        kpis.append(("净利润", net_profit, "savings", "green", ""))
+    else:
+        kpis.append(("净利润", net_profit, "warning", "red", ""))
+    render_kpi_cards(kpis)
 
     # ── 构建行数据 ──
     yoy_map = {r["name"]: r.get("ytd") for r in inc_yoy.get("rows", [])}
