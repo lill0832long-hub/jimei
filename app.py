@@ -205,10 +205,7 @@ def index():
         if _os.path.exists(_js_path):
             with open(_js_path, encoding="utf-8") as _f:
                 ui.add_head_html(f"<script>{_f.read()}</script>")
-        _ann_js_path = _os.path.join(_static_dir, "annotation.js")
-        if _os.path.exists(_ann_js_path):
-            with open(_ann_js_path, encoding="utf-8") as _f:
-                ui.add_head_html(f"<script>{_f.read()}</script>")
+
         render_header()
         with ui.row(wrap=False).classes("w-full main-row"):
             render_sidebar()
