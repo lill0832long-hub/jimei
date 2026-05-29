@@ -163,12 +163,15 @@ def _get_history():
 
 def _load_history(lid):
     """从文件加载对话历史"""
-    _HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    try:
+        _HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        return []
     fpath = _HISTORY_DIR / f"chat_{lid}.json"
     if fpath.exists():
         try:
             data = json.loads(fpath.read_text(encoding="utf-8"))
-            return data[-50:]  # 最多保留 50 条
+            return data[-50:]
         except Exception:
             pass
     return []
@@ -176,9 +179,9 @@ def _load_history(lid):
 
 def _save_history(lid, history):
     """保存对话历史到文件"""
-    _HISTORY_DIR.mkdir(parents=True, exist_ok=True)
-    fpath = _HISTORY_DIR / f"chat_{lid}.json"
     try:
+        _HISTORY_DIR.mkdir(parents=True, exist_ok=True)
+        fpath = _HISTORY_DIR / f"chat_{lid}.json"
         fpath.write_text(json.dumps(history[-50:], ensure_ascii=False, indent=2), encoding="utf-8")
     except Exception:
         pass
@@ -275,12 +278,12 @@ def render_ai_assistant():
                     send_btn = ui.button(icon="send", color="primary") \
                         .props("round dense").classes("mb-1")
 
-                    def _send_message(text=None):
+                    async def _send_message(text=None):
                         user_msg = text or msg_input.value
                         if not user_msg or not user_msg.strip():
                             return
                         msg_input.value = ""
-                        _do_chat(user_msg, history, chat_container, llm)
+                        await _do_chat(user_msg, history, chat_container, llm)
 
                     send_btn.on_click(lambda: _send_message())
                     msg_input.on("keydown", lambda e: _send_message() if e.args.get("key") == "Enter" and not e.args.get("shiftKey") else None)
@@ -345,40 +348,48 @@ def render_ai_assistant():
                     .props("flat dense no-caps").classes("w-full text-xs")
 
 
-def _do_chat(user_msg, history, chat_container, llm):
-    """处理对话消息"""
+async def _do_chat(user_msg, history, chat_container, llm):
+    """处理对话消息（异步，不阻塞 UI）"""
     # 添加用户消息
     history.append({"role": "user", "content": user_msg})
     _refresh_chat_ui(history, chat_container)
 
     if not llm:
-        # 无 LLM — 使用旧的规则引擎
         _fallback_reply(user_msg, history, chat_container)
         return
+
+    # 显示"思考中"指示器
+    with chat_container:
+        thinking_row = ui.row().classes("w-full")
+        with thinking_row:
+            thinking_card = ui.card().classes("bg-grey-1 max-w-[75%]")
+            with thinking_card:
+                with ui.row().classes("items-center gap-1 px-3 pt-2"):
+                    ui.icon("smart_toy", size="16px").classes("text-primary")
+                    ui.label("AI").classes("text-xs font-bold text-primary")
+                with ui.row().classes("items-center gap-2 p-3"):
+                    ui.spinner(size="sm", color="primary")
+                    ui.label("正在思考...").classes("text-sm text-grey-5")
 
     try:
         from app.services.llm_service import get_finance_prompt, chat
 
-        # 构建消息
         messages = [{"role": "system", "content": get_finance_prompt(user_msg)}]
-        for msg in history[-10:]:  # 最近 10 条上下文
+        for msg in history[-10:]:
             if msg["role"] in ("user", "assistant"):
                 messages.append({"role": msg["role"], "content": msg["content"]})
 
-        # 调用 LLM（带工具）
         result = chat(messages, tools=FINANCE_TOOLS)
 
-        # 处理工具调用
         if result.get("tool_calls"):
             for tc in result["tool_calls"]:
-                fn_name = tc["function"]
-                fn_args = tc["arguments"]
+                fn_name = tc.get("function", "")
+                fn_args = tc.get("arguments", {})
                 tool_result = _execute_tool(fn_name, fn_args)
                 history.append({
                     "role": "tool_result",
-                    "content": f"调用 {fn_name} → {json.dumps(tool_result, ensure_ascii=False)[:200]}"
+                    "content": f"📊 {fn_name} 查询完成"
                 })
-                # 将工具结果发回 LLM
                 messages.append({"role": "assistant", "content": None, "tool_calls": [{
                     "id": tc["id"],
                     "type": "function",
@@ -390,17 +401,24 @@ def _do_chat(user_msg, history, chat_container, llm):
                     "content": json.dumps(tool_result, ensure_ascii=False)
                 })
 
-            # 让 LLM 根据工具结果生成最终回复
             final = chat(messages)
             reply = final["content"]
         else:
             reply = result["content"]
+
+        # 移除"思考中"指示器
+        thinking_row.delete()
 
         history.append({"role": "assistant", "content": reply})
         _save_history(state.selected_ledger_id or "default", history)
         _refresh_chat_ui(history, chat_container)
 
     except Exception as e:
+        # 移除"思考中"指示器
+        try:
+            thinking_row.delete()
+        except Exception:
+            pass
         history.append({"role": "assistant", "content": f"⚠️ AI 调用出错: {str(e)[:200]}"})
         _save_history(state.selected_ledger_id or "default", history)
         _refresh_chat_ui(history, chat_container)
