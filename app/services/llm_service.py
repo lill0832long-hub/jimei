@@ -146,6 +146,22 @@ FINANCE_SYSTEM_PROMPT = """你是一个专业的 AI 财务助手，服务于"AI 
 """
 
 
-def get_finance_prompt():
-    """获取财务助手系统提示词"""
-    return FINANCE_SYSTEM_PROMPT
+def get_finance_prompt(user_query=None):
+    """获取财务助手系统提示词（含知识库上下文）
+    
+    Args:
+        user_query: 用户查询，用于检索相关知识
+    
+    Returns:
+        str: 系统提示词
+    """
+    prompt = FINANCE_SYSTEM_PROMPT
+    if user_query:
+        try:
+            from app.services.knowledge_service import get_context_for_llm
+            ctx = get_context_for_llm(user_query)
+            if ctx:
+                prompt += "\n\n" + ctx
+        except Exception:
+            pass
+    return prompt

@@ -266,10 +266,22 @@ def render_ai_assistant():
             with ui.card().classes("w-full"):
                 SectionHeader("知识库", icon="menu_book")
                 with ui.card_section().classes("gap-1"):
-                    topics = ["借贷记账法", "资产负债表", "利润表", "增值税", "固定资产折旧", "期末结转"]
-                    for topic in topics:
-                        ui.button(topic, on_click=lambda t=topic: _send_message(f"解释一下{t}")) \
-                            .props("flat dense no-caps size-sm").classes("text-xs justify-start w-full text-left")
+                    try:
+                        from app.services.knowledge_service import get_categories, get_by_category
+                        cats = get_categories()
+                        for cat in cats[:6]:
+                            entries = get_by_category(cat)
+                            with ui.column().classes("gap-0"):
+                                ui.label(f"📂 {cat}").classes("text-xs font-bold text-grey-7 mt-1")
+                                for entry in entries[:3]:
+                                    ui.button(entry["title"],
+                                              on_click=lambda t=entry["title"]: _send_message(f"解释一下{t}")) \
+                                        .props("flat dense no-caps size-sm").classes("text-xs justify-start w-full text-left pl-4")
+                    except Exception:
+                        topics = ["借贷记账法", "资产负债表", "利润表", "增值税", "固定资产折旧", "期末结转"]
+                        for topic in topics:
+                            ui.button(topic, on_click=lambda t=topic: _send_message(f"解释一下{t}")) \
+                                .props("flat dense no-caps size-sm").classes("text-xs justify-start w-full text-left")
 
             # 清空对话
             with ui.card().classes("w-full"):
@@ -293,7 +305,7 @@ def _do_chat(user_msg, history, chat_container, llm):
         from app.services.llm_service import get_finance_prompt, chat
 
         # 构建消息
-        messages = [{"role": "system", "content": get_finance_prompt()}]
+        messages = [{"role": "system", "content": get_finance_prompt(user_msg)}]
         for msg in history[-10:]:  # 最近 10 条上下文
             if msg["role"] in ("user", "assistant"):
                 messages.append({"role": msg["role"], "content": msg["content"]})
