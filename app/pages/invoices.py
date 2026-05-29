@@ -17,6 +17,11 @@ def render_invoices():
         return
 
     summary = ReportService.get_invoice_summary(lid)
+    # summary may be list or dict
+    if isinstance(summary, list):
+        summary = summary[0] if summary else {}
+    elif not isinstance(summary, dict):
+        summary = {}
 
     # ── 顶部：发票汇总卡片 ──
     with ui.row().classes("w-full gap-3"):
