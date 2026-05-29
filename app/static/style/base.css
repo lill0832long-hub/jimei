@@ -203,3 +203,14 @@ body, p, .q-table td, .q-btn, .q-field__native, .q-item__label {
 .q-card {
     will-change: transform, box-shadow;
 }
+
+/* ===== Main Layout Fix ===== */
+.main-row {
+    min-height: calc(100vh - 64px);
+    align-items: stretch;
+}
+
+.main-content-area {
+    min-height: 0;
+    overflow: auto;
+}
