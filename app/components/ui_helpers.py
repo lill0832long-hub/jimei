@@ -185,7 +185,7 @@ def do_inline_search(search_input):
                         def handler():
                             dialog.close()
                             state.selected_voucher_no = vno
-                            navigate("journal")
+                            navigate("voucher_detail")
                         return handler
                     
                     with ui.row().classes("items-center gap-2 p-2 rounded cursor-pointer hover:bg-blue-50") \
@@ -206,7 +206,7 @@ def do_inline_search(search_input):
                         def handler():
                             dialog.close()
                             state.drill_down_account_code = c
-                            navigate("general_ledger")
+                            navigate("account_ledger")
                         return handler
                     
                     with ui.row().classes("items-center gap-2 p-2 rounded cursor-pointer hover:bg-green-50") \
