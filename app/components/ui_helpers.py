@@ -160,18 +160,67 @@ def navigate(page):
 # ===== 全局搜索 =====
 
 def do_inline_search(search_input):
-    """Inline search execution"""
+    """Inline search — show results in dialog"""
     kw = search_input.value
     if not kw or not kw.strip():
         return
     kw = kw.strip()
-    # Navigate to a search results view or show toast
+    
     vouchers = search_vouchers(kw)
     accounts = search_accounts_by_kw(kw)
-    if vouchers or accounts:
-        show_toast("找到 %d 条凭证, %d 个科目" % (len(vouchers or []), len(accounts or [])), "info")
-    else:
-        show_toast("未找到匹配「%s」的结果" % kw, "warning")
+    
+    with ui.dialog() as dialog, ui.card().style("width: 600px; max-width: 90vw;"):
+        ui.label("搜索结果: %s" % kw).classes("text-lg font-bold mb-3")
+        
+        with ui.column().style("max-height: 500px; overflow-y: auto;"):
+            if vouchers:
+                ui.label("凭证 (%d)" % len(vouchers)).classes("text-xs font-bold text-grey-5 mb-1")
+                for v in vouchers[:10]:
+                    vno = v.get("voucher_no", "")
+                    vdate = v.get("date", "")
+                    vdesc = v.get("description", "")
+                    vtotal = v.get("total_debit", 0)
+                    
+                    def make_click(vno=vno):
+                        def handler():
+                            dialog.close()
+                            state.selected_voucher_no = vno
+                            navigate("journal")
+                        return handler
+                    
+                    with ui.row().classes("items-center gap-2 p-2 rounded cursor-pointer hover:bg-blue-50") \
+                            .on_click(make_click()):
+                        ui.icon("receipt", size="18px").style("color: #c4784a")
+                        ui.label(vno).classes("text-sm font-mono").style("color: #c4784a; min-width: 100px;")
+                        ui.label(vdate).classes("text-xs text-grey-5").style("min-width: 80px;")
+                        ui.label(vdesc[:35]).classes("text-sm text-grey-7 flex-1")
+                        ui.label("CNY {:,.2f}".format(vtotal)).classes("text-sm font-mono")
+            
+            if accounts:
+                ui.label("科目 (%d)" % len(accounts)).classes("text-xs font-bold text-grey-5 mb-1 mt-2")
+                for a in accounts[:10]:
+                    code = a.get("code", "")
+                    name = a.get("name", "")
+                    
+                    def make_acct_click(c=code):
+                        def handler():
+                            dialog.close()
+                            state.drill_down_account_code = c
+                            navigate("general_ledger")
+                        return handler
+                    
+                    with ui.row().classes("items-center gap-2 p-2 rounded cursor-pointer hover:bg-green-50") \
+                            .on_click(make_acct_click()):
+                        ui.icon("account_tree", size="18px").style("color: #5a9e6f")
+                        ui.label(code).classes("text-sm font-mono").style("color: #5a9e6f; min-width: 80px;")
+                        ui.label(name).classes("text-sm text-grey-7")
+            
+            if not vouchers and not accounts:
+                ui.label("未找到匹配「%s」的结果" % kw).classes("text-sm text-grey-5 p-4 text-center")
+        
+        ui.button("关闭", on_click=dialog.close).props("flat").classes("mt-2")
+    
+    dialog.open()
 
 
 def open_global_search():
