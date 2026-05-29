@@ -159,6 +159,28 @@ def navigate(page):
 
 # ===== 全局搜索 =====
 
+
+def render_kpi_cards(kpis):
+    """渲染KPI卡片 — 统一的数值统计样式
+    
+    Args:
+        kpis: list of (label, value, icon, color, subtitle) tuples
+            - color: "green", "red", "blue", "purple", "orange"
+    """
+    with ui.row().classes("w-full gap-3 mb-3"):
+        for label, value, icon, color, sub in kpis:
+            with ui.card().classes("kpi-card-mini").props("data-color=%s" % color):
+                with ui.row().classes("items-center gap-2 px-3 py-2"):
+                    ui.icon(icon, size="20px").classes("kpi-icon-%s" % color)
+                    with ui.column().classes("gap-0"):
+                        ui.label(label).classes("kpi-mini-label")
+                        if isinstance(value, str):
+                            ui.label(value).classes("kpi-mini-value")
+                        else:
+                            ui.label(format_amount(value)).classes("kpi-mini-value")
+                        ui.label(sub).classes("kpi-mini-sub")
+
+
 def do_inline_search(search_input):
     """Inline search — show results in dialog"""
     kw = search_input.value

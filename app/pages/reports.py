@@ -1,7 +1,7 @@
 """报表 — 科目余额表"""
 from nicegui import ui
 from app.components.state import state
-from app.components.ui_helpers import format_amount
+from app.components.ui_helpers import format_amount, render_kpi_cards
 from app.services import LedgerService, ReportService
 
 
@@ -109,14 +109,15 @@ def render_accounts():
             </q-td>
         """)
 
-        # ── 借贷平衡校验 footer ──
+        # ── KPI 统计卡片 ──
         is_balanced = abs(total['debit'] - total['credit']) < 0.01
-        with ui.row().classes("report-footer"):
-            with ui.row().classes(f"report-footer__status {'report-footer__status--ok' if is_balanced else 'report-footer__status--error'}"):
-                ui.label("✓" if is_balanced else "✗").classes("text-base")
-                ui.label("借贷平衡" if is_balanced else "借贷不平衡")
-            with ui.row().classes("gap-6 report-footer__detail"):
-                ui.label(f"借方合计：¥{total['debit']:,.2f}")
-                ui.label(f"贷方合计：¥{total['credit']:,.2f}")
-                if not is_balanced:
-                    ui.label(f"差额：¥{abs(total['debit']-total['credit']):,.2f}").style("color:var(--c-danger)")
+        kpis = [
+            ("借方合计", total['debit'], "add_circle", "red", ""),
+            ("贷方合计", total['credit'], "remove_circle", "green", ""),
+        ]
+        if is_balanced:
+            kpis.append(("平衡状态", "✓ 平衡", "check_circle", "green", ""))
+        else:
+            diff = abs(total['debit'] - total['credit'])
+            kpis.append(("差额", diff, "warning", "orange", "不平衡"))
+        render_kpi_cards(kpis)

@@ -165,3 +165,14 @@ def render_general_ledger():
         """)
 
         tbl.on("view_voucher", lambda e: drill_down_to_voucher(e.args))
+
+        # ── KPI 统计卡片 ──
+        is_balanced = abs(total_debit - total_credit) < 0.01
+        kpis = [
+            ("借方合计", total_debit, "add_circle", "red", ""),
+            ("贷方合计", total_credit, "remove_circle", "green", ""),
+            ("分录数", len(entries), "receipt_long", "blue", "条"),
+        ]
+        if is_balanced:
+            kpis.append(("平衡", "✓", "check_circle", "green", ""))
+        render_kpi_cards(kpis)

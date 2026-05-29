@@ -51,23 +51,15 @@ def render_trial_balance():
     diff = abs(total_debit - total_credit)
 
     # ── KPI 卡片 ──
-    with ui.row().classes("report-kpi-grid"):
-        kpis = [
-            ("期初合计", total_opening, ""),
-            ("本期借方", total_debit, "report-kpi__value--danger"),
-            ("本期贷方", total_credit, "report-kpi__value--primary"),
-            ("期末合计", total_closing, ""),
-        ]
-        for label, value, color_class in kpis:
-            with ui.element("div").classes("report-kpi"):
-                ui.label(label).classes("report-kpi__label")
-                ui.label(format_amount(value)).classes(f"report-kpi__value {color_class}")
-        with ui.element("div").classes("report-kpi"):
-            ui.label("借贷平衡").classes("report-kpi__label")
-            if diff < 0.01:
-                ui.label("✓ 平衡").classes("report-kpi__value report-kpi__value--success")
-            else:
-                ui.label(f"✗ 差额 {format_amount(diff)}").classes("report-kpi__value report-kpi__value--danger")
+    kpis = [
+        ("期初合计", total_opening, "account_balance", "blue", ""),
+        ("本期借方", total_debit, "add_circle", "red", ""),
+        ("本期贷方", total_credit, "remove_circle", "green", ""),
+        ("期末合计", total_closing, "account_balance_wallet", "purple", ""),
+    ]
+    if diff >= 0.01:
+        kpis.append(("差额", diff, "warning", "orange", "不平衡"))
+    render_kpi_cards(kpis)
 
     # ── 左右网格布局 ──
     _CATEGORY_CONFIG = [
