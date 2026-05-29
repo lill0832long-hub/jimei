@@ -1,7 +1,7 @@
 """AI 助手 — DeepSeek LLM 对话式财务助手"""
 import json
 import asyncio
-from nicegui import ui, app
+from nicegui import ui
 from app.components.ui_components import SectionHeader
 from app.components.state import state
 from app.components.ui_helpers import show_toast
@@ -188,7 +188,7 @@ def render_ai_assistant():
                     msg_input = ui.textarea(placeholder="输入财务问题...").props("outlined dense autogrow").classes("flex-1").style("max-height:120px;")
                     send_btn = ui.button(icon="send", color="primary").props("round dense").classes("mb-1")
 
-                    def _do_send(text=None):
+                    async def _do_send(text=None):
                         user_msg = (text or msg_input.value or "").strip()
                         if not user_msg:
                             return
@@ -198,7 +198,7 @@ def render_ai_assistant():
                         _append_user_msg(chat_box, user_msg)
                         _scroll_bottom()
                         # 2. 启动异步 AI 回复
-                        app.add_background_task(_ai_reply(user_msg, history, chat_box, llm))
+                        await _ai_reply(user_msg, history, chat_box, llm)
 
                     send_btn.on_click(lambda: _do_send())
                     msg_input.on("keydown", lambda e: _do_send() if e.args.get("key") == "Enter" and not e.args.get("shiftKey") else None)
