@@ -262,6 +262,18 @@ def render_ai_assistant():
                             ui.icon("arrow_forward", size="14px").classes("text-grey-4")
                             ui.row().classes("w-full").on("click", action)
 
+            # 发票 OCR 上传
+            with ui.card().classes("w-full"):
+                SectionHeader("发票识别", icon="document_scanner")
+                with ui.card_section().classes("gap-2"):
+                    ui.label("上传发票图片，AI 自动识别并生成凭证").classes("text-xs text-grey-5")
+                    upload = ui.upload(
+                        label="上传发票图片",
+                        on_upload=lambda e: _handle_ocr_upload(e, history, chat_container, llm),
+                        auto_upload=True,
+                    ).props("accept=.jpg,.jpeg,.png,.bmp flat dense no-caps").classes("w-full")
+                    upload.props("color=orange")
+
             # 知识库快捷入口
             with ui.card().classes("w-full"):
                 SectionHeader("知识库", icon="menu_book")
@@ -404,6 +416,62 @@ def _clear_history(history, chat_container):
     history.clear()
     _refresh_chat_ui(history, chat_container)
     show_toast("对话已清空", "info")
+
+
+def _handle_ocr_upload(event, history, chat_container, llm):
+    """处理发票图片上传"""
+    import base64
+    try:
+        # 读取上传的图片
+        file_data = event.content.read()
+        file_name = event.name
+        b64_data = base64.b64encode(file_data).decode("utf-8")
+        
+        # 获取 MIME 类型
+        ext = file_name.lower().split(".")[-1] if "." in file_name else "jpeg"
+        mime_map = {"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png", "bmp": "image/bmp"}
+        mime = mime_map.get(ext, "image/jpeg")
+        
+        history.append({"role": "user", "content": f"📸 上传了发票图片: {file_name}"})
+        _refresh_chat_ui(history, chat_container)
+        
+        if not llm:
+            history.append({"role": "assistant", "content": "⚠️ OCR 功能需要 LLM 支持，请配置 DeepSeek API Key"})
+            _refresh_chat_ui(history, chat_container)
+            return
+        
+        from app.services.llm_service import get_finance_prompt, _get_client, MODEL, MAX_TOKENS, TEMPERATURE
+        
+        client = _get_client()
+        
+        # 使用 DeepSeek Vision 识别图片
+        messages = [
+            {"role": "system", "content": "你是一个发票识别助手。请仔细识别图片中的发票信息，包括：发票号码、开票日期、销售方、购买方、商品明细、金额、税额、价税合计。以结构化格式输出。如果是增值税发票，提取所有关键字段。"},
+            {"role": "user", "content": [
+                {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64_data}"}},
+                {"type": "text", "content": "请识别这张发票的所有信息，以结构化格式输出。然后根据发票内容建议会计分录。"}
+            ]}
+        ]
+        
+        resp = client.chat.completions.create(
+            model=MODEL,
+            messages=messages,
+            max_tokens=2048,
+            temperature=0.1,
+        )
+        
+        reply = resp.choices[0].message.content
+        history.append({"role": "assistant", "content": reply})
+        _refresh_chat_ui(history, chat_container)
+        show_toast("发票识别完成", "success")
+        
+    except Exception as e:
+        error_msg = str(e)[:200]
+        if "vision" in error_msg.lower() or "image" in error_msg.lower():
+            history.append({"role": "assistant", "content": f"⚠️ 当前模型不支持图片识别。请升级 deepseek-chat 或使用 deepseek-vl2 模型。\n错误: {error_msg}"})
+        else:
+            history.append({"role": "assistant", "content": f"⚠️ 图片识别失败: {error_msg}"})
+        _refresh_chat_ui(history, chat_container)
 
 
 import json
