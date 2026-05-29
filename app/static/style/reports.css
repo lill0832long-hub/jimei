@@ -283,7 +283,7 @@
     border-top: 1px solid var(--c-border-light, #e8e8e8);
     font-size: 13px;
     gap: 12px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
 }
 
 .report-footer__status {
