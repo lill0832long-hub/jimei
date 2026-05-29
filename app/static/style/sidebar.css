@@ -286,3 +286,120 @@ body[data-theme="dark"] .sidebar-nav {
     opacity: 1;
     transform: translateY(-50%) translateX(2px);
 }
+
+
+/* ===== 美化侧边栏 ===== */
+
+/* 侧边栏整体渐变背景 */
+.sidebar-nav {
+    background: linear-gradient(180deg, #2D2620 0%, #3D342C 100%) !important;
+    border-right: 1px solid rgba(255,255,255,0.08) !important;
+}
+
+/* Logo 区域美化 */
+.sidebar-logo {
+    background: rgba(0,0,0,0.15);
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    padding: 12px 16px !important;
+}
+
+.sidebar-logo-icon {
+    filter: drop-shadow(0 2px 4px rgba(196,120,74,0.3));
+}
+
+.sidebar-logo-text {
+    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+/* 分组标题美化 */
+.sidebar-group-header {
+    margin: 8px 8px 4px 8px !important;
+    padding: 8px 12px !important;
+    border-radius: 6px !important;
+    background: rgba(255,255,255,0.03) !important;
+    transition: all 0.2s ease !important;
+}
+
+.sidebar-group-header:hover {
+    background: rgba(255,255,255,0.06) !important;
+}
+
+/* 分组分隔线美化 */
+.sidebar-group-divider {
+    margin: 6px 16px !important;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent) !important;
+}
+
+/* 菜单项美化 */
+.sidebar-menu-item {
+    margin: 2px 8px !important;
+    border-radius: 8px !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 菜单项悬停效果 - 带发光 */
+.sidebar-menu-item:hover {
+    background: rgba(255,255,255,0.08) !important;
+    transform: translateX(2px);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+}
+
+/* 菜单项选中态 - 更突出 */
+.sidebar-menu-active {
+    background: linear-gradient(135deg, rgba(196,120,74,0.2), rgba(196,120,74,0.1)) !important;
+    border-left: 3px solid #C4784A !important;
+    box-shadow: 0 2px 12px rgba(196,120,74,0.15), inset 0 0 20px rgba(196,120,74,0.05) !important;
+}
+
+.sidebar-menu-active .sidebar-menu-icon {
+    opacity: 1 !important;
+    color: #E8A87C !important;
+}
+
+.sidebar-menu-active .sidebar-menu-label {
+    color: #E8A87C !important;
+    font-weight: 600 !important;
+}
+
+/* 图标美化 */
+.sidebar-menu-icon {
+    transition: all 0.2s ease !important;
+}
+
+.sidebar-menu-item:hover .sidebar-menu-icon {
+    opacity: 0.8 !important;
+    transform: scale(1.1);
+}
+
+/* 滚动条美化 */
+.sidebar-nav::-webkit-scrollbar {
+    width: 6px !important;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(196,120,74,0.3) !important;
+    border-radius: 3px !important;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background: rgba(196,120,74,0.5) !important;
+}
+
+/* 添加微妙的动画效果 */
+@keyframes sidebarItemFadeIn {
+    from { opacity: 0; transform: translateX(-10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.sidebar-menu-item {
+    animation: sidebarItemFadeIn 0.3s ease forwards;
+}
+
+/* 每个菜单项延迟一点，形成级联效果 */
+.sidebar-menu-item:nth-child(1) { animation-delay: 0.02s; }
+.sidebar-menu-item:nth-child(2) { animation-delay: 0.04s; }
+.sidebar-menu-item:nth-child(3) { animation-delay: 0.06s; }
+.sidebar-menu-item:nth-child(4) { animation-delay: 0.08s; }
+.sidebar-menu-item:nth-child(5) { animation-delay: 0.10s; }

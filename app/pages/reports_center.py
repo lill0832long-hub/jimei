@@ -29,7 +29,7 @@ def render_reports_center():
         return
 
     # 顶部工具栏
-    with ui.row().classes("items-center gap-3 q-pa-sm bg-white w-full"):
+    with ui.row().classes("items-center gap-3 w-full reports-toolbar"):
         ui.icon("assessment", size="28px").classes("text-primary")
         ui.label("报表中心").classes("text-h6 text-weight-bold")
         ui.space()
@@ -53,14 +53,14 @@ def render_reports_center():
             month_sel.on("update:value", lambda e: _on_change())
 
     # Excel风格标签页
-    with ui.tabs().classes("w-full bg-white") as tabs:
+    with ui.tabs().classes("w-full reports-tabs") as tabs:
         for key, label, icon, _, _ in _REPORT_CARDS:
             ui.tab(key, label=label, icon=icon).props("no-caps")
 
     # 标签页内容面板
-    with ui.tab_panels(tabs, value=_REPORT_CARDS[0][0]).classes("w-full"):
+    with ui.tab_panels(tabs, value=_REPORT_CARDS[0][0]).classes("w-full reports-tab-panels"):
         for key, _, _, _, _ in _REPORT_CARDS:
-            with ui.tab_panel(key):
+            with ui.tab_panel(key).classes("reports-tab-panel"):
                 _render_report_content(key)
 
 

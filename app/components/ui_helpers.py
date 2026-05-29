@@ -160,52 +160,129 @@ def navigate(page):
 # ===== 全局搜索 =====
 
 def open_global_search():
-    """全局搜索弹窗 — Ctrl+K 触发"""
-    with ui.dialog() as search_dialog, ui.card().style("width: 600px; max-width: 90vw;"):
-        ui.label("全局搜索").classes("text-lg font-bold mb-2")
-        ui.label("搜索凭证号、摘要、科目名称、金额").classes("text-xs mb-3").style("color:var(--c-text-muted)")
-        search_input = ui.input("输入关键词...", icon="search").props("autofocus outlined dense").classes("full-width mb-3")
-        results_area = ui.column().classes("gap-1").style("max-height: 400px; overflow-y: auto;")
+    """全局搜索弹窗 — Ctrl+K 触发，支持实时搜索"""
+    with ui.dialog() as search_dialog, ui.card().style("width: 700px; max-width: 90vw; max-height: 80vh;"):
+        # Header
+        with ui.row().classes("items-center gap-2 mb-3"):
+            ui.icon("search", size="24px").style("color:var(--c-primary)")
+            ui.label("全局搜索").classes("text-lg font-bold")
+            ui.space()
+            ui.label("ESC 关闭").classes("text-xs").style("color:var(--c-text-muted)")
+
+        # Search input with keyboard shortcut hint
+        search_input = ui.input(placeholder="搜索凭证、科目、摘要、金额...", icon="search") \
+            .props("autofocus outlined dense clearable") \
+            .classes("w-full mb-2")
+
+        # Quick filter tags
+        with ui.row().classes("gap-2 mb-3"):
+            filter_all = ui.button("全部", icon="apps").props("dense flat no-caps").classes("search-filter-btn search-filter-active")
+            filter_voucher = ui.button("凭证", icon="receipt").props("dense flat no-caps").classes("search-filter-btn")
+            filter_account = ui.button("科目", icon="account_tree").props("dense flat no-caps").classes("search-filter-btn")
+
+        # Results area
+        results_area = ui.column().classes("gap-1").style("max-height: 50vh; overflow-y: auto;")
+        
+        # Status bar
+        status_bar = ui.label("输入关键词开始搜索...").classes("text-xs mt-2").style("color:var(--c-text-muted)")
+
+        current_filter = {"value": "all"}
+
+        def set_filter(f):
+            current_filter["value"] = f
+            filter_all.classes(remove="search-filter-active")
+            filter_voucher.classes(remove="search-filter-active")
+            filter_account.classes(remove="search-filter-active")
+            if f == "all":
+                filter_all.classes("search-filter-active")
+            elif f == "voucher":
+                filter_voucher.classes("search-filter-active")
+            elif f == "account":
+                filter_account.classes("search-filter-active")
+            do_search()
+
+        filter_all.on_click(lambda: set_filter("all"))
+        filter_voucher.on_click(lambda: set_filter("voucher"))
+        filter_account.on_click(lambda: set_filter("account"))
 
         def do_search():
             results_area.clear()
-            kw = search_input.value.strip()
+            kw = search_input.value.strip() if search_input.value else ""
             if not kw:
+                status_bar.text = "输入关键词开始搜索..."
                 return
-            vouchers = search_vouchers(kw)
-            if vouchers:
-                with results_area:
-                    ui.label(f"📋 凭证 ({len(vouchers)}条)").classes("text-xs font-bold mt-2 mb-1").style("color:var(--c-text-muted)")
-                    for v in vouchers[:10]:
-                        with ui.row().classes("items-center gap-2 p-2 rounded hover:bg-blue-5 cursor-pointer") \
-                                .on_click(lambda vno=v['voucher_no']: (
-                                    search_dialog.close(),
-                                    setattr(state, 'selected_voucher_no', vno),
-                                    navigate('journal'),
-                                )):
-                            ui.label(v['voucher_no']).classes("text-sm font-mono w-24").style("color:var(--c-primary)")
-                            ui.label(v.get('summary', '')[:30]).classes("text-sm flex-1").style("color:var(--c-text-secondary)")
-                            ui.label(v.get('date', '')).classes("text-xs").style("color:var(--c-text-muted)")
-            accounts = search_accounts_by_kw(kw)
-            if accounts:
-                with results_area:
-                    ui.label(f"📖 科目 ({len(accounts)}条)").classes("text-xs font-bold mt-2 mb-1").style("color:var(--c-text-muted)")
-                    for a in accounts[:10]:
-                        with ui.row().classes("items-center gap-2 p-2 rounded hover:bg-blue-5 cursor-pointer"):
-                            ui.label(a['code']).classes("text-sm font-mono w-16").style("color:var(--c-success)")
-                            ui.label(a.get('name', '')).classes("text-sm").style("color:var(--c-text-secondary)")
-            if not vouchers and not accounts:
-                with results_area:
-                    ui.label("未找到匹配结果").classes("text-sm p-4 text-center").style("color:var(--c-text-muted)")
 
+            f = current_filter["value"]
+            total_results = 0
+
+            # Search vouchers
+            if f in ("all", "voucher"):
+                vouchers = search_vouchers(kw)
+                if vouchers:
+                    total_results += len(vouchers)
+                    with results_area:
+                        with ui.row().classes("items-center gap-2 px-2 py-1"):
+                            ui.icon("receipt", size="16px").style("color:var(--c-primary)")
+                            ui.label("凭证 (%d条)" % len(vouchers)).classes("text-xs font-bold").style("color:var(--c-text-muted)")
+                        for v in vouchers[:15]:
+                            vno = v.get("voucher_no", "")
+                            vdate = v.get("date", "")
+                            vdesc = v.get("description", "")
+                            vtotal = v.get("total_debit", 0)
+                            with ui.card().classes("search-result-card").on_click(
+                                lambda vno=vno: (search_dialog.close(), setattr(state, "selected_voucher_no", vno), navigate("journal"))
+                            ):
+                                with ui.row().classes("items-center gap-3 px-3 py-2"):
+                                    ui.label(vno).classes("text-sm font-mono search-result-vno")
+                                    ui.label(vdate).classes("text-xs search-result-date")
+                                    ui.label(vdesc[:40]).classes("text-sm flex-1 search-result-desc")
+                                    ui.label("¥{:,.2f}".format(vtotal)).classes("text-sm font-mono search-result-amount")
+
+            # Search accounts
+            if f in ("all", "account"):
+                accounts = search_accounts_by_kw(kw)
+                if accounts:
+                    total_results += len(accounts)
+                    with results_area:
+                        with ui.row().classes("items-center gap-2 px-2 py-1"):
+                            ui.icon("account_tree", size="16px").style("color:var(--c-success)")
+                            ui.label("科目 (%d条)" % len(accounts)).classes("text-xs font-bold").style("color:var(--c-text-muted)")
+                        for a in accounts[:15]:
+                            code = a.get("code", "")
+                            name = a.get("name", "")
+                            category = a.get("category", "")
+                            with ui.card().classes("search-result-card").on_click(
+                                lambda c=code: (search_dialog.close(), setattr(state, "drill_down_account_code", c), navigate("general_ledger"))
+                            ):
+                                with ui.row().classes("items-center gap-3 px-3 py-2"):
+                                    ui.label(code).classes("text-sm font-mono search-result-acct-code")
+                                    ui.label(name).classes("text-sm font-bold search-result-acct-name")
+                                    ui.space()
+                                    ui.label(category).classes("text-xs search-result-category")
+
+            # No results
+            if total_results == 0:
+                with results_area:
+                    with ui.column().classes("items-center py-8"):
+                        ui.icon("search_off", size="48px").style("color:var(--c-text-muted); opacity:0.5")
+                        ui.label("未找到匹配「%s」的结果" % kw).classes("text-sm mt-2").style("color:var(--c-text-muted)")
+                        ui.label("试试其他关键词").classes("text-xs").style("color:var(--c-text-muted)")
+            else:
+                status_bar.text = "找到 %d 条结果" % total_results
+
+        # Real-time search with debounce
+        search_timer = {"ref": None}
+        def on_input(e):
+            if search_timer["ref"]:
+                search_timer["ref"].cancel()
+            search_timer["ref"] = ui.timer(0.3, do_search, once=True)
+
+        search_input.on("update:model-value", on_input)
         search_input.on("keydown.enter", do_search)
-        ui.button("搜索", icon="search", on_click=do_search).props("dense color=primary").classes("mt-2")
 
     search_dialog.open()
-
-
-# ===== Loading 状态管理 =====
-_loading_dialog = None
+    # Focus input after dialog opens
+    ui.timer(0.1, lambda: ui.run_javascript("document.querySelector('.search-result-card input')?.focus()"), once=True)
 
 def show_loading(text="加载中..."):
     global _loading_dialog

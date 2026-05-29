@@ -1,5 +1,5 @@
-﻿/* ============================================================
-   Reports Center — 柠檬云风格左右分栏布局
+/* ============================================================
+   Reports Center — 美化版报表中心样式
    ============================================================ */
 
 /* 分栏布局容器 */
@@ -46,35 +46,119 @@
     flex-direction: column;
 }
 
+/* 顶部工具栏美化 */
+.reports-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 24px;
+    background: var(--c-bg-card, #fff);
+    border-bottom: 1px solid var(--c-border-light, #f0ebe3);
+    box-shadow: 0 2px 8px rgba(139, 94, 60, 0.06);
+    border-radius: 0 0 var(--radius-md, 10px) var(--radius-md, 10px);
+    margin-bottom: 8px;
+}
+
+.reports-toolbar__title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--c-text-primary, #2d2620);
+    letter-spacing: -0.3px;
+}
+
+/* 标签页美化 */
+.reports-tabs {
+    background: var(--c-bg-card, #fff) !important;
+    border-bottom: 2px solid var(--c-border-light, #f0ebe3);
+    padding: 0 16px;
+    box-shadow: 0 2px 4px rgba(139, 94, 60, 0.04);
+}
+
+.reports-tabs .q-tab {
+    padding: 12px 20px !important;
+    font-size: 15px !important;
+    font-weight: 600 !important;
+    color: var(--c-text-secondary, #6b5d52) !important;
+    border-radius: var(--radius-md, 10px) var(--radius-md, 10px) 0 0 !important;
+    margin-right: 4px !important;
+    transition: all 0.2s ease !important;
+    min-width: 100px !important;
+}
+
+.reports-tabs .q-tab:hover {
+    color: var(--c-primary, #c4784a) !important;
+    background: var(--c-primary-light, #fff3e8) !important;
+}
+
+.reports-tabs .q-tab--active {
+    color: var(--c-primary, #c4784a) !important;
+    background: var(--c-primary-light, #fff3e8) !important;
+    border-bottom: 3px solid var(--c-primary, #c4784a) !important;
+    margin-bottom: -2px !important;
+}
+
+.reports-tabs .q-tab__icon {
+    font-size: 20px !important;
+    margin-right: 8px !important;
+}
+
+/* 标签页内容面板 */
+.reports-tab-panels {
+    background: transparent !important;
+    padding: 16px !important;
+}
+
+.reports-tab-panel {
+    padding: 0 !important;
+    background: transparent !important;
+}
+
 /* 卡片网格 */
 .reports-card-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 16px;
-    padding: 16px;
+    gap: 20px;
+    padding: 20px;
 }
 
-/* 报表卡片 */
+/* 报表卡片美化 */
 .reports-card {
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    background: var(--c-bg-card, #fff);
+    border-radius: var(--radius-lg, 14px);
+    box-shadow: var(--shadow-card, 0 2px 8px rgba(139, 94, 60, 0.06));
     cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid #e5e7eb;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--c-border-light, #f0ebe3);
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
+}
+
+.reports-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-primary, linear-gradient(135deg, #c4784a, #e8a87c));
+    opacity: 0;
+    transition: opacity 0.25s ease;
 }
 
 .reports-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    border-color: #4f46e5;
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-card-hover, 0 8px 24px rgba(139, 94, 60, 0.12));
+    border-color: var(--c-primary, #c4784a);
+}
+
+.reports-card:hover::before {
+    opacity: 1;
 }
 
 .reports-card__header {
-    padding: 20px;
+    padding: 24px 20px 16px;
     display: flex;
     align-items: center;
     gap: 16px;
@@ -82,23 +166,31 @@
 }
 
 .reports-card__icon {
-    font-size: 32px;
-    color: #4f46e5;
-    background: #e0e7ff;
-    padding: 12px;
-    border-radius: 10px;
+    font-size: 28px;
+    color: var(--c-primary, #c4784a);
+    background: var(--c-primary-light, #fff3e8);
+    padding: 14px;
+    border-radius: var(--radius-md, 10px);
     width: fit-content;
+    box-shadow: 0 4px 12px rgba(196, 120, 74, 0.15);
+    transition: all 0.25s ease;
+}
+
+.reports-card:hover .reports-card__icon {
+    transform: scale(1.1) rotate(-5deg);
+    box-shadow: 0 6px 16px rgba(196, 120, 74, 0.25);
 }
 
 .reports-card__title {
     font-size: 16px;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--c-text-primary, #2d2620);
+    letter-spacing: -0.2px;
 }
 
 .reports-card__desc {
     font-size: 13px;
-    color: #6b7280;
+    color: var(--c-text-muted, #9e8f82);
     line-height: 1.5;
     margin-top: 8px;
 }
@@ -107,47 +199,41 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 20px;
-    border-top: 1px solid #f3f4f6;
-    background: #fafafa;
+    padding: 14px 20px;
+    border-top: 1px solid var(--c-border-light, #f0ebe3);
+    background: var(--c-bg-page, #faf7f2);
 }
 
 .reports-card__action {
     font-size: 13px;
-    color: #4f46e5;
+    color: var(--c-primary, #c4784a);
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.reports-card:hover .reports-card__action {
+    color: var(--c-primary-hover, #a86238);
+    transform: translateX(4px);
 }
 
 /* 类别标题 */
 .reports-category {
     display: flex;
     align-items: center;
-    gap: 8px;
-    margin-bottom: 16px;
-    padding-left: 12px;
-    border-left: 4px solid #4f46e5;
+    gap: 10px;
+    margin-bottom: 20px;
+    padding-left: 14px;
+    border-left: 4px solid var(--c-primary, #c4784a);
 }
 
 .reports-category__title {
-    font-size: 16px;
-    font-weight: 700;
-    color: #1f2937;
-}
-
-/* 工具栏 */
-.reports-toolbar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px 24px;
-    background: #fff;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-.reports-toolbar__title {
     font-size: 18px;
     font-weight: 700;
-    color: #1f2937;
+    color: var(--c-text-primary, #2d2620);
+    letter-spacing: -0.3px;
 }
 
 /* 报表内容区 */
@@ -155,12 +241,48 @@
     flex: 1;
     padding: 24px;
     overflow-y: auto;
+    background: var(--c-bg-page, #faf7f2);
+    border-radius: var(--radius-lg, 14px);
+    margin: 8px;
+}
+
+/* 表格美化 */
+.reports-table {
+    background: var(--c-bg-card, #fff);
+    border-radius: var(--radius-md, 10px);
+    overflow: hidden;
+    box-shadow: var(--shadow-sm, 0 1px 3px rgba(139, 94, 60, 0.06));
+}
+
+.reports-table thead {
+    background: linear-gradient(135deg, var(--c-primary-light, #fff3e8), var(--c-bg-page, #faf7f2));
+}
+
+.reports-table th {
+    padding: 14px 16px !important;
+    font-weight: 700 !important;
+    color: var(--c-text-primary, #2d2620) !important;
+    font-size: 14px !important;
+    border-bottom: 2px solid var(--c-border, #e8e0d4) !important;
+}
+
+.reports-table td {
+    padding: 12px 16px !important;
+    color: var(--c-text-secondary, #6b5d52) !important;
+    font-size: 14px !important;
+    border-bottom: 1px solid var(--c-border-light, #f0ebe3) !important;
+    transition: background 0.15s ease !important;
+}
+
+.reports-table tr:hover td {
+    background: var(--c-bg-hover, #f3ede4) !important;
 }
 
 /* 响应式 */
 @media (max-width: 1200px) {
     .reports-card-grid {
         grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+        gap: 16px;
     }
 }
 
@@ -178,5 +300,11 @@
     
     .reports-card-grid {
         grid-template-columns: 1fr;
+    }
+    
+    .reports-tabs .q-tab {
+        min-width: 80px !important;
+        padding: 10px 12px !important;
+        font-size: 13px !important;
     }
 }

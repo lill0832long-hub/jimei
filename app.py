@@ -210,12 +210,12 @@ def index():
             with open(_ann_js_path, encoding="utf-8") as _f:
                 ui.add_head_html(f"<script>{_f.read()}</script>")
         render_header()
-        with ui.row().classes("w-full main-row"):
+        with ui.row(wrap=False).classes("w-full main-row"):
             render_sidebar()
             with ui.column().classes("main-content-area flex-grow gap-3") as state.main_content:
                 # Tab 系统容器
                 # Tab 栏容器 + 初始化当前页 tab
-                with ui.row().classes("w-full items-center gap-2") as state._tab_bar_container:
+                with ui.row().classes("w-full items-center gap-2 tab-bar-row") as state._tab_bar_container:
                     _pg = state.current_page
                     if not state.tabs or state.tabs[0]["key"] != _pg:
                         state.tabs = [{"key": _pg, "label": state.get_tab_label(_pg)}]
