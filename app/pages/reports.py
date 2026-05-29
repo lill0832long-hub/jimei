@@ -47,13 +47,13 @@ def render_accounts():
         pd = b.get("period_debit") or 0
         pc = b.get("period_credit") or 0
         cb = b.get("closing_balance") or 0
-        is_t = b.get("name") == "合计"
+        is_t = b.get("account_name") == "合计"
         if not is_t:
             for k, v in [("opening", ob), ("debit", pd), ("credit", pc), ("closing", cb)]:
                 total[k] += v
         rows.append({
-            "code": b.get("code", ""),
-            "name": b.get("name", ""),
+            "code": b.get("account_code", ""),
+            "name": b.get("account_name", ""),
             "opening": ob, "debit": pd, "credit": pc, "closing": cb,
             "level": b.get("level", 0), "is_total": is_t,
         })
