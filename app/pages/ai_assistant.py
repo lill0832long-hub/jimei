@@ -311,12 +311,11 @@ def render_ai_assistant():
                 SectionHeader("发票识别", icon="document_scanner")
                 with ui.card_section().classes("gap-2"):
                     ui.label("上传发票图片，AI 自动识别并生成凭证").classes("text-xs text-grey-5")
-                    upload = ui.upload(
+                    ui.upload(
                         label="上传发票图片",
                         on_upload=lambda e: _handle_ocr_upload(e, history, chat_container, llm),
                         auto_upload=True,
-                    ).props("accept=.jpg,.jpeg,.png,.bmp flat dense no-caps").classes("w-full")
-                    upload.props("color=orange")
+                    ).props("accept=.jpg,.jpeg,.png,.bmp flat dense no-caps color=orange").classes("w-full")
 
             # 知识库快捷入口
             with ui.card().classes("w-full"):
@@ -523,4 +522,3 @@ def _handle_ocr_upload(event, history, chat_container, llm):
         _refresh_chat_ui(history, chat_container)
 
 
-import json
