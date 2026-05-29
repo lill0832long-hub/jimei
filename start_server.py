@@ -1,4 +1,4 @@
-﻿"""AI 财务系统 V5.1 — 启动脚本
+"""AI 财务系统 V5.1 — 启动脚本
 自动修复数据库权限后启动服务器，防止只读崩溃。
 """
 import subprocess
@@ -7,14 +7,17 @@ import os
 import time
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-PYTHON = sys.executable
+
+# 优先使用系统 Python（避免虚拟环境缺少依赖）
+_SYSTEM_PYTHON = r"C:\Users\Administrator\AppData\Local\Programs\Python\Python312\python.exe"
+PYTHON = _SYSTEM_PYTHON if os.path.exists(_SYSTEM_PYTHON) else sys.executable
+
 APP = os.path.join(PROJECT_DIR, "app.py")
 DB = os.path.join(PROJECT_DIR, "finance_v2.db")
 PORT = 8090
 
 
 def fix_db_permissions():
-    """修复数据库文件权限（防止 readonly 崩溃）"""
     for suffix in ["", "-wal", "-shm"]:
         db_file = DB + suffix
         if os.path.exists(db_file):
@@ -22,18 +25,16 @@ def fix_db_permissions():
                 os.chmod(db_file, 0o666)
             except Exception:
                 pass
-    # Windows: use icacls
     try:
         subprocess.run(
             ["icacls", DB, "/grant", "Everyone:F", "/T"],
-            capture_output=True, creationflags=0x08000000  # CREATE_NO_WINDOW
+            capture_output=True, creationflags=0x08000000
         )
     except Exception:
         pass
 
 
 def kill_existing():
-    """杀掉占用端口的旧进程"""
     try:
         result = subprocess.run(
             ["netstat", "-ano"], capture_output=True, text=True,
@@ -63,6 +64,7 @@ def main():
     print("  Done.")
 
     print("[3/3] 启动服务器...")
+    print("  Python: %s" % PYTHON)
     print("  地址: http://localhost:%d" % PORT)
     print("  按 Ctrl+C 停止服务器")
     print("=" * 50)
