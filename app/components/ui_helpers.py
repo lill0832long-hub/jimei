@@ -159,6 +159,21 @@ def navigate(page):
 
 # ===== 全局搜索 =====
 
+def do_inline_search(search_input):
+    """Inline search execution"""
+    kw = search_input.value
+    if not kw or not kw.strip():
+        return
+    kw = kw.strip()
+    # Navigate to a search results view or show toast
+    vouchers = search_vouchers(kw)
+    accounts = search_accounts_by_kw(kw)
+    if vouchers or accounts:
+        show_toast("找到 %d 条凭证, %d 个科目" % (len(vouchers or []), len(accounts or [])), "info")
+    else:
+        show_toast("未找到匹配「%s」的结果" % kw, "warning")
+
+
 def open_global_search():
     """全局搜索弹窗"""
     with ui.dialog() as dialog, ui.card().style("width: 650px; max-width: 90vw;"):
@@ -445,8 +460,12 @@ def render_header():
 
             with ui.row().classes("header-right items-center") \
                     .style("gap: 12px;"):
-                ui.button(icon="search", on_click=open_global_search) \
-                    .props("flat round dense").classes("header-search-btn")
+                # Inline search box
+                with ui.row().classes("header-search-box"):
+                    search_inline = ui.input(placeholder="搜索凭证、科目...") \
+                        .props("dense outlined clearable").classes("header-search-input")
+                    ui.button(icon="search", on_click=lambda: do_inline_search(search_inline)) \
+                        .props("flat dense round").classes("header-search-icon-btn")
                 if state.current_user:
                     with ui.element("div").classes("header-notif-wrapper"):
                         ui.icon("notifications").classes("header-notif-icon")
