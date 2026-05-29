@@ -76,6 +76,17 @@ FINANCE_TOOLS = [
             }
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "analyze_financials",
+            "description": "分析当前期间的财务数据，检测异常并给出建议",
+            "parameters": {
+                "type": "object",
+                "properties": {}
+            }
+        }
+    },
 ]
 
 
@@ -123,6 +134,11 @@ def _execute_tool(tool_name, arguments):
             desc = arguments.get("description", "")
             result = VoucherService.generate_from_text(lid, desc)
             return result
+
+        elif tool_name == "analyze_financials":
+            from app.services.analysis_service import analyze_period
+            analysis = analyze_period(lid, state.selected_year, state.selected_month)
+            return analysis
 
         else:
             return {"error": f"未知工具: {tool_name}"}
@@ -253,6 +269,7 @@ def render_ai_assistant():
                         ("🔍 查询余额", "查询科目余额", lambda: _send_message("查询银行存款余额")),
                         ("📊 利润分析", "查看本月利润情况", lambda: _send_message("本月利润是多少？")),
                         ("📋 资产负债", "查看资产负债表", lambda: _send_message("资产负债表平衡吗？")),
+                        ("🔬 一键分析", "自动检测异常并给出建议", lambda: _send_message("请分析本月财务状况，检测异常并给出建议")),
                     ]
                     for label, desc, action in tools:
                         with ui.row().classes("items-center gap-2 cursor-pointer hover:bg-grey-2 p-2 rounded"):
