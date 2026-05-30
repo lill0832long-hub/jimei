@@ -2013,7 +2013,7 @@
 /* 紧凑表格 */
 .tb-compact-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: collapse; table-layout: auto;
     font-size: 13px;
 }
 
@@ -2048,27 +2048,11 @@
     color: #1f2937;
 }
 
-.tb-compact-td-code {
-    font-family: 'Consolas', monospace;
-    font-size: 11px;
-    color: #6b7280;
-    width: 72px;
-}
+.tb-compact-td-code { font-family: 'Consolas', monospace; font-size: 11px; color: #6b7280; white-space: nowrap; }
 
-.tb-compact-td-name {
-    min-width: 80px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 200px;
-}
+.tb-compact-td-name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 360px; }
 
-.tb-compact-td-num {
-    text-align: right;
-    font-variant-numeric: tabular-nums;
-    white-space: nowrap;
-    width: 88px;
-}
+.tb-compact-td-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 
 .tb-td-debit {
     color: #ef4444;
@@ -2357,6 +2341,29 @@
         white-space: nowrap;
     }
     .lemon-card-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
+/* ===== 资产负债表左右分栏布局 ===== */
+.bs-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    width: 100%;
+}
+.bs-left {
+    min-width: 0;
+}
+.bs-right {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+}
+@media (max-width: 1024px) {
+    .bs-layout {
         grid-template-columns: 1fr;
     }
 }

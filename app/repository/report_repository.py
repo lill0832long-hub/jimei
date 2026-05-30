@@ -674,6 +674,15 @@ class ReportRepository:
                 _tt2 = sum(max(ytd_map.get(c,(0,0))) for c in _pl_codes)
                 if _tt2 > 0 and (_ns2 / _tt2) < 0.01: _is_sy = True
 
+            # Detect misclassified accounts: 费用-category accounts that act as revenue
+            # (credit > debit in JEs, meaning they receive credits like revenue)
+            _misrev = set()
+            for a in accounts:
+                if a.category == "费用" and not a.parent_code:
+                    y_dr, y_cr = ytd_map.get(a.code, (0, 0))
+                    if y_cr > y_dr and y_cr > 0:
+                        _misrev.add(a.code)
+
             def _period_vals(code):
                 dr, cr = period_map.get(code, (0, 0))
                 return dr, cr

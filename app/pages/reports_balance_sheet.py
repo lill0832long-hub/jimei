@@ -165,21 +165,42 @@ def _render_report_data(container, compare_mom):
             <tbody>{rows_html}</tbody></table>'''
 
         date_str = bs.get("date", "") if isinstance(bs, dict) else ""
-        sections = [
-            ("资产", bs.get("assets", []), "account_balance", "var(--c-success)"),
-            ("负债", bs.get("liabilities", []), "credit_card", "var(--c-danger)"),
-            ("所有者权益", bs.get("equity", []), "savings", "var(--c-primary)"),
-        ]
+        assets_items = bs.get("assets", [])
+        liab_items = bs.get("liabilities", [])
+        equity_items = bs.get("equity", [])
 
-        for title, items, icon, color in sections:
-            with ui.card().classes("report-card"):
-                with ui.row().classes("report-section__header px-5 pt-4 pb-0"):
-                    ui.icon(icon).style(f"color:{color}")
-                    ui.label(title).classes("report-section__title")
-                    if date_str:
-                        ui.label(f"— {date_str}").classes("text-xs").style("color:var(--c-text-muted)")
-                with ui.card_section().classes("p-0"):
-                    ui.html(_build_bs_table(title, items, icon, color), sanitize=False)
+        # 左右分栏布局：资产在左，负债+权益在右
+        with ui.element("div").classes("bs-layout"):
+            # 左侧：资产
+            with ui.element("div").classes("bs-left"):
+                with ui.card().classes("report-card"):
+                    with ui.row().classes("report-section__header px-5 pt-4 pb-0"):
+                        ui.icon("account_balance").style("color:var(--c-success)")
+                        ui.label("资产").classes("report-section__title")
+                        if date_str:
+                            ui.label(f"— {date_str}").classes("text-xs").style("color:var(--c-text-muted)")
+                    with ui.card_section().classes("p-0"):
+                        ui.html(_build_bs_table("资产", assets_items, "account_balance", "var(--c-success)"), sanitize=False)
+
+            # 右侧：负债 + 权益
+            with ui.element("div").classes("bs-right"):
+                with ui.card().classes("report-card"):
+                    with ui.row().classes("report-section__header px-5 pt-4 pb-0"):
+                        ui.icon("credit_card").style("color:var(--c-danger)")
+                        ui.label("负债").classes("report-section__title")
+                        if date_str:
+                            ui.label(f"— {date_str}").classes("text-xs").style("color:var(--c-text-muted)")
+                    with ui.card_section().classes("p-0"):
+                        ui.html(_build_bs_table("负债", liab_items, "credit_card", "var(--c-danger)"), sanitize=False)
+
+                with ui.card().classes("report-card"):
+                    with ui.row().classes("report-section__header px-5 pt-4 pb-0"):
+                        ui.icon("savings").style("color:var(--c-primary)")
+                        ui.label("所有者权益").classes("report-section__title")
+                        if date_str:
+                            ui.label(f"— {date_str}").classes("text-xs").style("color:var(--c-text-muted)")
+                    with ui.card_section().classes("p-0"):
+                        ui.html(_build_bs_table("所有者权益", equity_items, "savings", "var(--c-primary)"), sanitize=False)
 
         # ── 平衡校验 ──
         is_balanced = abs(net) < 0.01

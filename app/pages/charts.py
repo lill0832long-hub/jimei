@@ -1,4 +1,4 @@
-"""图表分析 — Tab分类 + KPI摘要布局"""
+﻿"""图表分析 — Tab分类 + KPI摘要布局"""
 from nicegui import ui
 from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
@@ -30,8 +30,7 @@ def render_charts():
         try:
             inc = ReportService.get_income_statement(lid, py, pm)
             revenue_data.append(round(inc.get("total_revenue", 0), 2))
-            expense_data.append(round(sum((r.get("ytd") or 0) for r in inc.get("rows", [])
-                                          if r.get("type") in ("expense_item", "subtotal")), 2))
+            expense_data.append(round(inc.get("total_expense", 0), 2))
             profit_data.append(round(inc.get("net_profit", 0), 2))
         except Exception:
             revenue_data.append(0)
