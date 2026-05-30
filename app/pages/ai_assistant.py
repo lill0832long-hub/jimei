@@ -153,9 +153,10 @@ def render_ai_assistant():
                     ui.label("AI 财务助手").classes("text-base font-bold")
                     ui.space()
                     if llm:
-                        ok, msg = llm.check_connection()
-                        ui.icon("check_circle" if ok else "error", size="16px").classes(f"text-green-5" if ok else "text-red-5")
-                        ui.label("DeepSeek 已连接" if ok else msg[:30]).classes(f"text-xs text-green-6" if ok else "text-xs text-red-6")
+                        provider = getattr(llm, "PROVIDER", "LLM")
+                        model = getattr(llm, "MODEL", "")
+                        ui.icon("check_circle", size="16px").classes("text-green-5")
+                        ui.label(f"{provider} ({model})").classes("text-xs text-green-6")
                     else:
                         ui.icon("cloud_off", size="16px").classes("text-grey-5")
                         ui.label("LLM 未配置").classes("text-xs text-grey-5")
