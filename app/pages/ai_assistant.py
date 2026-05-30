@@ -252,7 +252,9 @@ def render_ai_assistant():
                         for t in ["借贷记账法", "资产负债表", "增值税", "折旧"]:
                             ui.button(t, on_click=lambda x=t: _do_send(f"解释一下{x}")).props("flat dense no-caps size-sm").classes("text-xs justify-start w-full text-left")
 
-            with ui.card().classes("w-full"):
+            with ui.card().classes("w-full gap-1"):
+                ui.button("压缩上下文", icon="compress", color="amber",
+                          on_click=lambda: ui.timer(0.1, lambda: _compress_history(history, chat_box, llm), once=True)).props("flat dense no-caps").classes("w-full text-xs")
                 ui.button("清空对话", icon="delete_outline", color="red",
                           on_click=lambda: _clear_all(history, chat_box)).props("flat dense no-caps").classes("w-full text-xs")
 
@@ -310,6 +312,48 @@ def _fallback(user_msg):
         return "🔬 财务分析功能需要配置 LLM。"
     return "🤖 当前为离线模式，请在 .env 中配置 LLM_API_KEY 以获得完整 AI 能力。"
 
+
+async def _compress_history(history, chat_box, llm):
+    """用 LLM 总结旧消息，保留最近 5 条 + 摘要"""
+    if len(history) < 8:
+        show_toast("消息太少，无需压缩", "info")
+        return
+    old_msgs = history[:-5]
+    recent = history[-5:]
+    # 构建总结请求
+    summary_text = "\n".join(f"{m['role']}: {m.get('content','')[:200]}" for m in old_msgs if m.get('content'))
+    try:
+        if llm:
+            from app.services.llm_service import chat
+            result = chat([
+                {"role": "system", "content": "你是一个对话压缩助手。请将以下对话历史压缩为简洁的摘要，保留关键信息（如查询过的科目、生成过的凭证、分析结论等），控制在200字以内。"},
+                {"role": "user", "content": summary_text}
+            ])
+            summary = result.get("content", "对话摘要生成失败")
+        else:
+            summary = f"（离线模式）已压缩 {len(old_msgs)} 条历史消息"
+    except Exception as e:
+        summary = f"摘要生成出错: {str(e)[:100]}"
+    # 替换历史：摘要 + 最近5条
+    history.clear()
+    history.append({"role": "system", "content": f"📋 对话摘要：{summary}"})
+    history.extend(recent)
+    _save_history(state.selected_ledger_id or "default", history)
+    # 重建 UI
+    chat_box.clear()
+    with chat_box:
+        with ui.card().classes("w-full bg-amber-50"):
+            with ui.row().classes("items-center gap-2 p-3"):
+                ui.icon("compress", size="16px").classes("text-amber-7")
+                ui.label(f"已压缩 {len(old_msgs)} 条消息").classes("text-sm text-amber-8")
+            ui.label(summary).classes("text-xs text-grey-7 px-3 pb-2 whitespace-pre-wrap")
+        for msg in recent:
+            role, content = msg.get("role"), msg.get("content", "")
+            if role == "user":
+                _append_user_msg(chat_box, content)
+            elif role == "assistant":
+                _append_ai_msg(chat_box, content)
+    show_toast(f"已压缩 {len(old_msgs)} 条消息", "positive")
 
 def _clear_all(history, chat_box):
     history.clear()
