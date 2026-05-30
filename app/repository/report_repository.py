@@ -614,6 +614,32 @@ class ReportRepository:
                     {"code": row.code, "name": row.name}
                 )
 
+            # 5xxx/6xxx code mapping for old/new accounting standards
+            def _find_code(target_code):
+                if target_code in acct_map:
+                    return target_code
+                if target_code.startswith("5"):
+                    alt = "6" + target_code[1:]
+                    if alt in acct_map:
+                        return alt
+                if target_code.startswith("6"):
+                    alt = "5" + target_code[1:]
+                    if alt in acct_map:
+                        return alt
+                return target_code
+
+            # Detect summary vouchers (dr=cr for P&L accounts)
+            _pl_codes = [a.code for a in accounts if a.category in ("收入", "费用")]
+            _is_sp = False
+            _is_sy = False
+            if _pl_codes:
+                _ns = sum(abs(period_map.get(c,(0,0))[0]-period_map.get(c,(0,0))[1]) for c in _pl_codes if max(period_map.get(c,(0,0)))>0)
+                _tt = sum(max(period_map.get(c,(0,0))) for c in _pl_codes)
+                if _tt > 0 and (_ns / _tt) < 0.01: _is_sp = True
+                _ns2 = sum(abs(ytd_map.get(c,(0,0))[0]-ytd_map.get(c,(0,0))[1]) for c in _pl_codes if max(ytd_map.get(c,(0,0)))>0)
+                _tt2 = sum(max(ytd_map.get(c,(0,0))) for c in _pl_codes)
+                if _tt2 > 0 and (_ns2 / _tt2) < 0.01: _is_sy = True
+
             def _period_vals(code):
                 dr, cr = period_map.get(code, (0, 0))
                 return dr, cr
@@ -623,16 +649,22 @@ class ReportRepository:
                 return dr, cr
 
             def _expense_month(code=None, sub=None):
+                code = _find_code(code) if code else code
                 acct = acct_map.get(code) if code else None
                 if acct and acct.category == "费用":
                     dr, cr = _period_vals(code)
+                    if _is_sp:
+                        return round(dr, 2)
                     return round(dr - cr, 2)
                 return 0
 
             def _expense_ytd(code=None, sub=None):
+                code = _find_code(code) if code else code
                 acct = acct_map.get(code) if code else None
                 if acct and acct.category == "费用":
                     dr, cr = _ytd_vals(code)
+                    if _is_sy:
+                        return round(dr, 2)
                     return round(dr - cr, 2)
                 return 0
 
@@ -640,6 +672,8 @@ class ReportRepository:
                 acct = acct_map.get(code) if code else None
                 if acct and acct.category == "收入":
                     dr, cr = _period_vals(code)
+                    if _is_sp:
+                        return round(cr, 2)
                     return round(cr - dr, 2)
                 return 0
 
@@ -647,6 +681,8 @@ class ReportRepository:
                 acct = acct_map.get(code) if code else None
                 if acct and acct.category == "收入":
                     dr, cr = _ytd_vals(code)
+                    if _is_sy:
+                        return round(cr, 2)
                     return round(cr - dr, 2)
                 return 0
 
@@ -679,9 +715,9 @@ class ReportRepository:
             rows.append({"name": "营业收入合计", "code": "", "level": 0, "month": total_rev_month, "ytd": total_rev_ytd, "type": "rev_total"})
 
             # 减：营业成本
-            cogs_month = _expense_month(code="6401")
-            cogs_ytd = _expense_ytd(code="6401")
-            for ch in _child_accounts("6401"):
+            cogs_month = _expense_month(code=_find_code("6401"))
+            cogs_ytd = _expense_ytd(code=_find_code("6401"))
+            for ch in _child_accounts(_find_code("6401")):
                 m = _expense_month(code=ch["code"])
                 y = _expense_ytd(code=ch["code"])
                 if m or y:
@@ -689,30 +725,30 @@ class ReportRepository:
             rows.append({"name": "减：营业成本", "code": "", "level": 0, "month": cogs_month, "ytd": cogs_ytd, "type": "expense_header"})
 
             # 税金及附加
-            tax_month = _expense_month(code="6403")
-            tax_ytd = _expense_ytd(code="6403")
-            rows.append({"name": "税金及附加", "code": "6403", "level": 0, "month": tax_month, "ytd": tax_ytd, "type": "expense_header"})
-            for ch in _child_accounts("6403"):
+            tax_month = _expense_month(code=_find_code("6403"))
+            tax_ytd = _expense_ytd(code=_find_code("6403"))
+            rows.append({"name": "税金及附加", "code": _find_code("6403"), "level": 0, "month": tax_month, "ytd": tax_ytd, "type": "expense_header"})
+            for ch in _child_accounts(_find_code("6403")):
                 m = _expense_month(code=ch["code"])
                 y = _expense_ytd(code=ch["code"])
                 if m or y:
                     rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
 
             # 销售费用
-            sfa_month = _expense_month(code="6601")
-            sfa_ytd = _expense_ytd(code="6601")
-            rows.append({"name": "销售费用", "code": "6601", "level": 0, "month": sfa_month, "ytd": sfa_ytd, "type": "expense_header"})
-            for ch in _child_accounts("6601"):
+            sfa_month = _expense_month(code=_find_code("6601"))
+            sfa_ytd = _expense_ytd(code=_find_code("6601"))
+            rows.append({"name": "销售费用", "code": _find_code("6601"), "level": 0, "month": sfa_month, "ytd": sfa_ytd, "type": "expense_header"})
+            for ch in _child_accounts(_find_code("6601")):
                 m = _expense_month(code=ch["code"])
                 y = _expense_ytd(code=ch["code"])
                 if m or y:
                     rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
 
             # 管理费用
-            ma_month = _expense_month(code="6602")
-            ma_ytd = _expense_ytd(code="6602")
-            rows.append({"name": "管理费用", "code": "6602", "level": 0, "month": ma_month, "ytd": ma_ytd, "type": "expense_header"})
-            for ch in _child_accounts("6602"):
+            ma_month = _expense_month(code=_find_code("6602"))
+            ma_ytd = _expense_ytd(code=_find_code("6602"))
+            rows.append({"name": "管理费用", "code": _find_code("6602"), "level": 0, "month": ma_month, "ytd": ma_ytd, "type": "expense_header"})
+            for ch in _child_accounts(_find_code("6602")):
                 m = _expense_month(code=ch["code"])
                 y = _expense_ytd(code=ch["code"])
                 if m or y:
@@ -724,37 +760,37 @@ class ReportRepository:
             rows.append({"name": "研发费用", "code": "5001", "level": 0, "month": rd_month, "ytd": rd_ytd, "type": "expense_header"})
 
             # 财务费用
-            fa_month = _expense_month(code="6603")
-            fa_ytd = _expense_ytd(code="6603")
-            rows.append({"name": "财务费用", "code": "6603", "level": 0, "month": fa_month, "ytd": fa_ytd, "type": "expense_header"})
-            for ch in _child_accounts("6603"):
+            fa_month = _expense_month(code=_find_code("6603"))
+            fa_ytd = _expense_ytd(code=_find_code("6603"))
+            rows.append({"name": "财务费用", "code": _find_code("6603"), "level": 0, "month": fa_month, "ytd": fa_ytd, "type": "expense_header"})
+            for ch in _child_accounts(_find_code("6603")):
                 m = _expense_month(code=ch["code"])
                 y = _expense_ytd(code=ch["code"])
                 if m or y:
                     rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
 
             # 加：投资收益
-            inv_month = _revenue_month(code="6111")
-            inv_ytd = _revenue_ytd(code="6111")
-            rows.append({"name": "加：投资收益", "code": "6111", "level": 1, "month": inv_month, "ytd": inv_ytd, "type": "revenue_item"})
+            inv_month = _revenue_month(code=_find_code("6111"))
+            inv_ytd = _revenue_ytd(code=_find_code("6111"))
+            rows.append({"name": "加：投资收益", "code": _find_code("6111"), "level": 1, "month": inv_month, "ytd": inv_ytd, "type": "revenue_item"})
 
             # 加：公允价值变动收益
-            fv_month = _revenue_month(code="6101")
-            fv_ytd = _revenue_ytd(code="6101")
-            rows.append({"name": "加：公允价值变动收益", "code": "6101", "level": 1, "month": fv_month, "ytd": fv_ytd, "type": "revenue_item"})
+            fv_month = _revenue_month(code=_find_code("6101"))
+            fv_ytd = _revenue_ytd(code=_find_code("6101"))
+            rows.append({"name": "加：公允价值变动收益", "code": _find_code("6101"), "level": 1, "month": fv_month, "ytd": fv_ytd, "type": "revenue_item"})
 
             # 加：其他收益
             rows.append({"name": "加：其他收益", "code": "", "level": 1, "month": 0, "ytd": 0, "type": "revenue_item"})
 
             # 减：信用减值损失
-            cl_month = _expense_month(code="6702")
-            cl_ytd = _expense_ytd(code="6702")
-            rows.append({"name": "减：信用减值损失", "code": "6702", "level": 0, "month": cl_month, "ytd": cl_ytd, "type": "expense_header"})
+            cl_month = _expense_month(code=_find_code("6702"))
+            cl_ytd = _expense_ytd(code=_find_code("6702"))
+            rows.append({"name": "减：信用减值损失", "code": _find_code("6702"), "level": 0, "month": cl_month, "ytd": cl_ytd, "type": "expense_header"})
 
             # 减：资产减值损失
-            imp_month = _expense_month(code="6701")
-            imp_ytd = _expense_ytd(code="6701")
-            rows.append({"name": "减：资产减值损失", "code": "6701", "level": 0, "month": imp_month, "ytd": imp_ytd, "type": "expense_header"})
+            imp_month = _expense_month(code=_find_code("6701"))
+            imp_ytd = _expense_ytd(code=_find_code("6701"))
+            rows.append({"name": "减：资产减值损失", "code": _find_code("6701"), "level": 0, "month": imp_month, "ytd": imp_ytd, "type": "expense_header"})
 
             # 加：资产处置收益
             rows.append({"name": "加：资产处置收益", "code": "", "level": 1, "month": 0, "ytd": 0, "type": "revenue_item"})
@@ -767,8 +803,8 @@ class ReportRepository:
             rows.append({"name": "二、营业利润", "code": "", "level": 0, "month": op_month, "ytd": op_ytd, "type": "subtotal"})
 
             # 加：营业外收入
-            oi_month = _revenue_month(code="6301")
-            oi_ytd = _revenue_ytd(code="6301")
+            oi_month = _revenue_month(code=_find_code("6301"))
+            oi_ytd = _revenue_ytd(code=_find_code("6301"))
             rows.append({"name": "加：营业外收入", "code": "6301", "level": 0, "month": oi_month, "ytd": oi_ytd, "type": "revenue_header"})
             for ch in _child_accounts("6301"):
                 m = _revenue_month(code=ch["code"])
@@ -777,10 +813,10 @@ class ReportRepository:
                     rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "revenue_item"})
 
             # 减：营业外支出
-            oe_month = _expense_month(code="6711")
-            oe_ytd = _expense_ytd(code="6711")
-            rows.append({"name": "减：营业外支出", "code": "6711", "level": 0, "month": oe_month, "ytd": oe_ytd, "type": "expense_header"})
-            for ch in _child_accounts("6711"):
+            oe_month = _expense_month(code=_find_code("6711"))
+            oe_ytd = _expense_ytd(code=_find_code("6711"))
+            rows.append({"name": "减：营业外支出", "code": _find_code("6711"), "level": 0, "month": oe_month, "ytd": oe_ytd, "type": "expense_header"})
+            for ch in _child_accounts(_find_code("6711")):
                 m = _expense_month(code=ch["code"])
                 y = _expense_ytd(code=ch["code"])
                 if m or y:
@@ -792,9 +828,9 @@ class ReportRepository:
             rows.append({"name": "三、利润总额", "code": "", "level": 0, "month": bt_month, "ytd": bt_ytd, "type": "subtotal"})
 
             # 减：所得税费用
-            tax_exp_month = _expense_month(code="6801")
-            tax_exp_ytd = _expense_ytd(code="6801")
-            rows.append({"name": "减：所得税费用", "code": "6801", "level": 1, "month": tax_exp_month, "ytd": tax_exp_ytd, "type": "expense_item"})
+            tax_exp_month = _expense_month(code=_find_code("6801"))
+            tax_exp_ytd = _expense_ytd(code=_find_code("6801"))
+            rows.append({"name": "减：所得税费用", "code": _find_code("6801"), "level": 1, "month": tax_exp_month, "ytd": tax_exp_ytd, "type": "expense_item"})
 
             # 四、净利润
             np_month = bt_month - tax_exp_month

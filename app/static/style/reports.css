@@ -2052,7 +2052,7 @@
     font-family: 'Consolas', monospace;
     font-size: 11px;
     color: #6b7280;
-    width: 56px;
+    width: 72px;
 }
 
 .tb-compact-td-name {
@@ -2060,14 +2060,14 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 120px;
+    max-width: 200px;
 }
 
 .tb-compact-td-num {
     text-align: right;
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
-    width: 68px;
+    width: 88px;
 }
 
 .tb-td-debit {
