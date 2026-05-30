@@ -82,10 +82,24 @@ class ReportRepository:
             ytd_result = await session.execute(ytd_stmt)
             ytd_map = {r.account_code: (r.total_debit, r.total_credit) for r in ytd_result.all()}
 
-            # 5. Assemble results (no more DB queries)
+            # 5. Detect parent accounts with children (for opening balance dedup)
+            _parent_ob = {}
+            for acct in accounts:
+                if acct.parent_code:
+                    ob_val = opening_map.get(acct.code, 0) or 0
+                    if ob_val != 0:
+                        _parent_ob.setdefault(acct.parent_code, []).append(acct.code)
+
+            # 6. Assemble results (no more DB queries)
+            # 6. Assemble results (no more DB queries)
+
             balances = []
             for acct in accounts:
                 opening = opening_map.get(acct.code, 0)
+                # For parent accounts, opening = own opening - children opening (avoid double-count)
+                if acct.code in _parent_ob and opening:
+                    children_ob = sum(opening_map.get(cc, 0) or 0 for cc in _parent_ob[acct.code])
+                    opening = opening - children_ob if children_ob else opening
                 period_debit, period_credit = period_map.get(acct.code, (0, 0))
                 ytd_debit, ytd_credit = ytd_map.get(acct.code, (0, 0))
 
@@ -805,8 +819,8 @@ class ReportRepository:
             # 加：营业外收入
             oi_month = _revenue_month(code=_find_code("6301"))
             oi_ytd = _revenue_ytd(code=_find_code("6301"))
-            rows.append({"name": "加：营业外收入", "code": "6301", "level": 0, "month": oi_month, "ytd": oi_ytd, "type": "revenue_header"})
-            for ch in _child_accounts("6301"):
+            rows.append({"name": "加：营业外收入", "code": _find_code("6301"), "level": 0, "month": oi_month, "ytd": oi_ytd, "type": "revenue_header"})
+            for ch in _child_accounts(_find_code("6301")):
                 m = _revenue_month(code=ch["code"])
                 y = _revenue_ytd(code=ch["code"])
                 if m or y:
