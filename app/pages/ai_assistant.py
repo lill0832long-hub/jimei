@@ -201,32 +201,28 @@ def render_ai_assistant():
                             await _ai_reply(raw, history, chat_box, llm)
                         ui.timer(0.1, lambda: _bg(), once=True)
 
-                    # Enter 键：keyup 时 DOM 值已更新，直接读
-                    def _on_keyup(e):
+                    # 统一的 JS 读值+清空+发送函数
+                    async def _js_read_and_send():
+                        try:
+                            val = await ui.run_javascript(
+                                "(() => { const el = document.querySelector('textarea'); "
+                                "const v = el ? el.value.replace(/\\n/g,'').trim() : ''; "
+                                "if(el) el.value=''; return v; })()")
+                            if val:
+                                _do_send(val)
+                        except Exception:
+                            pass
+
+                    # Enter 键：阻止换行，用 ui.timer 保持上下文
+                    def _on_keydown(e):
                         args = e.args or {}
                         if args.get("key") == "Enter" and not args.get("shiftKey"):
-                            async def _read_and_send():
-                                val = await ui.run_javascript(
-                                    "(() => { const el = document.querySelector('textarea'); "
-                                    "const v = el ? el.value.replace(/\\n/g,'').trim() : ''; "
-                                    "if(el) el.value=''; return v; })()")
-                                if val:
-                                    _do_send(val)
-                            import asyncio
-                            asyncio.ensure_future(_read_and_send())
+                            ui.timer(0, lambda: _js_read_and_send(), once=True)
 
-                    msg_input.on("keyup", _on_keyup)
+                    msg_input.on("keydown", _on_keydown)
 
-                    # 按钮：run_javascript 直接读 DOM 值
-                    async def _on_send_click():
-                        val = await ui.run_javascript(
-                            "(() => { const el = document.querySelector('textarea'); "
-                            "const v = el ? el.value.trim() : ''; "
-                            "if(el) el.value=''; return v; })()")
-                        if val:
-                            _do_send(val)
-
-                    send_btn.on_click(_on_send_click)
+                    # 按钮：直接 async 读值（有上下文）
+                    send_btn.on_click(_js_read_and_send)
 
         # ── 右侧：工具面板 ──
         with ui.column().classes("w-72 gap-2"):
