@@ -28,19 +28,9 @@ def render_account_ledger():
             with ui.row().classes("items-center gap-3"):
                 ui.label("📒 科目明细账").classes("text-base font-bold")
                 ui.separator().props("vertical")
-                al_year_sel = ui.select(options=list(range(2020, 2031)), value=state.selected_year, label="年度").props("dense outlined").classes("w-28")
-                al_month_sel = ui.select(options=list(range(1, 13)), value=state.selected_month, label="月份").props("dense outlined").classes("w-24")
+                ui.label(f"期间：{state.selected_year}年{state.selected_month}月").classes("text-sm text-grey-6 px-2 py-1 bg-blue-50 rounded")
                 al_acct_sel = ui.select(options=acct_opts, value=default_code, label="科目").props("outlined dense").classes("w-56")
                 ui.button("🔍 查询", color="primary", on_click=lambda: refresh_main()).props("dense").classes("text-xs")
-
-                def _on_al_period():
-                    state.selected_year = al_year_sel.value
-                    state.selected_month = al_month_sel.value
-                    state._drill_account_code = al_acct_sel.value
-                    refresh_main()
-
-                al_year_sel.on("update:value", lambda e: _on_al_period())
-                al_month_sel.on("update:value", lambda e: _on_al_period())
 
     # 获取科目明细账数据
     current_code = getattr(state, '_drill_account_code', None) or default_code

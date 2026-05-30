@@ -519,7 +519,7 @@ def render_header():
 
             with ui.row().classes("header-center items-center gap-2").style("justify-content: center"):
                 ui.select(
-                    list(range(2024,2031)), value=state.selected_year,
+                    list(range(2020,2031)), value=state.selected_year,
                     on_change=lambda e: [setattr(state,'selected_year',e.value), refresh_main()]
                 ).props("dense input-style=\"text-align: center; font-family: var(--font-stack); font-size: 14px; font-weight: 700; color: var(--c-text-primary);\"").classes("header-year-select")
                 ui.label("年").classes("header-period-label")

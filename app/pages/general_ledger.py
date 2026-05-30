@@ -29,18 +29,9 @@ def render_general_ledger():
             with ui.row().classes("items-center gap-3"):
                 ui.label("📖 总分类账").classes("text-base font-bold")
                 ui.separator().props("vertical")
-                gl_year_sel = ui.select(options=list(range(2020, 2031)), value=state.selected_year, label="年度").props("dense outlined").classes("w-28")
-                gl_month_sel = ui.select(options=list(range(1, 13)), value=state.selected_month, label="月份").props("dense outlined").classes("w-24")
+                ui.label(f"期间：{state.selected_year}年{state.selected_month}月").classes("text-sm text-grey-6 px-2 py-1 bg-blue-50 rounded")
                 gl_acct_sel = ui.select(options=acct_opts, value=initial_acct, label="科目").props("outlined dense").classes("w-56")
                 ui.button("🔍 查询", color="primary", on_click=lambda: refresh_main()).props("dense").classes("text-xs")
-
-                def _on_gl_period():
-                    state.selected_year = gl_year_sel.value
-                    state.selected_month = gl_month_sel.value
-                    refresh_main()
-
-                gl_year_sel.on("update:value", lambda e: _on_gl_period())
-                gl_month_sel.on("update:value", lambda e: _on_gl_period())
 
     # 获取总分类账数据
     selected_code = gl_acct_sel.value or None
