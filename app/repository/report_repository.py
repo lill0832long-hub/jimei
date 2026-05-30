@@ -91,7 +91,6 @@ class ReportRepository:
                         _parent_ob.setdefault(acct.parent_code, []).append(acct.code)
 
             # 6. Assemble results (no more DB queries)
-            # 6. Assemble results (no more DB queries)
 
             balances = []
             for acct in accounts:
@@ -108,6 +107,9 @@ class ReportRepository:
                 else:
                     closing = opening + period_credit - period_debit
 
+                # Skip child when parent has opening balance (parent total already includes child)
+                if acct.parent_code and opening_map.get(acct.parent_code, 0):
+                    continue
                 balances.append({
                     "account_code": acct.code,
                     "account_name": acct.name,
@@ -628,6 +630,24 @@ class ReportRepository:
                     {"code": row.code, "name": row.name}
                 )
 
+            # Detect JE account names for misclassified accounts
+            _je_names = {}
+            try:
+                je_name_stmt = select(
+                    JournalEntry.account_code,
+                    JournalEntry.account_name,
+                ).join(Voucher, JournalEntry.voucher_id == Voucher.id).where(
+                    and_(
+                        JournalEntry.ledger_id == ledger_id,
+                        Voucher.status == 'posted',
+                    )
+                ).group_by(JournalEntry.account_code, JournalEntry.account_name)
+                je_name_result = await session.execute(je_name_stmt)
+                for row in je_name_result.all():
+                    _je_names[row.account_code] = row.account_name
+            except Exception:
+                pass
+
             # 5xxx/6xxx code mapping for old/new accounting standards
             def _find_code(target_code):
                 if target_code in acct_map:
@@ -708,6 +728,13 @@ class ReportRepository:
             # 一、营业收入
             rows.append({"name": "一、营业收入", "code": "", "level": 0, "month": None, "ytd": None, "type": "header"})
             rev_codes = [a for a in accounts if a.category == "收入" and a.sub_category == "营业收入" and not a.parent_code]
+            # Include accounts classified as expense but used as revenue in JEs
+            _rev_set = set(r.code for r in rev_codes)
+            for acct in accounts:
+                if acct.code not in _rev_set and not acct.parent_code:
+                    jn = _je_names.get(acct.code, "")
+                    if "收入" in jn and acct.category == "费用":
+                        rev_codes.append(acct)
             total_rev_month = 0
             total_rev_ytd = 0
             for r in rev_codes:
@@ -769,8 +796,9 @@ class ReportRepository:
                     rows.append({"name": ch["name"], "code": ch["code"], "level": 2, "month": m, "ytd": y, "type": "expense_item"})
 
             # 研发费用
-            rd_month = _expense_month(code="5001")
-            rd_ytd = _expense_ytd(code="5001")
+            _is_5001_rev = "5001" in _rev_set
+            rd_month = 0 if _is_5001_rev else _expense_month(code="5001")
+            rd_ytd = 0 if _is_5001_rev else _expense_ytd(code="5001")
             rows.append({"name": "研发费用", "code": "5001", "level": 0, "month": rd_month, "ytd": rd_ytd, "type": "expense_header"})
 
             # 财务费用
