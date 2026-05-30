@@ -28,7 +28,7 @@ FINANCE_TOOLS = [
     {"type": "function", "function": {"name": "query_income_statement", "description": "查询利润表", "parameters": {"type": "object", "properties": {}}}},
     {"type": "function", "function": {"name": "query_balance_sheet", "description": "查询资产负债表", "parameters": {"type": "object", "properties": {}}}},
     {"type": "function", "function": {"name": "generate_voucher", "description": "根据业务描述生成凭证", "parameters": {"type": "object", "properties": {"description": {"type": "string"}}, "required": ["description"]}}},
-    {"type": "function", "function": {"name": "analyze_financials", "description": "分析财务数据检测异常", "parameters": {"type": "object", "properties": {}}}},
+    {"type": "function", "function": {"name": "analyze_financials", "description": "分析财务数据检测异常。注意：此工具仅包含有期初余额或本期发生额的科目，权益等长期科目可能缺失。验证会计恒等式时必须同时调用 query_balance_sheet", "parameters": {"type": "object", "properties": {}}}},
 ]
 
 
