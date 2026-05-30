@@ -31,8 +31,8 @@ def analyze_period(lid, year, month):
     
     # ── 计算关键指标 ──
     total_assets = sum(float(b.get("closing_balance", 0) or 0) for b in balances if b.get("category") == "资产")
-    total_liab = sum(float(b.get("closing_balance", 0) or 0) for b in balances if b.get("category") == "负债")
-    total_equity = sum(float(b.get("closing_balance", 0) or 0) for b in balances if b.get("category") == "权益")
+    total_liab = abs(sum(float(b.get("closing_balance", 0) or 0) for b in balances if b.get("category") == "负债"))
+    total_equity = abs(sum(float(b.get("closing_balance", 0) or 0) for b in balances if b.get("category") == "权益"))
     
     # 资产负债率
     debt_ratio = (total_liab / total_assets * 100) if total_assets > 0 else 0
@@ -68,19 +68,19 @@ def analyze_period(lid, year, month):
     anomalies = []
     
     # 1. 资产负债率过高
-    if debt_ratio > 70:
-        anomalies.append({
-            "level": "warning",
-            "title": "资产负债率偏高",
-            "detail": f"当前资产负债率 {debt_ratio:.1f}%，超过 70% 警戒线",
-            "suggestion": "关注偿债风险，考虑优化负债结构"
-        })
-    elif debt_ratio > 90:
+    if debt_ratio > 90:
         anomalies.append({
             "level": "danger",
             "title": "资产负债率过高",
             "detail": f"当前资产负债率 {debt_ratio:.1f}%，接近资不抵债",
             "suggestion": "立即评估偿债能力，考虑增资或减债"
+        })
+    elif debt_ratio > 70:
+        anomalies.append({
+            "level": "warning",
+            "title": "资产负债率偏高",
+            "detail": f"当前资产负债率 {debt_ratio:.1f}%，超过 70% 警戒线",
+            "suggestion": "关注偿债风险，考虑优化负债结构"
         })
     
     # 2. 净利润为负
