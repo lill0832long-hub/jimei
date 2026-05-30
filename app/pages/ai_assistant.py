@@ -201,15 +201,32 @@ def render_ai_assistant():
                             await _ai_reply(raw, history, chat_box, llm)
                         ui.timer(0.1, lambda: _bg(), once=True)
 
+                    # Enter 键：keyup 时 DOM 值已更新，直接读
                     def _on_keyup(e):
                         args = e.args or {}
                         if args.get("key") == "Enter" and not args.get("shiftKey"):
-                            val = (msg_input.value or "").replace("\n", "").strip()
-                            if val:
-                                _do_send(val)
+                            async def _read_and_send():
+                                val = await ui.run_javascript(
+                                    "(() => { const el = document.querySelector('textarea'); "
+                                    "const v = el ? el.value.replace(/\\n/g,'').trim() : ''; "
+                                    "if(el) el.value=''; return v; })()")
+                                if val:
+                                    _do_send(val)
+                            import asyncio
+                            asyncio.ensure_future(_read_and_send())
 
                     msg_input.on("keyup", _on_keyup)
-                    send_btn.on_click(lambda: _do_send((msg_input.value or "").replace("\n", "").strip()))
+
+                    # 按钮：run_javascript 直接读 DOM 值
+                    async def _on_send_click():
+                        val = await ui.run_javascript(
+                            "(() => { const el = document.querySelector('textarea'); "
+                            "const v = el ? el.value.trim() : ''; "
+                            "if(el) el.value=''; return v; })()")
+                        if val:
+                            _do_send(val)
+
+                    send_btn.on_click(_on_send_click)
 
         # ── 右侧：工具面板 ──
         with ui.column().classes("w-72 gap-2"):
