@@ -190,7 +190,7 @@ def render_ai_assistant():
                     send_btn = ui.button(icon="send", color="primary").props("round dense").classes("mb-1")
 
                     def _do_send(text=None):
-                        raw = (text or msg_input.value or "").strip()
+                        raw = (text or "").strip()
                         if not raw:
                             return
                         msg_input.set_value("")
@@ -201,17 +201,15 @@ def render_ai_assistant():
                             await _ai_reply(raw, history, chat_box, llm)
                         ui.timer(0.1, lambda: _bg(), once=True)
 
-                    send_btn.on_click(_do_send)
+                    def _on_keyup(e):
+                        args = e.args or {}
+                        if args.get("key") == "Enter" and not args.get("shiftKey"):
+                            val = (msg_input.value or "").replace("\n", "").strip()
+                            if val:
+                                _do_send(val)
 
-                    def _on_enter(e):
-                        _do_send()
-
-                    msg_input.on("keydown", handler=_on_enter, js_handler="""(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                            e.preventDefault();
-                            emit();
-                        }
-                    }""")
+                    msg_input.on("keyup", _on_keyup)
+                    send_btn.on_click(lambda: _do_send((msg_input.value or "").replace("\n", "").strip()))
 
         # ── 右侧：工具面板 ──
         with ui.column().classes("w-72 gap-2"):
