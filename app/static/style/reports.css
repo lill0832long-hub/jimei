@@ -1961,11 +1961,11 @@
 
 /* ===== 左右网格布局 ===== */
 .tb-grid {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 16px;
     width: 100%;
-    align-items: flex-start;
+    align-items: start;
 }
 
 .tb-grid-card {
