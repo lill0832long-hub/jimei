@@ -186,23 +186,32 @@ def render_ai_assistant():
             # 输入区
             with ui.card().classes("w-full"):
                 with ui.row().classes("items-end gap-2 p-3"):
-                    msg_input = ui.textarea(placeholder="输入财务问题...").props("outlined dense autogrow").classes("flex-1").style("max-height:120px;")
+                    msg_input = ui.textarea(placeholder="输入财务问题，按 Enter 发送...").props("outlined dense autogrow").classes("flex-1").style("max-height:120px;")
                     send_btn = ui.button(icon="send", color="primary").props("round dense").classes("mb-1")
 
-                    async def _do_send(text=None):
-                        user_msg = (text or msg_input.value or "").strip()
-                        if not user_msg:
+                    def _do_send(text=None):
+                        raw = (text or msg_input.value or "").strip()
+                        if not raw:
                             return
-                        msg_input.value = ""
-                        # 1. 显示用户消息
-                        history.append({"role": "user", "content": user_msg})
-                        _append_user_msg(chat_box, user_msg)
+                        msg_input.set_value("")
+                        history.append({"role": "user", "content": raw})
+                        _append_user_msg(chat_box, raw)
                         _scroll_bottom()
-                        # 2. 启动异步 AI 回复
-                        await _ai_reply(user_msg, history, chat_box, llm)
+                        async def _bg():
+                            await _ai_reply(raw, history, chat_box, llm)
+                        ui.timer(0.1, lambda: _bg(), once=True)
 
-                    send_btn.on_click(lambda: _do_send())
-                    msg_input.on("keydown", lambda e: _do_send() if e.args.get("key") == "Enter" and not e.args.get("shiftKey") else None)
+                    send_btn.on_click(_do_send)
+
+                    def _on_enter(e):
+                        _do_send()
+
+                    msg_input.on("keydown", handler=_on_enter, js_handler="""(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                            e.preventDefault();
+                            emit();
+                        }
+                    }""")
 
         # ── 右侧：工具面板 ──
         with ui.column().classes("w-72 gap-2"):
@@ -314,3 +323,7 @@ def _clear_all(history, chat_box):
                 ui.icon("waving_hand", size="36px").classes("text-blue-4")
                 ui.label("对话已清空，重新开始吧").classes("text-base font-bold text-blue-7")
     show_toast("对话已清空", "info")
+
+
+
+
