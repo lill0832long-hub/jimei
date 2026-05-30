@@ -1961,10 +1961,11 @@
 
 /* ===== 左右网格布局 ===== */
 .tb-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 16px;
     width: 100%;
+    align-items: flex-start;
 }
 
 .tb-grid-card {
@@ -1973,6 +1974,8 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     border: 1px solid #e5e7eb;
     overflow: hidden;
+    flex: 0 1 calc(50% - 8px);
+    min-width: 380px;
 }
 
 .tb-grid-card__header {
@@ -2006,7 +2009,7 @@
 
 .tb-grid-card__content {
     padding: 0;
-    max-height: 300px;
+    max-height: 400px;
     overflow-y: auto;
 }
 

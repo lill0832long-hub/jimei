@@ -62,81 +62,78 @@ def render_trial_balance():
     render_kpi_cards(kpis)
 
     # ── 左右网格布局 ──
+    # 过滤零余额科目，减少留白
+    _nz = lambda items: [b for b in items if float(b.get('closing_balance', 0) or 0) != 0 or float(b.get('opening_balance', 0) or 0) != 0 or float(b.get('period_debit', 0) or 0) != 0 or float(b.get('period_credit', 0) or 0) != 0]
     _CATEGORY_CONFIG = [
-        ("资产类", assets, "#10b981"),
-        ("负债类", liabilities, "#ef4444"),
-        ("权益类", equity, "#3b82f6"),
-        ("收入类", revenue, "#9333ea"),
-        ("费用类", expense, "#ea580c"),
+        ("资产类", _nz(assets), "#10b981"),
+        ("负债类", _nz(liabilities), "#ef4444"),
+        ("权益类", _nz(equity), "#3b82f6"),
+        ("收入类", _nz(revenue), "#9333ea"),
+        ("费用类", _nz(expense), "#ea580c"),
     ]
 
-    # 使用网格布局，表格左右排列
-    with ui.element("div").classes("tb-grid"):
-        for cat_name, cat_items, color in _CATEGORY_CONFIG:
-            if not cat_items:
-                continue
+    # 使用网格布局，表格左右排列（纯HTML实现，避免NiceGUI flex干扰）
+    grid_html = '<div class="tb-grid">'
+    for cat_name, cat_items, color in _CATEGORY_CONFIG:
+        if not cat_items:
+            continue
 
-            cat_open = _sum_field(cat_items, "opening_balance")
-            cat_dr = _sum_field(cat_items, "period_debit")
-            cat_cr = _sum_field(cat_items, "period_credit")
-            cat_close = _sum_field(cat_items, "closing_balance")
+        cat_open = _sum_field(cat_items, "opening_balance")
+        cat_dr = _sum_field(cat_items, "period_debit")
+        cat_cr = _sum_field(cat_items, "period_credit")
+        cat_close = _sum_field(cat_items, "closing_balance")
 
-            # 每个分类一个卡片
-            with ui.card().classes("tb-grid-card"):
-                # 卡片头部
-                with ui.row().classes("tb-grid-card__header"):
-                    with ui.row().classes("items-center gap-2"):
-                        ui.element("div").style(f"width:8px;height:8px;border-radius:50%;background:{color}")
-                        ui.label(cat_name).classes("tb-grid-card__title")
-                        ui.label(f"{len(cat_items)}个科目").classes("tb-grid-card__count")
-                    ui.space()
-                    ui.label(f"余额: {format_amount(cat_close)}").classes("tb-grid-card__balance")
+        max_h = min(400, max(180, len(cat_items) * 32 + 50))
+        grid_html += f'<div class="tb-grid-card">'
+        grid_html += f'<div class="tb-grid-card__header">'
+        grid_html += f'<div style="display:flex;align-items:center;gap:8px;">'
+        grid_html += f'<div style="width:8px;height:8px;border-radius:50%;background:{color}"></div>'
+        grid_html += f'<span class="tb-grid-card__title">{cat_name}</span>'
+        grid_html += f'<span class="tb-grid-card__count">{len(cat_items)}个科目</span>'
+        grid_html += f'</div><span class="tb-grid-card__balance">余额: {format_amount(cat_close)}</span>'
+        grid_html += f'</div>'
+        mh = min(480, len(cat_items) * 28 + 60); grid_html += f'<div class="tb-grid-card__content" style="max-height:{mh}px;overflow-y:auto;">'
 
-                # 表格内容
-                with ui.column().classes("tb-grid-card__content"):
-                    table_html = '<table class="tb-compact-table">'
-                    table_html += '<thead><tr>'
-                    table_html += '<th class="tb-compact-th">编码</th>'
-                    table_html += '<th class="tb-compact-th">名称</th>'
-                    table_html += '<th class="tb-compact-th tb-compact-th-num">期初</th>'
-                    table_html += '<th class="tb-compact-th tb-compact-th-num">借方</th>'
-                    table_html += '<th class="tb-compact-th tb-compact-th-num">贷方</th>'
-                    table_html += '<th class="tb-compact-th tb-compact-th-num">期末</th>'
-                    table_html += '</tr></thead>'
-                    table_html += '<tbody>'
+        grid_html += '<table class="tb-compact-table"><thead><tr>'
+        grid_html += '<th class="tb-compact-th">编码</th>'
+        grid_html += '<th class="tb-compact-th">名称</th>'
+        grid_html += '<th class="tb-compact-th tb-compact-th-num">期初</th>'
+        grid_html += '<th class="tb-compact-th tb-compact-th-num">借方</th>'
+        grid_html += '<th class="tb-compact-th tb-compact-th-num">贷方</th>'
+        grid_html += '<th class="tb-compact-th tb-compact-th-num">期末</th>'
+        grid_html += '</tr></thead><tbody>'
 
-                    for b in cat_items:
-                        code = b.get("account_code", "")
-                        name = b.get("account_name", "")
-                        opening = float(b.get("opening_balance", 0) if b.get("opening_balance") is not None else 0)
-                        debit = float(b.get("period_debit", 0) if b.get("period_debit") is not None else 0)
-                        credit = float(b.get("period_credit", 0) if b.get("period_credit") is not None else 0)
-                        closing = float(b.get("closing_balance", 0) if b.get("closing_balance") is not None else 0)
+        for b in cat_items:
+            code = b.get("account_code", "")
+            name = b.get("account_name", "")
+            opening = float(b.get("opening_balance", 0) if b.get("opening_balance") is not None else 0)
+            debit = float(b.get("period_debit", 0) if b.get("period_debit") is not None else 0)
+            credit = float(b.get("period_credit", 0) if b.get("period_credit") is not None else 0)
+            closing = float(b.get("closing_balance", 0) if b.get("closing_balance") is not None else 0)
 
-                        table_html += f'<tr class="tb-compact-row">'
-                        table_html += f'<td class="tb-compact-td tb-compact-td-code">{code}</td>'
-                        table_html += f'<td class="tb-compact-td tb-compact-td-name">{name}</td>'
-                        table_html += f'<td class="tb-compact-td tb-compact-td-num">{format_amount(opening) if opening else "—"}</td>'
-                        table_html += f'<td class="tb-compact-td tb-compact-td-num tb-td-debit">{format_amount(debit) if debit else "—"}</td>'
-                        table_html += f'<td class="tb-compact-td tb-compact-td-num tb-td-credit">{format_amount(credit) if credit else "—"}</td>'
-                        table_html += f'<td class="tb-compact-td tb-compact-td-num" style="font-weight:600">{format_amount(closing) if closing else "—"}</td>'
-                        table_html += '</tr>'
+            grid_html += f'<tr class="tb-compact-row">'
+            grid_html += f'<td class="tb-compact-td tb-compact-td-code">{code}</td>'
+            grid_html += f'<td class="tb-compact-td tb-compact-td-name">{name}</td>'
+            grid_html += f'<td class="tb-compact-td tb-compact-td-num">{format_amount(opening) if opening else "\u2014"}</td>'
+            grid_html += f'<td class="tb-compact-td tb-compact-td-num tb-td-debit">{format_amount(debit) if debit else "\u2014"}</td>'
+            grid_html += f'<td class="tb-compact-td tb-compact-td-num tb-td-credit">{format_amount(credit) if credit else "\u2014"}</td>'
+            grid_html += f'<td class="tb-compact-td tb-compact-td-num" style="font-weight:600">{format_amount(closing) if closing else "\u2014"}</td>'
+            grid_html += '</tr>'
 
-                    # 小计行
-                    table_html += f'<tr class="tb-compact-row tb-compact-row-subtotal">'
-                    table_html += f'<td class="tb-compact-td" colspan="2"><strong>小计</strong></td>'
-                    table_html += f'<td class="tb-compact-td tb-compact-td-num">{format_amount(cat_open)}</td>'
-                    table_html += f'<td class="tb-compact-td tb-compact-td-num tb-td-debit">{format_amount(cat_dr)}</td>'
-                    table_html += f'<td class="tb-compact-td tb-compact-td-num tb-td-credit">{format_amount(cat_cr)}</td>'
-                    table_html += f'<td class="tb-compact-td tb-compact-td-num" style="font-weight:700">{format_amount(cat_close)}</td>'
-                    table_html += '</tr>'
+        grid_html += f'<tr class="tb-compact-row tb-compact-row-subtotal">'
+        grid_html += f'<td class="tb-compact-td" colspan="2"><strong>小计</strong></td>'
+        grid_html += f'<td class="tb-compact-td tb-compact-td-num">{format_amount(cat_open)}</td>'
+        grid_html += f'<td class="tb-compact-td tb-compact-td-num tb-td-debit">{format_amount(cat_dr)}</td>'
+        grid_html += f'<td class="tb-compact-td tb-compact-td-num tb-td-credit">{format_amount(cat_cr)}</td>'
+        grid_html += f'<td class="tb-compact-td tb-compact-td-num" style="font-weight:700">{format_amount(cat_close)}</td>'
+        grid_html += '</tr>'
 
-                    table_html += '</tbody></table>'
+        grid_html += '</tbody></table></div></div>'
 
-                    with ui.card_section().classes("p-0"):
-                        ui.html(table_html, sanitize=False)
+    grid_html += '</div>'
+    ui.html(grid_html, sanitize=False)
 
-    # ── 合计行 ──
+    # ── 合计行 ──    # ── 合计行 ──
     with ui.row().classes("tb-total-row"):
         ui.label("全部科目合计").classes("font-bold text-sm")
         with ui.row().classes("gap-6"):
