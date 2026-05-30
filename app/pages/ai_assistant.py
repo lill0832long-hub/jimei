@@ -36,25 +36,35 @@ def _execute_tool(tool_name, arguments):
     lid = state.selected_ledger_id
     if not lid:
         return {"error": "请先选择账套"}
+    y, m = state.selected_year, state.selected_month
+    period_tag = {"query_period": f"{y}-{m:02d}", "ledger_id": lid}
     try:
         if tool_name == "query_account_balance":
             code = arguments.get("account_code", "")
-            balances = ReportService.get_account_balances(lid, state.selected_year, state.selected_month)
+            balances = ReportService.get_account_balances(lid, y, m)
             if code:
                 balances = [b for b in balances if b.get("account_code", "").startswith(code)]
-            return {"balances": [{"code": b.get("account_code",""), "name": b.get("account_name",""), "closing": round(float(b.get("closing_balance",0) or 0),2)} for b in balances[:20]]}
+            result = {"balances": [{"code": b.get("account_code",""), "name": b.get("account_name",""), "category": b.get("category",""), "closing": round(float(b.get("closing_balance",0) or 0),2)} for b in balances[:30]]}
+            result.update(period_tag)
+            return result
         elif tool_name == "query_income_statement":
-            report = ReportService.get_income_statement(lid, state.selected_year, state.selected_month)
+            report = ReportService.get_income_statement(lid, y, m)
+            if report:
+                report.update(period_tag)
             return report if report else {"error": "暂无数据"}
         elif tool_name == "query_balance_sheet":
-            bs = ReportService.get_balance_sheet(lid, state.selected_year, state.selected_month)
+            bs = ReportService.get_balance_sheet(lid, y, m)
             if not bs: return {"error": "暂无数据"}
-            return {"total_assets": bs.get("total_assets",0), "total_liab": bs.get("total_liab",0), "total_equity": bs.get("total_equity",0)}
+            bs.update(period_tag)
+            return bs
         elif tool_name == "generate_voucher":
             return VoucherService.generate_from_text(lid, arguments.get("description",""))
         elif tool_name == "analyze_financials":
             from app.services.analysis_service import analyze_period
-            return analyze_period(lid, state.selected_year, state.selected_month)
+            result = analyze_period(lid, y, m)
+            if isinstance(result, dict):
+                result.update(period_tag)
+            return result
         return {"error": f"未知工具: {tool_name}"}
     except Exception as e:
         return {"error": str(e)}

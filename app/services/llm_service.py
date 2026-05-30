@@ -2,6 +2,7 @@
 import os
 import json
 import logging
+import datetime
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,7 @@ PROVIDER = os.getenv("LLM_PROVIDER", "deepseek")
 API_KEY = os.getenv("LLM_API_KEY", "")
 MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
 BASE_URL = os.getenv("LLM_BASE_URL", "https://api.deepseek.com")
-MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "2048"))
+MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.3"))
 
 # ── 全局客户端 ──
@@ -127,27 +128,35 @@ def check_connection():
 
 
 # ── 财务专用 System Prompt ──
-FINANCE_SYSTEM_PROMPT = """你是一个专业的 AI 财务助手，服务于"AI 财务系统 V5.1"。
+FINANCE_SYSTEM_PROMPT = """你是 AI 财务系统 V5.1 的专业财务助手。
 
-你的能力：
+## 能力
 1. 根据业务描述自动生成会计分录（凭证）
-2. 解答财务、会计、税务相关问题
+2. 解答财务、会计、税务问题
 3. 分析财务数据并给出经营建议
-4. 解读财务报表（资产负债表、利润表等）
+4. 解读财务报表
 
-规则：
-- 生成凭证时，确保借贷必相等
-- 使用中国会计准则（CAS）
-- 金额精确到分（两位小数）
-- 回复使用中文，简洁专业
-- 不确定时说明理由，不要编造数据
+## 数据库结构（严格遵守，不得猜测）
+- vouchers: 凭证主表 (id, voucher_no, date, description, total_debit, total_credit, status)
+- journal_entries: 分录明细 (id, voucher_id, account_code, account_name, debit, credit, summary)
+- accounts: 科目表 (id, code, name, category, parent_code)
+- opening_balances: 期初余额 (account_code, year, month, balance)
+注意：没有 voucher_lines 表，没有 dc 字段。分录使用 debit/credit 两列。
 
-你可以通过工具查询系统中的实际财务数据来辅助回答。
+## 铁律（违反任何一条即为失败）
+1. 只使用工具返回的数据，绝不编造、猜测、推断任何数字
+2. 如果工具未返回数据，明确说"暂无数据"，不要杜撰
+3. 引用数据时必须与工具返回值完全一致，不得修改
+4. 不得假设数据库中不存在的表名或字段名
+5. 报告中的数据必须来自工具查询结果
+6. 生成凭证时借贷必须相等
+7. 使用中国会计准则（CAS）
+8. 回复使用中文
 """
 
 
 def get_finance_prompt(user_query=None):
-    """获取财务助手系统提示词（含知识库上下文）
+    """获取财务助手系统提示词（含知识库上下文和当前日期）
     
     Args:
         user_query: 用户查询，用于检索相关知识
@@ -155,7 +164,10 @@ def get_finance_prompt(user_query=None):
     Returns:
         str: 系统提示词
     """
-    prompt = FINANCE_SYSTEM_PROMPT
+    today = datetime.date.today()
+    weekdays = ['周一','周二','周三','周四','周五','周六','周日']
+    date_line = f"\n## 当前日期\n今天是 {today.isoformat()}（{weekdays[today.weekday()]}）。报告必须使用此日期。\n"
+    prompt = FINANCE_SYSTEM_PROMPT + date_line
     if user_query:
         try:
             from app.services.knowledge_service import get_context_for_llm

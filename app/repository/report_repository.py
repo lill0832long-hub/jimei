@@ -506,7 +506,7 @@ class ReportRepository:
             # ── Equity ──
             equity = []
             eq_end, eq_open = 0.0, 0.0
-            for code, name in [("4001", "实收资本"), ("4002", "资本公积"), ("4101", "盈余公积")]:
+            for code, name in [("3001", "实收资本"), ("3002", "资本公积"), ("3101", "盈余公积")]:
                 ev, ov = _end_bal(code), _open_bal_signed(code)
                 if ev or ov:
                     _add(equity, code, name, 1, ev, ov, "权益")
@@ -514,10 +514,10 @@ class ReportRepository:
                     eq_open += ov
 
             # 未分配利润 = 利润分配(4104) + 本年利润(4103) — use raw balances (incl. closing entries)
-            rp4104_end = _raw_end_bal("4104")
-            rp4103_end = _raw_end_bal("4103")
-            rp4104_open = _raw_open_bal("4104")
-            rp4103_open = _raw_open_bal("4103")
+            rp4104_end = _raw_end_bal("3104")
+            rp4103_end = _raw_end_bal("3103")
+            rp4104_open = _raw_open_bal("3104")
+            rp4103_open = _raw_open_bal("3103")
             rp_end = max(rp4104_end, 0) + rp4103_end
             rp_open = max(rp4104_open, 0) + rp4103_open
             if rp_end or rp_open:
