@@ -112,13 +112,15 @@ body, p, .q-table td, .q-btn, .q-field__native, .q-item__label {
     box-shadow: 0 0 0 2px var(--c-primary-light) !important;
 }
 
+@layer base {
 /* ===== 卡片样式 ===== */
 .q-card {
     border-radius: var(--radius-lg) !important;
     box-shadow: var(--shadow-md) !important;
-    background: var(--c-bg-card) !important;
+    background: var(--c-bg-card);
     border: 1px solid var(--c-border-light);
     transition: box-shadow var(--transition-base);
+}
 }
 .q-card:hover {
     box-shadow: var(--shadow-card-hover) !important;
