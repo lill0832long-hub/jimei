@@ -472,6 +472,30 @@ def close_tab(idx):
 
 # ===== Header =====
 
+
+def _auto_set_period(ledger_id):
+    """切换账套时自动设置到有数据的年月"""
+    try:
+        import sqlite3, os
+        db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'finance_v2.db')
+        if not os.path.exists(db_path):
+            db_path = 'finance_v2.db'
+        conn = sqlite3.connect(db_path)
+        c = conn.cursor()
+        c.execute(
+            "SELECT DISTINCT substr(v.date,1,4) as yr, substr(v.date,6,2) as mn "
+            "FROM vouchers v WHERE v.ledger_id=? AND v.status='posted' "
+            "ORDER BY yr DESC, mn DESC LIMIT 1",
+            (ledger_id,)
+        )
+        row = c.fetchone()
+        conn.close()
+        if row:
+            state.selected_year = int(row[0])
+            state.selected_month = int(row[1])
+    except Exception:
+        pass
+
 def render_header():
     """顶部导航栏"""
     # 选择框居中样式（只添加一次）

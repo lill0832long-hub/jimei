@@ -13,6 +13,30 @@ class State:
     selected_ledger_id = None
     selected_year = datetime.now().year
     selected_month = datetime.now().month
+
+    def _init_period(self):
+        """启动时自动检测有效期间"""
+        try:
+            import sqlite3, os
+            db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'finance_v2.db')
+            if not os.path.exists(db_path):
+                db_path = 'finance_v2.db'
+            conn = sqlite3.connect(db_path)
+            c = conn.cursor()
+            lid = self.selected_ledger_id or 1
+            c.execute(
+                "SELECT DISTINCT substr(v.date,1,4) as yr, substr(v.date,6,2) as mn "
+                "FROM vouchers v WHERE v.ledger_id=? AND v.status='posted' "
+                "ORDER BY yr DESC, mn DESC LIMIT 1",
+                (lid,)
+            )
+            row = c.fetchone()
+            conn.close()
+            if row:
+                self.selected_year = int(row[0])
+                self.selected_month = int(row[1])
+        except Exception:
+            pass
     selected_voucher_no = None
     main_content = None
     sidebar_content = None  # sidebar 容器（兼容旧引用）
@@ -125,6 +149,7 @@ class State:
         return ledgers[0] if ledgers else None
 
 state = State()
+state._init_period()
 
 
 # ── 错误提示体系 ──

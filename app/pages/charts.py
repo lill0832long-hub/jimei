@@ -1,4 +1,4 @@
-﻿"""图表分析 — Tab分类 + KPI摘要布局"""
+"""图表分析 — Tab分类 + KPI摘要布局"""
 from nicegui import ui
 from app.components.ui_components import SectionHeader, EmptyState
 from app.components.state import state
