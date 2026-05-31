@@ -538,7 +538,7 @@ def render_header():
                         ui.select(
                             options=ledger_options,
                             value=state.selected_ledger_id or (ledgers[0]["id"] if ledgers else None),
-                            on_change=lambda e: [setattr(state,'selected_ledger_id',e.value), refresh_main()]
+                            on_change=lambda e: [setattr(state,'selected_ledger_id',e.value), _auto_set_period(e.value), refresh_main()]
                         ).props("dense").classes("header-select")
 
             with ui.row().classes("header-center items-center gap-2").style("justify-content: center"):
