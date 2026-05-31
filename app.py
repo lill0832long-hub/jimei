@@ -23,7 +23,10 @@ from database.connection import init_db, init_v3_tables, init_system_templates
 from app.services import LedgerService
 
 # ── 初始化数据库 ──
-init_db()
+try:
+    init_db()
+except Exception as e:
+    print(f"init_db warning (DB may be locked by another process): {e}")
 try:
     init_v3_tables()
 except Exception as e:
