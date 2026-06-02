@@ -3,6 +3,8 @@ import os
 import json
 import logging
 import datetime
+import urllib.request
+import urllib.error
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -22,10 +24,12 @@ if _env_path.exists():
                 os.environ.setdefault(k.strip(), v.strip())
 
 # ── 配置 ──
-PROVIDER = os.getenv("LLM_PROVIDER", "deepseek")
-API_KEY = os.getenv("LLM_API_KEY", "")
-MODEL = os.getenv("LLM_MODEL", "deepseek-chat")
-BASE_URL = os.getenv("LLM_BASE_URL", "https://api.deepseek.com")
+PROVIDER = os.getenv("LLM_PROVIDER", "deepseek").strip().lower()
+API_KEY = os.getenv("LLM_API_KEY", "").strip()
+MODEL = os.getenv("LLM_MODEL", "").strip()
+if not MODEL:
+    MODEL = "claude-3.5" if PROVIDER in ("anthropic", "claude") else "deepseek-chat"
+BASE_URL = os.getenv("LLM_BASE_URL", "https://api.deepseek.com").strip()
 MAX_TOKENS = int(os.getenv("LLM_MAX_TOKENS", "4096"))
 TEMPERATURE = float(os.getenv("LLM_TEMPERATURE", "0.3"))
 
@@ -38,9 +42,52 @@ def _get_client():
     if _client is None:
         if not API_KEY:
             raise ValueError("LLM_API_KEY 未配置，请在 .env 文件中设置")
-        from openai import OpenAI
-        _client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
+        if PROVIDER in ("anthropic", "claude"):
+            # Anthropic/Claude 直接使用 HTTP 请求，不依赖 OpenAI SDK
+            _client = {"provider": "anthropic"}
+        else:
+            from openai import OpenAI
+            _client = OpenAI(api_key=API_KEY, base_url=BASE_URL)
     return _client
+
+
+def _build_anthropic_prompt(messages):
+    parts = []
+    for msg in messages:
+        role = msg.get("role")
+        content = msg.get("content", "") or ""
+        if role == "system":
+            parts.append(content)
+        elif role == "user":
+            parts.append(f"Human: {content}\n\nAssistant:")
+        elif role == "assistant":
+            parts.append(f"{content}\n\nHuman:")
+    return "\n\n".join(parts).strip()
+
+
+def _anthropic_request(prompt, temperature=None, max_tokens=None):
+    url = BASE_URL.rstrip("/") + "/complete" if BASE_URL else "https://api.anthropic.com/v1/complete"
+    body = {
+        "model": MODEL,
+        "prompt": prompt,
+        "max_tokens_to_sample": max_tokens or MAX_TOKENS,
+        "temperature": temperature or TEMPERATURE,
+        "stop_sequences": ["\n\nHuman:"]
+    }
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {API_KEY}",
+    }
+    request = urllib.request.Request(url, data=json.dumps(body).encode("utf-8"), headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            data = json.loads(response.read().decode("utf-8"))
+            return data
+    except urllib.error.HTTPError as exc:
+        message = exc.read().decode("utf-8", errors="ignore")
+        raise RuntimeError(f"Anthropic/Claude 请求失败: {exc.code} {exc.reason} {message}")
+    except Exception as exc:
+        raise RuntimeError(f"Anthropic/Claude 请求异常: {exc}")
 
 
 def chat(messages, tools=None, tool_choice="auto", temperature=None, max_tokens=None):
@@ -57,6 +104,21 @@ def chat(messages, tools=None, tool_choice="auto", temperature=None, max_tokens=
         dict: {"content": str, "tool_calls": list|None, "usage": dict}
     """
     client = _get_client()
+    if PROVIDER in ("anthropic", "claude"):
+        if tools:
+            logger.warning("Anthropic/Claude provider 当前不支持工具调用 (tools/function calling)，已忽略 tools 参数。")
+        prompt = _build_anthropic_prompt(messages)
+        resp = _anthropic_request(prompt, temperature=temperature, max_tokens=max_tokens)
+        return {
+            "content": resp.get("completion", ""),
+            "tool_calls": None,
+            "usage": {
+                "prompt_tokens": resp.get("usage", {}).get("prompt_tokens", 0),
+                "completion_tokens": resp.get("usage", {}).get("completion_tokens", 0),
+                "total_tokens": resp.get("usage", {}).get("total_tokens", 0),
+            },
+        }
+
     kwargs = {
         "model": MODEL,
         "messages": messages,
@@ -79,7 +141,7 @@ def chat(messages, tools=None, tool_choice="auto", temperature=None, max_tokens=
                 "total_tokens": resp.usage.total_tokens if resp.usage else 0,
             },
         }
-        if msg.tool_calls:
+        if getattr(msg, "tool_calls", None):
             result["tool_calls"] = [
                 {
                     "id": tc.id,

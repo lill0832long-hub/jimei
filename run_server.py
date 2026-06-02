@@ -5,7 +5,7 @@ import os
 import time
 
 PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
-PYTHON = r"C:\Users\Administrator\AppData\Local\Programs\Python\Python312\python.exe"
+PYTHON = r"F:\tools\Python311\python.exe"
 APP = os.path.join(PROJECT_DIR, "app.py")
 LOG = os.path.join(PROJECT_DIR, "server_output.log")
 

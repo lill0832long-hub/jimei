@@ -8,7 +8,9 @@
       "Bash(tasklist *)",
       "Bash(taskkill *)",
       "Read(//mnt/e/ClaudeCode/**)",
-      "Read(//e/ClaudeCode/**)"
+      "Read(//e/ClaudeCode/**)",
+      "Bash(cmd /c \"where python\")",
+      "Bash(cmd /c \"dir /s /b F:\\\\Python*\\\\python.exe 2>nul\")"
     ]
   }
 }

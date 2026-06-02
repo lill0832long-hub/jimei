@@ -38,6 +38,9 @@ voucher_final*
 voucher_login*
 voucher_table_test*
 
+# Runtime data (chat history, session data, etc.)
+data/
+
 # Misc temp
 tmp/
 e319e8cc*.png
