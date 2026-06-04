@@ -10,7 +10,11 @@
       "Read(//mnt/e/ClaudeCode/**)",
       "Read(//e/ClaudeCode/**)",
       "Bash(cmd /c \"where python\")",
-      "Bash(cmd /c \"dir /s /b F:\\\\Python*\\\\python.exe 2>nul\")"
+      "Bash(cmd /c \"dir /s /b F:\\\\Python*\\\\python.exe 2>nul\")",
+      "Bash(node -e \"const {execSync}=require('child_process'); console.log(execSync('tasklist /FI \\\"IMAGENAME eq node.exe\\\" /FO LIST').toString())\")",
+      "Bash(cmd /c \"schtasks /query /fo LIST /v\")",
+      "Bash(powershell -Command \"Get-ScheduledTask | Select-Object TaskName, State | Format-Table -AutoSize\")",
+      "Bash(powershell -Command \"Get-Process | Select-Object Id, ProcessName | Format-Table -AutoSize\")"
     ]
   }
 }
