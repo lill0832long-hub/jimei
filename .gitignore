@@ -1,80 +1,45 @@
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.egg-info/
-venv/
-.venv/
-
-# Database
-*.db
-*.db-journal
-*.db-shm
-*.db-wal
-
-# Logs & temp
-*.log
-*.bak
+﻿*.log
 *.tmp
-*.swp
-
-# Cache
-.api_cache/
-
-# Backups
-backups/
-app/backups/
-
-# Test & temp scripts
-*_test*.py
-*_patch*.py
-*_additions*.py
-
-# Scraper scripts & artifacts
-scrape_*
-view_voucher.py
-voucher_page_*
-voucher_final*
-voucher_login*
-voucher_table_test*
-
-# Runtime data (chat history, session data, etc.)
-data/
-
-# Misc temp
-tmp/
-e319e8cc*.png
-split_db.py
-PLAN_*.md
-check_nav.py
-test_navigation.py
-list_modules.js
-tmp_screenshots/
-
-# Annotations (user design notes, not for repo)
-.claude/annotations/
-
-# Docs (keep in workspace, not in repo)
-*_报告.md
-*_计划.md
-*_讨论*.md
-OPTIMIZATION_STATUS.md
-ROADMAP.md
-TECHNICAL_ARCHITECTURE.md
-
-# OS
-.DS_Store
-Thumbs.db
-
-# IDE
-.vscode/
-.idea/
-*.sublime-*
-
-# Backup files
-app_v3.py
-app_v3.py.bak
-database_v3.py
-.gstack/
-.claude/scheduled_tasks.lock
-.env
+*.bak
+check*.js
+check*.ps1
+copy*.js
+copy*.ps1
+copy*.bat
+do_all*.ps1
+find_a_stock.*
+hardware_report.txt
+kill_and_read.ps1
+kill_lhm.js
+read_all.ps1
+read_config.js
+read_temp*.ps1
+read_temp*.js
+read_temp*.cs
+read_temp_debug.ps1
+read_temp_edge*.js
+read_temp_final.js
+read_temp_inline*.js
+read_temp_si.js
+read_temp_v*.ps1
+read_wmi*.js
+read_wmi*.ps1
+run_admin*.ps1
+run_as_admin*.ps1
+run_debug*.ps1
+run_elevated*.ps1
+run_kill_and_read.ps1
+run_v*.ps1
+run_wmi_check.ps1
+start_lhm*.js
+start_lhm*.ps1
+temp_result.txt
+verify.js
+wmi_result.txt
+write_log.js
+debug_output.txt
+*.dll
+node_modules/
+package-lock.json
+package.json
+ReadTemp/
