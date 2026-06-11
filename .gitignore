@@ -52,3 +52,15 @@ verify.js
 wmi_result.txt
 write_log.js
 debug_output.txt
+
+# A股风云调试脚本
+find_*.js
+kill_*.ps1
+list_routes.py
+restart_server.ps1
+run_build*.py
+run_server_*.py
+start_*.py
+start_server.py
+test_*.js
+test_*.py
