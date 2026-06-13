@@ -1,6 +1,6 @@
 /* ============================================================
-   Sidebar — 暖色系左侧导航
-   核心：所有二级菜单图标严格纵向对齐
+   Sidebar — AI财务系统「量子」主题侧边栏
+   深蓝黑底 + 紫色强调 + 发光效果
    ============================================================ */
 
 /* ── 容器 ── */
@@ -14,7 +14,7 @@
 .sidebar-nav {
     width: var(--sidebar-width);
     min-width: var(--sidebar-width);
-    background: var(--sidebar-bg);
+    background: var(--gradient-sidebar) !important;
     padding: 0 0 8px 0;
     overflow-y: auto;
     overflow-x: hidden;
@@ -28,9 +28,6 @@
     width: var(--sidebar-width-collapsed) !important;
     min-width: var(--sidebar-width-collapsed) !important;
 }
-body[data-theme="dark"] .sidebar-nav {
-    background: var(--sidebar-bg);
-}
 
 /* ── Logo 区域 ── */
 .sidebar-logo {
@@ -38,23 +35,26 @@ body[data-theme="dark"] .sidebar-nav {
     display: flex;
     align-items: center;
     padding: 0 16px;
-    gap: 10px;
+    gap: 12px;
     flex-shrink: 0;
     border-bottom: 1px solid var(--sidebar-divider);
     margin-bottom: 8px;
+    background: rgba(0,0,0,0.2);
 }
 .sidebar-logo-icon {
-    font-size: 30px;
+    font-size: 28px;
     color: var(--sidebar-logo-icon);
     flex-shrink: 0;
+    filter: drop-shadow(0 2px 8px rgba(167,139,250,0.4));
 }
 .sidebar-logo-text {
-    font-size: 21px;
+    font-size: 20px;
     font-weight: 700;
     color: var(--sidebar-logo-text);
     white-space: nowrap;
-    letter-spacing: -0.1px;
+    letter-spacing: 0.5px;
     transition: opacity var(--transition-fast);
+    text-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 /* ── 分组标题（一级菜单） ── */
@@ -67,22 +67,24 @@ body[data-theme="dark"] .sidebar-nav {
     cursor: pointer;
     user-select: none;
     border-radius: 0;
-    margin: 6px 0 2px 0;
-    width: 100%;
+    margin: 8px 8px 4px 8px;
+    width: calc(100% - 16px);
     background: transparent;
     border: none;
-    transition: color var(--transition-fast);
-    color: rgba(255,255,255,0.55);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    color: rgba(167,139,250,0.5);
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 2px;
     line-height: 1;
 }
 .sidebar-group-header:hover {
-    color: rgba(255,255,255,0.8);
+    color: rgba(167,139,250,0.8);
+    background: rgba(124,58,237,0.06);
 }
 .sidebar-group-header--expanded {
-    color: rgba(255,255,255,0.65);
+    color: rgba(167,139,250,0.65);
 }
 .sidebar-group-icon {
     font-size: 21px;
@@ -119,11 +121,11 @@ body[data-theme="dark"] .sidebar-nav {
 .sidebar-group-divider {
     display: block;
     height: 1px;
-    background: var(--sidebar-divider);
-    margin: 4px 16px;
+    background: linear-gradient(90deg, transparent, var(--sidebar-divider), transparent);
+    margin: 6px 16px;
 }
 
-/* ── 二级菜单项（关键：图标对齐 + 均匀间距） ── */
+/* ── 二级菜单项 ── */
 .sidebar-menu-item {
     display: flex !important;
     align-items: center !important;
@@ -136,7 +138,8 @@ body[data-theme="dark"] .sidebar-nav {
     color: var(--sidebar-text-primary);
     border-left: 2px solid transparent;
     transition: background var(--transition-fast), color var(--transition-fast),
-                border-color var(--transition-fast), padding var(--transition-fast);
+                border-color var(--transition-fast), padding var(--transition-fast),
+                transform 0.2s ease, box-shadow 0.2s ease;
     margin: 2px 8px;
     padding: 0 !important;
     gap: 0 !important;
@@ -147,14 +150,16 @@ body[data-theme="dark"] .sidebar-nav {
 }
 .sidebar-menu-item:hover {
     background: var(--sidebar-bg-hover);
-    color: rgba(255,255,255,0.95);
-    border-left-color: rgba(255,255,255,0.1);
+    color: rgba(232,228,240,0.95);
+    border-left-color: rgba(167,139,250,0.3);
+    transform: translateX(3px);
+    box-shadow: 0 2px 12px rgba(124,58,237,0.1);
 }
 .sidebar-menu-item > * {
     box-sizing: border-box;
 }
 
-/* ── 图标槽位（固定宽度，所有组严格对齐） ── */
+/* ── 图标槽位 ── */
 .sidebar-menu-icon {
     font-size: 21px;
     opacity: 0.45;
@@ -167,11 +172,15 @@ body[data-theme="dark"] .sidebar-nav {
     align-items: center;
     justify-content: center;
     text-align: center;
-    transition: opacity var(--transition-fast), color var(--transition-fast);
+    transition: opacity var(--transition-fast), color var(--transition-fast), transform 0.2s ease;
     box-sizing: border-box;
 }
+.sidebar-menu-item:hover .sidebar-menu-icon {
+    opacity: 0.8 !important;
+    transform: scale(1.1);
+}
 
-/* ── 文字标签（flex 填充，居中对齐） ── */
+/* ── 文字标签 ── */
 .sidebar-menu-label {
     font-size: 18px;
     white-space: nowrap;
@@ -185,20 +194,22 @@ body[data-theme="dark"] .sidebar-nav {
     transition: font-weight var(--transition-fast);
 }
 
-/* ── 选中态 ── */
+/* ── 选中态（紫色发光） ── */
 .sidebar-menu-active {
     background: var(--sidebar-bg-active) !important;
     color: var(--sidebar-accent-light) !important;
     border-left-color: var(--sidebar-accent) !important;
-    box-shadow: inset 0 0 20px var(--sidebar-accent-glow);
+    box-shadow: inset 0 0 24px var(--sidebar-accent-glow),
+                0 0 16px rgba(124,58,237,0.1);
 }
 .sidebar-menu-active:hover {
-    background: rgba(196,120,74,0.2) !important;
-    color: #F0C4A0 !important;
+    background: rgba(124,58,237,0.2) !important;
+    color: #C4B5FD !important;
 }
 .sidebar-menu-active .sidebar-menu-icon {
     opacity: 1 !important;
     color: var(--sidebar-accent) !important;
+    filter: drop-shadow(0 0 6px rgba(167,139,250,0.5));
 }
 .sidebar-menu-active .sidebar-menu-label {
     font-weight: 600 !important;
@@ -224,7 +235,7 @@ body[data-theme="dark"] .sidebar-nav {
     transition: color var(--transition-fast), background var(--transition-fast);
 }
 .sidebar-collapse-btn:hover {
-    color: rgba(255,255,255,0.7) !important;
+    color: rgba(167,139,250,0.8) !important;
     background: var(--sidebar-bg-hover) !important;
 }
 
@@ -242,8 +253,8 @@ body[data-theme="dark"] .sidebar-nav {
 }
 .sidebar-nav.sidebar-collapsed .sidebar-menu-item {
     justify-content: center !important;
-    width: 36px !important;
-    margin: 2px 6px !important;
+    width: 44px !important;
+    margin: 2px auto !important;
     border-left: none !important;
 }
 .sidebar-nav.sidebar-collapsed .sidebar-menu-icon {
@@ -263,137 +274,56 @@ body[data-theme="dark"] .sidebar-nav {
     top: 50%;
     transform: translateY(-50%);
     margin-left: 10px;
-    padding: 5px 10px;
-    background: #3D2E20;
-    color: rgba(255,255,255,0.9);
+    padding: 6px 12px;
+    background: rgba(13,17,23,0.95);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    color: var(--c-text-primary);
     font-size: 18px;
     font-weight: 500;
-    border-radius: 6px;
+    border-radius: 8px;
+    border: 1px solid var(--c-border);
     white-space: nowrap;
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--transition-fast), transform var(--transition-fast);
     z-index: 9999;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.4), 0 0 8px rgba(124,58,237,0.1);
 }
 .sidebar-nav.sidebar-collapsed .sidebar-menu-item:hover::before {
     opacity: 1;
-    transform: translateY(-50%) translateX(2px);
+    transform: translateY(-50%) translateX(4px);
 }
 
-
-/* ===== 美化侧边栏 ===== */
-
-/* 侧边栏整体渐变背景 */
-.sidebar-nav {
-    background: linear-gradient(180deg, #2D2620 0%, #3D342C 100%) !important;
-    border-right: 1px solid rgba(255,255,255,0.08) !important;
-}
-
-/* Logo 区域美化 */
-.sidebar-logo {
-    background: rgba(0,0,0,0.15);
-    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
-    padding: 12px 16px !important;
-}
-
-.sidebar-logo-icon {
-    filter: drop-shadow(0 2px 4px rgba(196,120,74,0.3));
-}
-
-.sidebar-logo-text {
-    text-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-/* 分组标题美化 */
-.sidebar-group-header {
-    margin: 8px 8px 4px 8px !important;
-    padding: 8px 12px !important;
-    border-radius: 6px !important;
-    background: rgba(255,255,255,0.03) !important;
-    transition: all 0.2s ease !important;
-}
-
-.sidebar-group-header:hover {
-    background: rgba(255,255,255,0.06) !important;
-}
-
-/* 分组分隔线美化 */
-.sidebar-group-divider {
-    margin: 6px 16px !important;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.08), transparent) !important;
-}
-
-/* 菜单项美化 */
-.sidebar-menu-item {
-    margin: 2px 8px !important;
-    border-radius: 8px !important;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
-    position: relative;
-    overflow: hidden;
-}
-
-/* 菜单项悬停效果 - 带发光 */
-.sidebar-menu-item:hover {
-    background: rgba(255,255,255,0.08) !important;
-    transform: translateX(2px);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-}
-
-/* 菜单项选中态 - 更突出 */
-.sidebar-menu-active {
-    background: linear-gradient(135deg, rgba(196,120,74,0.2), rgba(196,120,74,0.1)) !important;
-    border-left: 3px solid #C4784A !important;
-    box-shadow: 0 2px 12px rgba(196,120,74,0.15), inset 0 0 20px rgba(196,120,74,0.05) !important;
-}
-
-.sidebar-menu-active .sidebar-menu-icon {
-    opacity: 1 !important;
-    color: #E8A87C !important;
-}
-
-.sidebar-menu-active .sidebar-menu-label {
-    color: #E8A87C !important;
-    font-weight: 600 !important;
-}
-
-/* 图标美化 */
-.sidebar-menu-icon {
-    transition: all 0.2s ease !important;
-}
-
-.sidebar-menu-item:hover .sidebar-menu-icon {
-    opacity: 0.8 !important;
-    transform: scale(1.1);
-}
-
-/* 滚动条美化 */
+/* ── 滚动条 ── */
 .sidebar-nav::-webkit-scrollbar {
-    width: 6px !important;
+    width: 5px !important;
 }
-
+.sidebar-nav::-webkit-scrollbar-track {
+    background: transparent !important;
+}
 .sidebar-nav::-webkit-scrollbar-thumb {
-    background: rgba(196,120,74,0.3) !important;
+    background: rgba(124,58,237,0.2) !important;
     border-radius: 3px !important;
 }
-
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
-    background: rgba(196,120,74,0.5) !important;
+    background: rgba(124,58,237,0.4) !important;
 }
 
-/* 添加微妙的动画效果 */
+/* ── 菜单级联入场动画 ── */
 @keyframes sidebarItemFadeIn {
-    from { opacity: 0; transform: translateX(-10px); }
-    to { opacity: 1; transform: translateX(0); }
+    from { opacity: 0; transform: translateX(-12px); }
+    to   { opacity: 1; transform: translateX(0); }
 }
 
 .sidebar-menu-item {
     animation: sidebarItemFadeIn 0.3s ease forwards;
 }
-
-/* 每个菜单项延迟一点，形成级联效果 */
 .sidebar-menu-item:nth-child(1) { animation-delay: 0.02s; }
 .sidebar-menu-item:nth-child(2) { animation-delay: 0.04s; }
 .sidebar-menu-item:nth-child(3) { animation-delay: 0.06s; }
 .sidebar-menu-item:nth-child(4) { animation-delay: 0.08s; }
 .sidebar-menu-item:nth-child(5) { animation-delay: 0.10s; }
+.sidebar-menu-item:nth-child(6) { animation-delay: 0.12s; }
+.sidebar-menu-item:nth-child(7) { animation-delay: 0.14s; }
+.sidebar-menu-item:nth-child(8) { animation-delay: 0.16s; }
