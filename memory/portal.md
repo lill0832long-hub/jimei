@@ -56,7 +56,7 @@ metadata:
 | 服务 | 端口 | 说明 |
 |------|------|------|
 | 9090 Portal | 9090 | 统一门户（自身） |
-| OpenClaw | 18789 | AI Gateway |
+| OpenClaw | 3000 | AI Gateway |
 | AI财务系统 | 8090 | AI Finance System V5.1 |
 | A股风云 | 9200 | 实时行情看板 |
 | Remotion Studio | 3002 | 视频编辑工作台 |
