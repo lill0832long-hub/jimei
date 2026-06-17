@@ -65,4 +65,4 @@ start_*.py
 start_*.ps1
 start_server.py
 test_*.js
-test_*.py
+test_*.py.pip-packages/
