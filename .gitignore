@@ -1,19 +1,38 @@
-﻿**/__pycache__/**
+# ── 字节码 ──
+__pycache__/
 *.pyc
 *.pyo
+
+# ── 日志 / 临时 ──
 *.log
 *.tmp
 *.bak
+debug_output.txt
+hardware_report.txt
+temp_result.txt
+wmi_result.txt
+server_out.log
+
+# ── 环境 / 密钥 ──
 .env
-*.dll
-node_modules/
-package-lock.json
-package.json
-ReadTemp/
-data/
+
+# ── 数据库 ──
 finance_v2.db
 finance_v2.db-shm
 finance_v2.db-wal
+data/
+
+# ── 依赖 ──
+node_modules/
+.pip-packages/
+package.json
+package-lock.json
+.pytest_cache/
+
+# ── .NET DLL ──
+*.dll
+
+# ── 调试 / 临时脚本 ──
 check*.js
 check*.ps1
 copy*.js
@@ -21,9 +40,8 @@ copy*.ps1
 copy*.bat
 do_all*.ps1
 find_a_stock.*
-hardware_report.txt
-kill_and_read.ps1
-kill_lhm.js
+kill_*.ps1
+kill_*.js
 read_all.ps1
 read_config.js
 read_temp*.ps1
@@ -46,17 +64,13 @@ run_v*.ps1
 run_wmi_check.ps1
 start_lhm*.js
 start_lhm*.ps1
-temp_result.txt
 update_gitignore.ps1
 verify.js
-wmi_result.txt
 write_log.js
-debug_output.txt
 
-# A股风云调试脚本
+# ── A股风云调试脚本 ──
 check_syntax.py
 find_*.js
-kill_*.ps1
 list_routes.py
 restart_server.ps1
 run_build*.py
@@ -65,4 +79,7 @@ start_*.py
 start_*.ps1
 start_server.py
 test_*.js
-test_*.py.pip-packages/
+test_*.py
+
+# ── 其他 ──
+ReadTemp/
