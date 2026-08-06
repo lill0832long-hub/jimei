@@ -15,6 +15,7 @@ server_out.log
 
 # ── 环境 / 密钥 ──
 .env
+.claude/settings.local.json
 
 # ── 数据库 ──
 finance_v2.db
@@ -83,3 +84,4 @@ test_*.py
 
 # ── 其他 ──
 ReadTemp/
+karpathy_2026/

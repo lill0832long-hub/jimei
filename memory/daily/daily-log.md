@@ -1,5 +1,58 @@
 # 每日工作日志
 
+## 2026-07-17
+
+### 完成的工作
+
+#### 1. 项目验证
+- 验证 V5.1 财务系统运行正常（端口 8090，NiceGUI 3.13.0）
+- 确认依赖完整（FastAPI 0.136.3, Uvicorn 0.49.0, SQLAlchemy 2.0.50 等）
+- 依赖安装在 `.pip-packages/`，通过 PYTHONPATH 注入
+
+#### 2. Git 仓库整理（3472 文件 → 0）
+- **根因**: `.gitignore` 损坏（BOM + CRLF + 第68行语法错误 `test_*.py.pip-packages/`）
+- 清理并重写 `.gitignore`，提交 3 个文件
+- 升级 nicegui 1.4→3.0，删除旧启动器 `run_server.py`
+- 添加 `.pip-packages/` 到忽略列表
+
+#### 3. GitHub 项目研究
+- **AndrejKarpathy_2026_FocusProjects**: 7个AI系统工程项目（CodeLensAI/QueryForge/VentureMind）
+- **QuantDinger**: 开源 AI 量化交易基础设施（Agent Gateway + MCP Server + 多券商）
+
+#### 4. A股风云修复（核心工作）
+
+**启动问题修复**:
+- config.json 路径 `F:\学习` → `F:\study`（WinError 267）
+- 修复 PYTHONPATH `astock-pkg` → 系统 Python + 依赖
+
+**数据引擎重建（5项全完成）**:
+
+| 指标 | 修复前 | 修复后 |
+|------|--------|--------|
+| 情绪样本 | 23 只 | **4997 只** |
+| 板块覆盖 | 0 个 | **49 个** |
+| 资金流 | 失真数据 | **真实北向 + 成交额** |
+| 情绪加权 | 无 | **等权 + 市值加权** |
+| 历史追踪 | 无 | **60天 + 均线** |
+
+**前端修复**:
+- JS 语法错误（缺引号）→ 整页崩溃
+- showStockDetail 导出到 window.Dashboard → onclick 找到函数
+- 折叠区域自动展开
+- POST /api/refresh 实时生成 + 渲染
+
+**API 审计**:
+- 可用: `kamt.rtmin`（北向实时）+ `kamt.kline`（北向日K）
+- 封锁: `clist`、`ulist.np`、`stock/fflow/daykline`
+
+### 待明天继续
+- 前端板块渲染验证
+- 概念板块接入（百度 + 申万）
+- 行业资金流前端展示
+- 情绪历史趋势迷你图
+
+---
+
 ## 2026-06-11
 
 ### 完成的工作
